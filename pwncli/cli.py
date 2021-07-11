@@ -1,5 +1,6 @@
 import click
 import os
+import sys
 from collections import OrderedDict
 
 __all__ = ['gift', 'cli']
@@ -54,7 +55,7 @@ class AliasedGroup(click.Group):
             except ImportError:
                 raise
             return mod.cli
-        ctx.fail('Too many matches: %s' % ', '.join(sorted(matches)))
+        ctx.abort('cli --> Too many matches: %s' % ', '.join(sorted(matches)))
         
         
 
@@ -65,11 +66,23 @@ class Environment:
         self._treasure = _treasure
         pass
 
+    def abort(self, msg=None, **args):
+        if args:
+            msg %= args
+        click.secho("[---] Abort: {}".format(msg), fg='black', bg='red', err=1)
+        raise click.Abort()
+
     def _log(self, msg, *args):
         """Logs a message to stdout."""
         if args:
             msg %= args
         click.secho("[***] INFO: {}".format(msg), fg='green')
+
+    def _log2(self, msg, *args):
+        """Logs an important message to stdout."""
+        if args:
+            msg %= args
+        click.secho("[###] IMPORTANT INFO: {}".format(msg), fg='blue')
 
     def _errlog(self, msg, *args):
         """Logs a message to stderr."""
@@ -81,6 +94,11 @@ class Environment:
         """Logs a message to stdout only if verbose is enabled."""
         if self.verbose:
             self._log(msg, *args)
+
+    def vlog2(self, msg, *args):
+        """Logs a message to stdout only if verbose is enabled."""
+        if self.verbose:
+            self._log2(msg, *args)
 
     def verrlog(self, msg, *args):
         """Logs a message to stderr only if verbose is enabled."""
@@ -96,24 +114,30 @@ def _set_filename(ctx, filename, msg=None):
         if os.path.exists(filename) and os.path.isfile(filename):
             ctx.filename = filename
             if not msg:
-                ctx.vlog("cli set 'filename': {}".format(filename))
+                ctx.vlog("cli --> Set 'filename': {}".format(filename))
             else:
                 ctx.vlog(msg)
         else:
-            ctx.verrlog("Wrong filename!")
-            raise click.Abort()
+            ctx.abort("cli --> Wrong 'filename'!")
+
 
 @click.command(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
-@click.option('-f', '--filename', type=str, default=None, help="Elf file path to pwn.")
-@click.option('-ns', '--no-stop', is_flag=True, help="Use the 'stop' function or not.")
-@click.option('-v', '--verbose', is_flag=True, help="Show more info or not.")
+@click.option('-f', '--filename', type=str, default=None, show_default=True, help="Elf file path to pwn.")
+@click.option('-ns', '--no-stop', is_flag=True, show_default=True, help="Use the 'stop' function or not.")
+@click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
 @pass_environ
 def cli(ctx, filename, no_stop, verbose): # ctx: command property
     ctx.verbose = verbose
+    ctx.fromcli = sys.argv[0].endswith('pwncli')
+    if ctx.fromcli:
+        ctx.vlog("cli --> Use 'pwncli' from command line")
+    else:
+        ctx.vlog("cli --> Use 'pwncli' from python script")
     if verbose:
-        ctx.vlog("cli open verbose mode")
+        ctx.vlog("cli --> Open 'verbose' mode")
     _set_filename(ctx, filename)
     _treasure['no_stop'] = no_stop
-    ctx.vlog("cli set 'stop_function' status: {}".format("closed" if no_stop else "open"))
+    ctx.vlog("cli --> Set 'stop_function' status: {}".format("closed" if no_stop else "open"))
+
 
 
