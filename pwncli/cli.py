@@ -65,6 +65,12 @@ class Environment:
         self._treasure = _treasure
         pass
 
+    def abort(self, msg=None, **args):
+        if args:
+            msg %= args
+        click.secho("[---] Abort: {}".format(msg), fg='black', bg='red', err=1)
+        raise click.Abort()
+
     def _log(self, msg, *args):
         """Logs a message to stdout."""
         if args:
@@ -100,8 +106,8 @@ def _set_filename(ctx, filename, msg=None):
             else:
                 ctx.vlog(msg)
         else:
-            ctx.verrlog("Wrong filename!")
-            raise click.Abort()
+            ctx.verrlog("Wrong 'filename'!")
+            ctx.abort()
 
 @click.command(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 @click.option('-f', '--filename', type=str, default=None, help="Elf file path to pwn.")
@@ -111,9 +117,10 @@ def _set_filename(ctx, filename, msg=None):
 def cli(ctx, filename, no_stop, verbose): # ctx: command property
     ctx.verbose = verbose
     if verbose:
-        ctx.vlog("cli open verbose mode")
+        ctx.vlog("cli open 'verbose' mode")
     _set_filename(ctx, filename)
     _treasure['no_stop'] = no_stop
     ctx.vlog("cli set 'stop_function' status: {}".format("closed" if no_stop else "open"))
+
 
 
