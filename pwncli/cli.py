@@ -63,7 +63,7 @@ class Environment:
     global gift, _treasure
     def __init__(self):
         self.gift = gift
-        self._treasure = _treasure
+        self.treasure = _treasure
         pass
 
     def abort(self, msg=None, **args):
@@ -123,22 +123,24 @@ def _set_filename(ctx, filename, msg=None):
 
 @click.command(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
 @click.option('-f', '--filename', type=str, default=None, show_default=True, help="Elf file path to pwn.")
-@click.option('-ns', '--no-stop', is_flag=True, show_default=True, help="Use the 'stop' function or not.")
+@click.option('-g', '--use-gdb', is_flag=True, show_default=True, help="Always use gdb to debug.")
+@click.option('-ns', '--no-stop', is_flag=True, show_default=True, help="Use the 'stop' function or not. Only for python script.")
 @click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
 @pass_environ
-def cli(ctx, filename, no_stop, verbose): # ctx: command property
+def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
     ctx.verbose = verbose
+    ctx.use_gdb = use_gdb
     ctx.fromcli = sys.argv[0].endswith('pwncli')
+    if use_gdb:
+        ctx.vlog("cli --> Set 'use-gdb' flag")
+
     if ctx.fromcli:
         ctx.vlog("cli --> Use 'pwncli' from command line")
     else:
         ctx.vlog("cli --> Use 'pwncli' from python script")
+        ctx.treasure['no_stop'] = no_stop
+        ctx.vlog("cli --> Set 'stop_function' status: {}".format("closed" if no_stop else "open"))
+        
     if verbose:
         ctx.vlog("cli --> Open 'verbose' mode")
     _set_filename(ctx, filename)
-    _treasure['no_stop'] = no_stop
-    ctx.vlog("cli --> Set 'stop_function' status: {}".format("closed" if no_stop else "open"))
-
-
-
-

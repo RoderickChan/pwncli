@@ -12,7 +12,7 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
     dirname = os.path.dirname(os.path.abspath(ctx.filename))
     if flag & 1:
         terminal = ['tmux', 'splitw', '-h']
-    elif which('cmd.exe'):
+    elif (flag & 2) and which('cmd.exe'):
         if is_file:
             subcmd = " {}\"".format("-x " + gdb_script)
         else:
@@ -62,9 +62,14 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
     if terminal:
         context.terminal = terminal
         ctx.vlog("debug-command --> Set terminal: '{}'".format(' '.join(terminal)))
+        attach(target=p, gdbscript=script)
     else:
-        ctx.vlog2("debug-command --> Terminal not set, no tmux, no wsl, the default terminal will be used!")
-    attach(target=p, gdbscript=script)
+        if ctx.use_gdb:
+            ctx.vlog2("debug-command --> No tmux, no wsl, but use the pwntools' default terminal to use gdb because of use-gdb setting.")
+            attach(target=p, gdbscript=script)
+            return
+        ctx.vlog2("debug-command --> Terminal not set, no tmux, no wsl")
+    
 
 
 def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script):
@@ -72,10 +77,12 @@ def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_
         filename = None
         
     _set_filename(ctx, filename, msg="debug-command --> Set 'filename': {}".format(filename))
+    t_flag = 0
     # check tmux
     if tmux and (not bool('TMUX' in os.environ and which('tmux'))):
         ctx.abort(msg="debug-command 'tmux' --> Not in tmux")
     if tmux:
+        t_flag = 1
         wsl = None
     # check wsl
     if wsl:
@@ -85,6 +92,7 @@ def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_
                 is_wsl = b'icrosoft' in f.read()
         if (not is_wsl) or (not which('wsl.exe')):
             ctx.abort(msg="debug-command 'wsl' --> Not in wsl")
+        t_flag = 2
 
     # process bps
     is_file = False
@@ -132,11 +140,11 @@ def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_
     ctx.gift['io'] = p
     ctx.vlog('debug-command --> Set process({})'.format(ctx.filename))
 
-    flag = 1 if tmux else 2
     if attach_mode == 'auto':
         attach_mode = 'tmux' if tmux else 'wsl-o'
-    _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script)
-    if ctx.fromcli: # from cli
+    _set_terminal(ctx, p, t_flag, attach_mode, script, is_file, gdb_script)
+
+    if ctx.fromcli: # from cli, keep interactive
         p.interactive()
 
 
@@ -153,6 +161,19 @@ def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_
 def cli(ctx, verbose, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script):
     """
     Debug the pwn file locally.
+
+    \b
+    For cli:
+        pwncli -v debug -f ./executable
+    For python script:
+        first:
+            from pwncli import *
+            cli.main(standalone_mode=False)
+            p = gift['io']
+            p.send(data)
+            p.interactive()
+        then: 
+            ./yourownscript -v debug -f ./executable -t
     """
     ctx.vlog("Welcome to use pwncli-debug command~")
     if not ctx.verbose:
@@ -169,7 +190,3 @@ def cli(ctx, verbose, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_brea
     ctx.vlog("debug-command --> Get 'gdb_script': {}".format(gdb_script))
     _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script)
     ctx.gift['debug'] = True
-    pass
-
-
-# cli()
