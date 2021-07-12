@@ -8,8 +8,11 @@ __all__ = ['gift', 'cli']
 gift = OrderedDict() # public property
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
+
 _treasure  = OrderedDict() # internal property
 _init_all = True # init all commands flag
+
+
 class AliasedGroup(click.Group):
     def __init__(self, name=None, **attrs):
         click.Group.__init__(self, name, invoke_without_command=0,**attrs)
@@ -130,9 +133,12 @@ def _set_filename(ctx, filename, msg=None):
 def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
     ctx.verbose = verbose
     ctx.use_gdb = use_gdb
-    ctx.fromcli = sys.argv[0].endswith('pwncli')
+    ctx.fromcli = sys.argv[0].endswith('/pwncli') # Use this tool from cli or python script
     if use_gdb:
         ctx.vlog("cli --> Set 'use-gdb' flag")
+
+    if verbose:
+        ctx.vlog("cli --> Open 'verbose' mode")
 
     if ctx.fromcli:
         ctx.vlog("cli --> Use 'pwncli' from command line")
@@ -140,7 +146,6 @@ def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
         ctx.vlog("cli --> Use 'pwncli' from python script")
         ctx.treasure['no_stop'] = no_stop
         ctx.vlog("cli --> Set 'stop_function' status: {}".format("closed" if no_stop else "open"))
-        
-    if verbose:
-        ctx.vlog("cli --> Open 'verbose' mode")
+
     _set_filename(ctx, filename)
+

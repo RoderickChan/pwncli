@@ -2,11 +2,9 @@ import functools
 import time
 from enum import Enum, unique
 
-__all__  = ['int16', 'int8', 'int2', 'time_count', 'SleepMode', 'sleep_call']
+__all__  = ['time_count', 'SleepMode', 'sleep_call']
 
-int16 = functools.partial(int, base=16)
-int8 = functools.partial(int, base=8)
-int2 = functools.partial(int, base=2)
+
 
 def time_count(func):
     """

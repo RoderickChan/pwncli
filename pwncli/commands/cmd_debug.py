@@ -170,7 +170,8 @@ def cli(ctx, verbose, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_brea
             from pwncli import *
             cli.main(standalone_mode=False)
             p = gift['io']
-            p.send(data)
+            p.recvuntil('xxxx')
+            p.send('data')
             p.interactive()
         then: 
             ./yourownscript -v debug -f ./executable -t

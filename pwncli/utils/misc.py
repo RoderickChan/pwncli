@@ -1,8 +1,13 @@
 import sys
 import os
+import functools
 from pwncli.cli import _treasure, gift
 
-__all__ = ['stop', 'log_address', 'FontColor', 'BackgroundColor', 'TerminalMode', 'get_str_with_color', 'print_color']
+__all__ = ['int16', 'int8', 'int2', 'stop', 'log_address', 'FontColor', 'BackgroundColor', 'TerminalMode', 'get_str_with_color', 'print_color']
+
+int16 = functools.partial(int, base=16)
+int8 = functools.partial(int, base=8)
+int2 = functools.partial(int, base=2)
 
 def stop():
     """
@@ -16,18 +21,19 @@ def stop():
     mode_name = ''
     lineno, pid = -1, -1
     try:
+        # try to get file line number
         f = sys._getframe().f_back
         mode_name = os.path.split(f.f_code.co_filename)[1]
         func_name = f.f_code.co_name
         lineno = f.f_lineno
     except:
         lineno = -1
-        pass
-    try:
+
+    # try to get pid
+    if gift.get('io', None):
         pid = gift['io'].proc.pid
-    except:
-        pid = -1
-        pass
+
+
     msg = '[*] stop'
     if lineno != -1:
         msg += ' at module: {}  function: {}  line: {}'.format(mode_name, func_name, lineno)
@@ -133,5 +139,35 @@ def print_color(print_str: str, *,
                              terminal_mode=terminal_mode))
 
 
+# r-g-b str
+rstr = functools.partial(get_str_with_color, 
+                    font_color=FontColor.RED, 
+                    background_color=BackgroundColor.NOCOLOR, 
+                    terminal_mode=TerminalMode.DEFAULT)
+
+gstr = functools.partial(get_str_with_color, 
+                    font_color=FontColor.GREEN, 
+                    background_color=BackgroundColor.NOCOLOR, 
+                    terminal_mode=TerminalMode.DEFAULT)
+
+bstr = functools.partial(get_str_with_color, 
+                    font_color=FontColor.BLUE, 
+                    background_color=BackgroundColor.NOCOLOR, 
+                    terminal_mode=TerminalMode.DEFAULT) 
 
 
+# r-g-b print
+rprint = functools.partial(print_color, 
+                    font_color=FontColor.RED, 
+                    background_color=BackgroundColor.NOCOLOR, 
+                    terminal_mode=TerminalMode.DEFAULT)
+
+gprint = functools.partial(print_color, 
+                    font_color=FontColor.GREEN, 
+                    background_color=BackgroundColor.NOCOLOR, 
+                    terminal_mode=TerminalMode.DEFAULT)
+
+bprint = functools.partial(print_color, 
+                    font_color=FontColor.BLUE, 
+                    background_color=BackgroundColor.NOCOLOR, 
+                    terminal_mode=TerminalMode.DEFAULT)
