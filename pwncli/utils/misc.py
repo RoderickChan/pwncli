@@ -1,45 +1,45 @@
 import sys
 import os
 import functools
-from pwncli.cli import _treasure, gift
 
-__all__ = ['int16', 'int8', 'int2', 'stop', 'log_address', 'FontColor', 'BackgroundColor', 'TerminalMode', 'get_str_with_color', 'print_color']
+__all__ = ['int16', 
+           'int8', 
+           'int2',  
+           'log_address', 
+           'FontColor', 
+           'BackgroundColor', 
+           'TerminalMode', 
+           'get_str_with_color', 
+           'print_color',
+           'rstr',
+           'gstr',
+           'bstr',
+           'rprint',
+           'gprint',
+           'bprint',
+           'log',
+           'log2',
+           'errlog']
 
 int16 = functools.partial(int, base=16)
 int8 = functools.partial(int, base=8)
 int2 = functools.partial(int, base=2)
 
-def stop():
+
+def get_callframe_info(depth:int=2):
     """
-    stop the program and print the caller's info
-    :return:
+    get callframe info
+    :return: module_name, func_name, lineno
     """
-    if _treasure.get('no_stop', None):
-        return
-
-    func_name = ''
-    mode_name = ''
-    lineno, pid = -1, -1
-    try:
-        # try to get file line number
-        f = sys._getframe().f_back
-        mode_name = os.path.split(f.f_code.co_filename)[1]
-        func_name = f.f_code.co_name
-        lineno = f.f_lineno
-    except:
-        lineno = -1
-
-    # try to get pid
-    if gift.get('io', None):
-        pid = gift['io'].proc.pid
-
-
-    msg = '[*] stop'
-    if lineno != -1:
-        msg += ' at module: {}  function: {}  line: {}'.format(mode_name, func_name, lineno)
-    if pid != -1:
-        msg += '  local pid: {}'.format(pid)
-    input(msg)
+    if depth < 1:
+        raise OSError("depth must be bigger than 1")
+    bf = sys._getframe()
+    for i in range(depth - 1):
+        bf = bf.f_back
+    module_name = os.path.split(bf.f_code.co_filename)[1]
+    func_name = bf.f_code.co_name
+    lineno = bf.f_lineno
+    return module_name, func_name, lineno
 
 
 def log_address(desc:str, address:int):
@@ -87,10 +87,8 @@ class TerminalMode:
 
 def __check(font_color: int, background_color: int, terminal_mode: int) -> bool:
     b1 = (font_color >= FontColor.BLACK and font_color <= FontColor.WHITE)
-    b2 = (
-                     background_color >= BackgroundColor.BLACK and background_color <= BackgroundColor.WHITE) or background_color == BackgroundColor.NOCOLOR
-    b3 = (
-                terminal_mode >= TerminalMode.DEFAULT and terminal_mode <= TerminalMode.INVISIBLE and terminal_mode != 2 and terminal_mode != 3 and terminal_mode != 6)
+    b2 = (background_color >= BackgroundColor.BLACK and background_color <= BackgroundColor.WHITE) or background_color == BackgroundColor.NOCOLOR
+    b3 = (terminal_mode >= TerminalMode.DEFAULT and terminal_mode <= TerminalMode.INVISIBLE and terminal_mode != 2 and terminal_mode != 3 and terminal_mode != 6)
     return (b1 and b2 and b3)
 
 
@@ -171,3 +169,24 @@ bprint = functools.partial(print_color,
                     font_color=FontColor.BLUE, 
                     background_color=BackgroundColor.NOCOLOR, 
                     terminal_mode=TerminalMode.DEFAULT)
+
+
+def log(msg, *args):
+    """Logs a message to stdout."""
+    if args:
+        msg %= args
+    gprint("[***] INFO: {}".format(msg))
+
+
+def log2(msg, *args):
+    """Logs an important message to stdout."""
+    if args:
+        msg %= args
+    bprint("[###] IMPORTANT INFO: {}".format(msg))
+
+
+def errlog(msg, *args):
+    """Logs a message to stderr."""
+    if args:
+        msg %= args
+    rprint("[!!!] ERROR: {}".format(msg))

@@ -1,7 +1,17 @@
+""" pwncli main command module, the entry point is 'cli'
+
+pwncli is a command-line tool for doing pwn attack using 'click' and 'pwntools' 
+in CTF, and this tool can also be used through other python script. The goal of 
+pwncli is "Just pwn, don't waste time on preparing exp".
+
+Example of click is https://github.com/pallets/click/tree/main/examples/complex
+Thanks fo click, it's a wonderful python-cli tool.
+"""
 import click
 import os
 import sys
 from collections import OrderedDict
+from pwncli.utils.config import read_ini
 
 __all__ = ['gift', 'cli']
 
@@ -10,7 +20,7 @@ CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
 _treasure  = OrderedDict() # internal property
-_init_all = True # init all commands flag
+_init_all_subcommands = True # init all commands flag
 
 
 class AliasedGroup(click.Group):
@@ -26,7 +36,7 @@ class AliasedGroup(click.Group):
         if len(self._all_commands) == 0:
             raise click.Abort("No command!")
         self._all_commands.sort()
-        if _init_all:
+        if _init_all_subcommands:
             self._used_commands = self._all_commands
         
 
@@ -67,6 +77,7 @@ class Environment:
     def __init__(self):
         self.gift = gift
         self.treasure = _treasure
+        self.config_data = None
         pass
 
     def abort(self, msg=None, **args):
@@ -75,19 +86,22 @@ class Environment:
         click.secho("[---] Abort: {}".format(msg), fg='black', bg='red', err=1)
         raise click.Abort()
 
-    def _log(self, msg, *args):
+    @staticmethod
+    def _log(msg, *args):
         """Logs a message to stdout."""
         if args:
             msg %= args
         click.secho("[***] INFO: {}".format(msg), fg='green')
 
-    def _log2(self, msg, *args):
+    @staticmethod
+    def _log2(msg, *args):
         """Logs an important message to stdout."""
         if args:
             msg %= args
         click.secho("[###] IMPORTANT INFO: {}".format(msg), fg='blue')
 
-    def _errlog(self, msg, *args):
+    @staticmethod
+    def _errlog(msg, *args):
         """Logs a message to stderr."""
         if args:
             msg %= args
@@ -98,10 +112,12 @@ class Environment:
         if self.verbose:
             self._log(msg, *args)
 
+
     def vlog2(self, msg, *args):
         """Logs a message to stdout only if verbose is enabled."""
         if self.verbose:
             self._log2(msg, *args)
+
 
     def verrlog(self, msg, *args):
         """Logs a message to stderr only if verbose is enabled."""
@@ -143,9 +159,19 @@ def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
     if ctx.fromcli:
         ctx.vlog("cli --> Use 'pwncli' from command line")
     else:
-        ctx.vlog("cli --> Use 'pwncli' from python script")
+        ctx.vlog("cli --> Use 'pwncli' from python script. Please run 'cli.main(standalone_mode=False)' to enable cli.")
         ctx.treasure['no_stop'] = no_stop
         ctx.vlog("cli --> Set 'stop_function' status: {}".format("closed" if no_stop else "open"))
 
     _set_filename(ctx, filename)
+
+    # init config file
+    ctx.config_data = read_ini(os.path.abspath('~/.pwncli.conf'))
+    ctx.vlog("cli --> Read config data from ~/.pwncli.conf")
+
+    # init debug/remote flag
+    ctx.gift['debug'] = False
+    ctx.gift['remote'] = False
+
+
 

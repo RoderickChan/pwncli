@@ -191,3 +191,4 @@ def cli(ctx, verbose, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_brea
     ctx.vlog("debug-command --> Get 'gdb_script': {}".format(gdb_script))
     _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script)
     ctx.gift['debug'] = True
+    context.log_level='debug'

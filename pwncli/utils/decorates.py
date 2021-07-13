@@ -5,7 +5,6 @@ from enum import Enum, unique
 __all__  = ['time_count', 'SleepMode', 'sleep_call']
 
 
-
 def time_count(func):
     """
     A decorate: count the time used by function
@@ -29,6 +28,7 @@ class SleepMode(Enum):
     BEFORE = 1
     AFTER = 2
     ALL = 3
+
 
 def sleep_call(second: int = 1, mod: SleepMode = SleepMode.BEFORE):
     """
