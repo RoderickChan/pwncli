@@ -4,7 +4,7 @@ from pwn import context, process, which
 from pwnlib.gdb import attach
 import os
 import sys
-from pwncli.cli import pass_environ, CONTEXT_SETTINGS, _set_filename
+from pwncli.cli import pass_environ, _set_filename
 
 
 def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
@@ -73,10 +73,9 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
 
 
 def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script):
-    if getattr(ctx, 'filename', 'error') != 'error':
-        filename = None
-        
-    _set_filename(ctx, filename, msg="debug-command --> Set 'filename': {}".format(filename))
+    if getattr(ctx, 'filename', None) is None:
+        _set_filename(ctx, filename, msg="debug-command --> Set 'filename': {}".format(filename))
+    
     t_flag = 0
     # check tmux
     if tmux and (not bool('TMUX' in os.environ and which('tmux'))):
@@ -138,6 +137,8 @@ def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_
 
     p = process(ctx.filename)
     ctx.gift['io'] = p
+    ctx.gift['elf'] = ctx.gift['io'].elf
+    ctx.gift['libc'] = ctx.gift['elf'].libc
     ctx.vlog('debug-command --> Set process({})'.format(ctx.filename))
 
     if attach_mode == 'auto':
@@ -148,9 +149,9 @@ def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_
         p.interactive()
 
 
-@click.command(name='debug', short_help="Debug the pwn file locally.", context_settings=CONTEXT_SETTINGS)
+@click.command(name='debug', short_help="Debug the pwn file locally.")
+@click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
-@click.option('-f', '--filename', type=str, default=None, show_default=True, help="Elf file path to pwn.")
 @click.option('-t', '--tmux', is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
 @click.option('-w', '--wsl', is_flag=True, show_default=True, help="Use ubuntu.exe to gdb-debug or not.")
 @click.option('-a', '--attach-mode', type=click.Choice(['auto', 'tmux', 'wsl-b', 'wsl-u', 'wsl-o', 'wsl-wt']), nargs=1, default='auto', show_default=True, help="Gdb attach mode, wsl: bash.exe | wsl: ubuntu1234.exe | wsl: open-wsl.exe | wsl: wt.exe wsl.exe")
@@ -159,22 +160,21 @@ def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_
 @click.option('-gs', '--gdb-script', default=None, type=str, show_default=True, help="Set gdb commands like '-ex' or '-x' while gdb-debug is used, the content will be passed to gdb and use ';' to split lines. Besides eval-commands, file path is supported.")
 @pass_environ
 def cli(ctx, verbose, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script):
-    """
-    Debug the pwn file locally.
+    """FILENAME: The ELF filename.
 
     \b
     For cli:
-        pwncli -v debug -f ./executable
+        pwncli -v debug ./executable -t -a -gd malloc
     For python script:
-        first:
+        script content:
             from pwncli import *
             cli.main(standalone_mode=False)
             p = gift['io']
             p.recvuntil('xxxx')
             p.send('data')
             p.interactive()
-        then: 
-            ./yourownscript -v debug -f ./executable -t
+        then start from cli: 
+            ./yourownscript -v debug ./executable -t
     """
     ctx.vlog("Welcome to use pwncli-debug command~")
     if not ctx.verbose:

@@ -16,7 +16,7 @@ from pwncli.utils.config import read_ini
 __all__ = ['gift', 'cli']
 
 gift = OrderedDict() # public property
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+_CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
 _treasure  = OrderedDict() # internal property
@@ -130,7 +130,7 @@ pass_environ = click.make_pass_decorator(Environment, ensure=True)
 def _set_filename(ctx, filename, msg=None):
     if filename is not None:
         # set filename and check
-        if os.path.exists(filename) and os.path.isfile(filename):
+        if os.path.isfile(filename):
             ctx.filename = filename
             if not msg:
                 ctx.vlog("cli --> Set 'filename': {}".format(filename))
@@ -140,13 +140,17 @@ def _set_filename(ctx, filename, msg=None):
             ctx.abort("cli --> Wrong 'filename'!")
 
 
-@click.command(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
+@click.command(cls=AliasedGroup, context_settings=_CONTEXT_SETTINGS)
 @click.option('-f', '--filename', type=str, default=None, show_default=True, help="Elf file path to pwn.")
 @click.option('-g', '--use-gdb', is_flag=True, show_default=True, help="Always use gdb to debug.")
 @click.option('-ns', '--no-stop', is_flag=True, show_default=True, help="Use the 'stop' function or not. Only for python script.")
 @click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
 @pass_environ
 def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
+    """
+    pwncli tools for pwner!
+
+    """
     ctx.verbose = verbose
     ctx.use_gdb = use_gdb
     ctx.fromcli = sys.argv[0].endswith('/pwncli') # Use this tool from cli or python script
@@ -167,7 +171,10 @@ def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
 
     # init config file
     ctx.config_data = read_ini(os.path.abspath('~/.pwncli.conf'))
-    ctx.vlog("cli --> Read config data from ~/.pwncli.conf")
+    if ctx.config_data:
+        ctx.vlog("cli --> Read config data from ~/.pwncli.conf success!")
+    else:
+        ctx.verrlog("cli --> Read config data from ~/.pwncli.conf fail!")
 
     # init debug/remote flag
     ctx.gift['debug'] = False

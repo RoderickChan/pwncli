@@ -8,7 +8,6 @@ def read_ini(filenames:str) -> configparser.ConfigParser:
     parser = configparser.ConfigParser()
     data = parser.read(filenames)
     if len(data) == 0:
-        errlog("config --> Read failed!")
         return None
     return data
 
