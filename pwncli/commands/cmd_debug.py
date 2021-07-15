@@ -65,7 +65,7 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
         attach(target=p, gdbscript=script)
     else:
         if ctx.use_gdb:
-            ctx.vlog2("debug-command --> No tmux, no wsl, but use the pwntools' default terminal to use gdb because of use-gdb setting.")
+            ctx.vlog2("debug-command --> No tmux, no wsl, but use the pwntools' default terminal to use gdb because of use-gdb enabled.")
             attach(target=p, gdbscript=script)
             return
         ctx.vlog2("debug-command --> Terminal not set, no tmux, no wsl")
