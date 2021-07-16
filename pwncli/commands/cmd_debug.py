@@ -101,7 +101,7 @@ def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_
             is_file = True
         else:
             script = gdb_script.strip().replace(';', '\n') + '\n'
-    if (not gdb_breakpoint) and len(gdb_breakpoint) > 0:
+    if gdb_breakpoint and len(gdb_breakpoint) > 0:
         for gb in gdb_breakpoint:
             if gb.startswith('0x') or gb.startswith('$rebase('):
                 script += 'b *{}\n'.format(gb)
@@ -135,15 +135,14 @@ def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_
         ctx.vlog2("debug-command --> No 'filename'!")
         return
 
-    p = process(ctx.filename)
-    ctx.gift['io'] = p
+    ctx.gift['io'] = process(ctx.filename)
     ctx.gift['elf'] = ctx.gift['io'].elf
     ctx.gift['libc'] = ctx.gift['elf'].libc
     ctx.vlog('debug-command --> Set process({})'.format(ctx.filename))
 
     if attach_mode == 'auto':
         attach_mode = 'tmux' if tmux else 'wsl-o'
-    _set_terminal(ctx, p, t_flag, attach_mode, script, is_file, gdb_script)
+    _set_terminal(ctx, ctx.gift['io'], t_flag, attach_mode, script, is_file, gdb_script)
 
     if ctx.fromcli: # from cli, keep interactive
         p.interactive()
@@ -192,3 +191,4 @@ def cli(ctx, verbose, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_brea
     _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script)
     ctx.gift['debug'] = True
     context.log_level='debug'
+    ctx.vlog("debug-command --> Set 'context.log_level': debug")

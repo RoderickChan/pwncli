@@ -1,7 +1,7 @@
 import click
 import os
 from pwncli.cli import pass_environ, _set_filename
-from pwn import remote, ELF
+from pwn import remote, ELF,context
 
 
 def do_remote(ctx, filename, target, ip, port):
@@ -17,15 +17,15 @@ def do_remote(ctx, filename, target, ip, port):
         else:
             target = temp
             filename = None
-    else: # filename is None and target is None
-        # little check
-        if ip is None or port is None or len(ip) == 0 or port <= 0:
+    elif ip is None or port is None or len(ip) == 0 or port <= 0: # little check
             ctx.abort("remote-command --> Cannot get the victim host!")
 
     if getattr(ctx, 'filename', None) is None:
         _set_filename(ctx, filename, msg="remote-command --> Set 'filename': {}".format(filename))
-    ctx.gift['elf'] = ELF(filename)
-    ctx.gift['libc'] = ctx.gift['elf'].libc
+        
+    if filename:
+        ctx.gift['elf'] = ELF(filename)
+        ctx.gift['libc'] = ctx.gift['elf'].libc
     
     if target:
         ip, port = target.strip().split(';')
@@ -38,11 +38,10 @@ def do_remote(ctx, filename, target, ip, port):
     else:
         ctx.abort("remote-command --> Cannot get the victim host!")
     
-    r = remote(ip, port)
-    ctx.gift['io'] = r
+    ctx.gift['io'] = remote(ip, port)
 
     if ctx.fromcli:
-        r.interactive()
+        ctx.gift['io'].interactive()
 
 
 @click.command(name='remote', short_help="Pwn remote host.")
@@ -71,3 +70,5 @@ def cli(ctx, filename, target, ip, port):
     ctx.vlog("remote-command --> Get 'filename': {}".format(filename))
     ctx.gift['remote'] = True
     do_remote(ctx, filename, target, ip, port)
+    context.log_level='debug'
+    ctx.vlog("remote-command --> Set 'context.log_level': debug")

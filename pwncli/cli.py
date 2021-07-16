@@ -143,7 +143,7 @@ def _set_filename(ctx, filename, msg=None):
 @click.command(cls=AliasedGroup, context_settings=_CONTEXT_SETTINGS)
 @click.option('-f', '--filename', type=str, default=None, show_default=True, help="Elf file path to pwn.")
 @click.option('-g', '--use-gdb', is_flag=True, show_default=True, help="Always use gdb to debug.")
-@click.option('-ns', '--no-stop', is_flag=True, show_default=True, help="Use the 'stop' function or not. Only for python script.")
+@click.option('-ns', '--no-stop', is_flag=True, show_default=True, help="Use the 'stop' function or not. Only for debug-command using python script.")
 @click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
 @pass_environ
 def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
