@@ -6,17 +6,17 @@ from pwncli.utils.config import *
 
 def do_setproxy(ctx, set_proxy):
     if set_proxy == 'notset':
-        return
+        return None
     ctx.vlog("remote-command --> Get 'set_proxy': {}".format(set_proxy))
 
     if not ctx.config_data:
         ctx.verrlog("remote-command --> Set-proxy failed do to no config data!")
-        return
+        return None
 
     data = ctx.config_data
     if not data.has_section('proxy'):
         ctx.verrlog("remote-command --> Config data has no section named 'proxy'!")
-        return
+        return None
     
     proxy_setting = data['proxy']
     socks_type = {1:"socks4", 2:"socks5", 3:"http"}
@@ -39,8 +39,9 @@ def do_setproxy(ctx, set_proxy):
     username = data['username'] if 'username' in data else None
     passwd = data['passwd'] if 'passwd' in data else None
     rdns = bool(data['rdns']) if 'rdns' in data else True
+    proxy_descripe = ('proxy_type', 'proxy_host', "proxy_port", "rdns", "username", "passwd")
     proxy_data = (proxy_type, proxy_host, proxy_port, rdns, username, passwd)
-    ctx.vlog("remote-command --> Set proxy: {}".format(proxy_data[:-1]))
+    ctx.vlog("remote-command --> Set proxy: {}".format(dict(zip(proxy_descripe, proxy_data[:-1] + ('******',)))))
 
     if set_proxy == "default":
         context.proxy = proxy_data
@@ -72,9 +73,6 @@ def do_remote(ctx, filename, target, ip, port, set_proxy):
 
     if getattr(ctx, 'filename', None) is None:
         _set_filename(ctx, filename, msg="remote-command --> Set 'filename': {}".format(filename))
-    
-    # set proxy
-    s = do_setproxy(ctx, set_proxy)
 
     if filename:
         context.binary = ctx.filename
@@ -92,6 +90,8 @@ def do_remote(ctx, filename, target, ip, port, set_proxy):
     else:
         ctx.abort("remote-command --> Cannot get the victim host!")
     
+    # set proxy
+    s = do_setproxy(ctx, set_proxy)
     if s is None:
         ctx.gift['io'] = remote(ip, port)
     else:
@@ -116,7 +116,7 @@ def cli(ctx, filename, target, ip, port, verbose, set_proxy):
 
     \b
     For remote target:
-        pwncli -v remote ./pwn 127.0.0.2:23333
+        pwncli -v remote ./pwn 127.0.0.2:23333 --set-proxy=default
     Or to Specify the ip and port:
         pwncli -v remote -i 127.0.0.1 -p 23333
     """
@@ -126,11 +126,15 @@ def cli(ctx, filename, target, ip, port, verbose, set_proxy):
     if verbose:
         ctx.vlog("remote-command --> Open 'verbose' mode")
 
-    ctx.vlog("remote-command --> Get 'filename': {}".format(filename))
     ctx.gift['remote'] = True
+    ll = try_get_config(ctx.config_data, 'context', 'log_level')
+    if ll is None:
+        ll = 'debug'
+    context.log_level = ll
+    ctx.vlog("remote-command --> Set 'context.log_level': {}".format(ll))
+
+    if ip is None:
+        ip = try_get_config(ctx.config_data, 'remote', 'ip')
     do_remote(ctx, filename, target, ip, port, set_proxy.lower())
 
-    ll = try_get_config(ctx.config_data, 'context', 'log_level')
-    context.log_level = ll if ll is not None else 'debug'
-
-    ctx.vlog("remote-command --> Set 'context.log_level': {}".format(context.log_level))
+    

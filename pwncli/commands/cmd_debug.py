@@ -198,9 +198,13 @@ def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gd
     ctx.vlog("debug-command --> Get 'qemu_gdbport': {}".format(qemu_gdbremote))
     ctx.vlog("debug-command --> Get 'gdb_breakpoint': {}".format(gdb_breakpoint))
     ctx.vlog("debug-command --> Get 'gdb_script': {}".format(gdb_script))
-    _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script)
-    ctx.gift['debug'] = True
 
+    ctx.gift['debug'] = True
     ll = try_get_config(ctx.config_data, 'context', 'log_level')
-    context.log_level = ll if ll is not None else 'debug'
+    if ll is None:
+        ll = 'debug'
+    context.log_level = ll
     ctx.vlog("debug-command --> Set 'context.log_level': {}".format(context.log_level))
+
+    _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script)
+    
