@@ -72,9 +72,16 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
     
 
 
-def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script):
+def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script):
+    
+    # set filename
     if getattr(ctx, 'filename', None) is None:
         _set_filename(ctx, filename, msg="debug-command --> Set 'filename': {}".format(filename))
+    # set argv
+    if argv:
+        argv = argv.strip().split()
+    else:
+        argv = []
     
     t_flag = 0
     # check tmux
@@ -93,7 +100,7 @@ def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_
             ctx.abort(msg="debug-command 'wsl' --> Not in wsl")
         t_flag = 2
 
-    # process bps
+    # process gdb-scripts
     is_file = False
     script = ''
     if gdb_script:
@@ -135,7 +142,8 @@ def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_
         ctx.vlog2("debug-command --> No 'filename'!")
         return
 
-    ctx.gift['io'] = process(ctx.filename)
+    context.binary = ctx.filename
+    ctx.gift['io'] = context.binary.process(argv)
     ctx.gift['elf'] = ctx.gift['io'].elf
     ctx.gift['libc'] = ctx.gift['elf'].libc
     ctx.vlog('debug-command --> Set process({})'.format(ctx.filename))
@@ -150,6 +158,7 @@ def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_
 
 @click.command(name='debug', short_help="Debug the pwn file locally.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
+@click.argument('argv', type=str, default=None, required=False, nargs=1)
 @click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
 @click.option('-t', '--tmux', is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
 @click.option('-w', '--wsl', is_flag=True, show_default=True, help="Use ubuntu.exe to gdb-debug or not.")
@@ -158,7 +167,7 @@ def _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_
 @click.option('-gb', '--gdb-breakpoint', default=[], type=str, multiple=True, show_default=True, help="Set gdb breakpoints while gdb-debug is used, it should be a hex address or '\$rebase' addr or a function name. Multiple breakpoints are supported.")
 @click.option('-gs', '--gdb-script', default=None, type=str, show_default=True, help="Set gdb commands like '-ex' or '-x' while gdb-debug is used, the content will be passed to gdb and use ';' to split lines. Besides eval-commands, file path is supported.")
 @pass_environ
-def cli(ctx, verbose, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script):
+def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script):
     """FILENAME: The ELF filename.
 
     \b
@@ -182,13 +191,16 @@ def cli(ctx, verbose, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_brea
         ctx.vlog("debug-command --> Open 'verbose' mode")
 
     ctx.vlog("debug-command --> Get 'filename': {}".format(filename))
+    ctx.vlog("debug-command --> Get 'filename': {}".format(argv))
     ctx.vlog("debug-command --> Get 'tmux': {}".format(tmux))
     ctx.vlog("debug-command --> Get 'wsl': {}".format(wsl))
     ctx.vlog("debug-command --> Get 'attach_mode': {}".format(attach_mode))
     ctx.vlog("debug-command --> Get 'qemu_gdbport': {}".format(qemu_gdbremote))
     ctx.vlog("debug-command --> Get 'gdb_breakpoint': {}".format(gdb_breakpoint))
     ctx.vlog("debug-command --> Get 'gdb_script': {}".format(gdb_script))
-    _check_set_value(ctx, filename, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script)
+    _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script)
     ctx.gift['debug'] = True
-    context.log_level='debug'
-    ctx.vlog("debug-command --> Set 'context.log_level': debug")
+
+    ll = try_get_config(ctx.config_data, 'context', 'log_level')
+    context.log_level = ll if ll is not None else 'debug'
+    ctx.vlog("debug-command --> Set 'context.log_level': {}".format(context.log_level))

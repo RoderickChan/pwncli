@@ -1,10 +1,60 @@
 import click
 import os
-from pwncli.cli import pass_environ, _set_filename
+from pwncli.cli import pass_environ, _set_filename, AliasedGroup
 from pwn import remote, ELF,context
+from pwncli.utils.config import *
+
+def do_setproxy(ctx, set_proxy):
+    if set_proxy == 'notset':
+        return
+    ctx.vlog("remote-command --> Get 'set_proxy': {}".format(set_proxy))
+
+    if not ctx.config_data:
+        ctx.verrlog("remote-command --> Set-proxy failed do to no config data!")
+        return
+
+    data = ctx.config_data
+    if not data.has_section('proxy'):
+        ctx.verrlog("remote-command --> Config data has no section named 'proxy'!")
+        return
+    
+    proxy_setting = data['proxy']
+    socks_type = {1:"socks4", 2:"socks5", 3:"http"}
+    socks_type2 = dict(zip(socks_type.values(), socks_type.keys()))
+    proxy_type = 2 # sockts5
+    
+    if 'type' in data:
+        proxy_type = data['proxy_type'].lower()
+        if proxy_type.isnumeric():
+            proxy_type = int(proxy_type)
+            if proxy_type not in socks_type:
+                ctx.abort(msg="Wrong proxy_type! Valid value:{}".format(socks_type))
+        else:
+            if proxy_type not in socks_type2:
+                ctx.abort(msg="Wrong proxy_type! Valid value:{}".format(socks_type))
+            proxy_type = socks_type2[proxy_type]
+
+    proxy_host = data['host'] if 'host' in data else "localhost"
+    proxy_port = int(data['port']) if 'port' in data else 80
+    username = data['username'] if 'username' in data else None
+    passwd = data['passwd'] if 'passwd' in data else None
+    rdns = bool(data['rdns']) if 'rdns' in data else True
+    proxy_data = (proxy_type, proxy_host, proxy_port, rdns, username, passwd)
+    ctx.vlog("remote-command --> Set proxy: {}".format(proxy_data[:-1]))
+
+    if set_proxy == "default":
+        context.proxy = proxy_data
+        return None
+    else:
+        import socks
+        import socket
+        socks.set_default_proxy(proxy_data)
+        socket.socket = socks.socksocket
+        s = socket.socket()
+        return s
 
 
-def do_remote(ctx, filename, target, ip, port):
+def do_remote(ctx, filename, target, ip, port, set_proxy):
     # detect filename and target
     if filename and target:
         if os.path.exists(target):
@@ -22,13 +72,17 @@ def do_remote(ctx, filename, target, ip, port):
 
     if getattr(ctx, 'filename', None) is None:
         _set_filename(ctx, filename, msg="remote-command --> Set 'filename': {}".format(filename))
-        
+    
+    # set proxy
+    s = do_setproxy(ctx, set_proxy)
+
     if filename:
+        context.binary = ctx.filename
         ctx.gift['elf'] = ELF(filename)
         ctx.gift['libc'] = ctx.gift['elf'].libc
     
     if target:
-        ip, port = target.strip().split(';')
+        ip, port = target.strip().split(':')
         ip = ip.strip()
         port = int(port)
         ctx.vlog("remote-command --> Get 'target': {}".format(target))
@@ -38,7 +92,11 @@ def do_remote(ctx, filename, target, ip, port):
     else:
         ctx.abort("remote-command --> Cannot get the victim host!")
     
-    ctx.gift['io'] = remote(ip, port)
+    if s is None:
+        ctx.gift['io'] = remote(ip, port)
+    else:
+        s.connect((ip, port))
+        ctx.gift['io'] = remote.fromsocket(s)
 
     if ctx.fromcli:
         ctx.gift['io'].interactive()
@@ -47,11 +105,12 @@ def do_remote(ctx, filename, target, ip, port):
 @click.command(name='remote', short_help="Pwn remote host.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.argument("target", required=False, nargs=1, default=None, type=str)
+@click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
+@click.option('-sp', '--set-proxy', type=click.Choice(['notset', 'default', 'primitive']), show_default=True, default='notset', help="Use proxy from config data or not. default: pwntools context proxy; primitive: pure socks connection proxy.")
 @click.option('-i', '--ip', default=None, show_default=True, type=str, nargs=1, help='The remote ip addr.')
 @click.option('-p', '--port', default=None, show_default=True, type=int, nargs=1, help='The remote port.')
-@click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
 @pass_environ
-def cli(ctx, filename, target, ip, port):
+def cli(ctx, filename, target, ip, port, verbose, set_proxy):
     """FILENAME: ELF filename.\n
     TARGET: Target victim.
 
@@ -69,6 +128,9 @@ def cli(ctx, filename, target, ip, port):
 
     ctx.vlog("remote-command --> Get 'filename': {}".format(filename))
     ctx.gift['remote'] = True
-    do_remote(ctx, filename, target, ip, port)
-    context.log_level='debug'
-    ctx.vlog("remote-command --> Set 'context.log_level': debug")
+    do_remote(ctx, filename, target, ip, port, set_proxy.lower())
+
+    ll = try_get_config(ctx.config_data, 'context', 'log_level')
+    context.log_level = ll if ll is not None else 'debug'
+
+    ctx.vlog("remote-command --> Set 'context.log_level': {}".format(context.log_level))

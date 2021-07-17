@@ -13,7 +13,7 @@ import sys
 from collections import OrderedDict
 from pwncli.utils.config import read_ini
 
-__all__ = ['gift', 'cli']
+__all__ = ['gift', 'cli_script']
 
 gift = OrderedDict() # public property
 _CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
@@ -22,8 +22,22 @@ _CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 _treasure  = OrderedDict() # internal property
 _init_all_subcommands = True # init all commands flag
 
-
 class AliasedGroup(click.Group):
+    def get_command(self, ctx, cmd_name):
+        cmd = click.Group.get_command(self, ctx, cmd_name)
+        if cmd is not None:
+            return cmd
+        matches = [x for x in self.list_commands(ctx) if x.startswith(cmd_name)]
+        if not matches:
+            return None
+        elif len(matches) == 1:
+            return click.Group.get_command(self, ctx, matches[0])
+        else:
+            ctx.abort('cli --> Too many matches: %s' % ', '.join(sorted(matches)))
+
+
+
+class CommandsAliasedGroup(click.Group):
     def __init__(self, name=None, **attrs):
         click.Group.__init__(self, name, invoke_without_command=0,**attrs)
         self._all_commands = []
@@ -68,7 +82,8 @@ class AliasedGroup(click.Group):
             except ImportError:
                 raise
             return mod.cli
-        ctx.abort('cli --> Too many matches: %s' % ', '.join(sorted(matches)))
+        else:
+            ctx.abort('cli --> Too many matches: %s' % ', '.join(sorted(matches)))
         
         
 
@@ -140,7 +155,7 @@ def _set_filename(ctx, filename, msg=None):
             ctx.abort("cli --> Wrong 'filename'!")
 
 
-@click.command(cls=AliasedGroup, context_settings=_CONTEXT_SETTINGS)
+@click.command(cls=CommandsAliasedGroup, context_settings=_CONTEXT_SETTINGS)
 @click.option('-f', '--filename', type=str, default=None, show_default=True, help="Elf file path to pwn.")
 @click.option('-g', '--use-gdb', is_flag=True, show_default=True, help="Always use gdb to debug.")
 @click.option('-ns', '--no-stop', is_flag=True, show_default=True, help="Use the 'stop' function or not. Only for debug-command using python script.")
@@ -170,7 +185,7 @@ def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
     _set_filename(ctx, filename)
 
     # init config file
-    ctx.config_data = read_ini(os.path.abspath('~/.pwncli.conf'))
+    ctx.config_data = read_ini(os.path.expanduser('~/.pwncli.conf'))
     if ctx.config_data:
         ctx.vlog("cli --> Read config data from ~/.pwncli.conf success!")
     else:
@@ -179,6 +194,10 @@ def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
     # init debug/remote flag
     ctx.gift['debug'] = False
     ctx.gift['remote'] = False
+
+
+def cli_script(sd_mode=False):
+    cli.main(standalone_mode=sd_mode)
 
 
 

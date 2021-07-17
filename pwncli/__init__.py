@@ -1,4 +1,4 @@
+from pwn import *
 from pwncli.utils import *
-
-from pwncli.cli import gift, cli
+from pwncli.cli import *
 
