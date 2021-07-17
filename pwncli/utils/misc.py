@@ -4,7 +4,8 @@ import functools
 
 __all__ = ['int16', 
            'int8', 
-           'int2',  
+           'int2',
+           'get_callframe_info',
            'log_address', 
            'FontColor', 
            'BackgroundColor', 

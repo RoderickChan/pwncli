@@ -17,7 +17,6 @@ def try_get_config(data, section, key):
     if not data.has_section(section):
         return None
     val = data[section]
-    
     return val[key] if key in val else None
 
 

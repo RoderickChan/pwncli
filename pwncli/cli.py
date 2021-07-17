@@ -22,6 +22,7 @@ _CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 _treasure  = OrderedDict() # internal property
 _init_all_subcommands = True # init all commands flag
 
+
 class AliasedGroup(click.Group):
     def get_command(self, ctx, cmd_name):
         cmd = click.Group.get_command(self, ctx, cmd_name)
@@ -36,10 +37,9 @@ class AliasedGroup(click.Group):
             ctx.abort('cli --> Too many matches: %s' % ', '.join(sorted(matches)))
 
 
-
 class CommandsAliasedGroup(click.Group):
     def __init__(self, name=None, **attrs):
-        click.Group.__init__(self, name, invoke_without_command=0,**attrs)
+        click.Group.__init__(self, name, **attrs)
         self._all_commands = []
         self._used_commands = []
         # get all commands
@@ -55,7 +55,7 @@ class CommandsAliasedGroup(click.Group):
         
 
     def add_command(self, name:str=None):
-        """add all commands from folder `commands`"""
+        """add commands from folder `commands`"""
         if name is None:
             self._used_commands = self._all_commands
             return
@@ -67,6 +67,13 @@ class CommandsAliasedGroup(click.Group):
             self._used_commands.append(name)
             self._used_commands.sort()
         
+    
+    def del_command(self, name:str=None):
+        """del command"""
+        if name is None or (name not in self._used_commands):
+            return
+        self._used_commands.remove(name)
+
 
     def list_commands(self, ctx):
         return tuple(self._used_commands)
@@ -162,9 +169,21 @@ def _set_filename(ctx, filename, msg=None):
 @click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
 @pass_environ
 def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
-    """
-    pwncli tools for pwner!
+    """pwncli tools for pwner!
 
+    \b
+    For cli:
+        pwncli -v debug ./executable -t -a -gd malloc
+    For python script:
+        script content:
+            from pwncli import *
+            cli_script(False)
+            p = gift['io']
+            p.recvuntil('xxxx')
+            p.send('data')
+            p.interactive()
+        then start from cli: 
+            ./yourownscript -v debug ./executable -t
     """
     ctx.verbose = verbose
     ctx.use_gdb = use_gdb
@@ -189,7 +208,7 @@ def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
     if ctx.config_data:
         ctx.vlog("cli --> Read config data from ~/.pwncli.conf success!")
     else:
-        ctx.verrlog("cli --> Read config data from ~/.pwncli.conf fail!")
+        ctx.vlog2("cli --> Cannot read config data from ~/.pwncli.conf!")
 
     # init debug/remote flag
     ctx.gift['debug'] = False
