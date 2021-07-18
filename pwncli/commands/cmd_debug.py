@@ -154,12 +154,12 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
     _set_terminal(ctx, ctx.gift['io'], t_flag, attach_mode, script, is_file, gdb_script)
 
     if ctx.fromcli: # from cli, keep interactive
-        p.interactive()
+        ctx.gift['io'].interactive()
 
 
 @click.command(name='debug', short_help="Debug the pwn file locally.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
-@click.argument('argv', type=str, default=None, required=False, nargs=1)
+@click.option('--argv', type=str, default=None, required=False, show_default=True, help="Argv for process.")
 @click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
 @click.option('-t', '--tmux', is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
 @click.option('-w', '--wsl', is_flag=True, show_default=True, help="Use ubuntu.exe to gdb-debug or not.")
