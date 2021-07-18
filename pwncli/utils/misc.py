@@ -47,7 +47,7 @@ def log_address(desc:str, address:int):
     :param address: address value
     :return:
     """
-    print("[+] {} ===> {}".format(desc, address))
+    print("[+] {} ===> {}".format(desc, hex(address)))
 
 
 # print str with color

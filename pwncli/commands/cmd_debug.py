@@ -79,7 +79,7 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
     if getattr(ctx, 'filename', None) is None:
         _set_filename(ctx, filename, msg="debug-command --> Set 'filename': {}".format(filename))
     # set argv
-    if argv:
+    if argv is not None:
         argv = argv.strip().split()
     else:
         argv = []
@@ -154,12 +154,12 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
     _set_terminal(ctx, ctx.gift['io'], t_flag, attach_mode, script, is_file, gdb_script)
 
     if ctx.fromcli: # from cli, keep interactive
-        p.interactive()
+        ctx.gift['io'].interactive()
 
 
 @click.command(name='debug', short_help="Debug the pwn file locally.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
-@click.argument('argv', type=str, default=None, required=False, nargs=1)
+@click.option('--argv', type=str, default=None, required=False, show_default=True, help="Argv for process.")
 @click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
 @click.option('-t', '--tmux', is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
 @click.option('-w', '--wsl', is_flag=True, show_default=True, help="Use ubuntu.exe to gdb-debug or not.")
@@ -179,7 +179,7 @@ def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gd
         ctx.vlog("debug-command --> Open 'verbose' mode")
 
     ctx.vlog("debug-command --> Get 'filename': {}".format(filename))
-    ctx.vlog("debug-command --> Get 'filename': {}".format(argv))
+    ctx.vlog("debug-command --> Get 'argv': {}".format(argv))
     ctx.vlog("debug-command --> Get 'tmux': {}".format(tmux))
     ctx.vlog("debug-command --> Get 'wsl': {}".format(wsl))
     ctx.vlog("debug-command --> Get 'attach_mode': {}".format(attach_mode))
