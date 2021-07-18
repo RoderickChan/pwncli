@@ -11,6 +11,7 @@ from pwncli.utils.config import try_get_config
 def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
     terminal = None
     dirname = os.path.dirname(os.path.abspath(ctx.filename))
+
     if flag & 1:
         terminal = ['tmux', 'splitw', '-h']
     elif (flag & 2) and which('cmd.exe'):
@@ -147,7 +148,7 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
     ctx.gift['io'] = context.binary.process(argv)
     ctx.gift['elf'] = ctx.gift['io'].elf
     ctx.gift['libc'] = ctx.gift['elf'].libc
-    ctx.vlog('debug-command --> Set process({})'.format(ctx.filename))
+    ctx.vlog('debug-command --> Set process({}, argv={})'.format(ctx.filename, argv))
 
     if attach_mode == 'auto':
         attach_mode = 'tmux' if tmux else 'wsl-o'
@@ -171,6 +172,19 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
 def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script):
     """FILENAME: The ELF filename.
 
+    \b
+    For cli:
+        pwncli -v debug ./executable -t -a -gb malloc
+    For python script:
+        script content:
+            from pwncli import *
+            cli_script(False)
+            p = gift['io']
+            p.recvuntil('xxxx')
+            p.send('data')
+            p.interactive()
+        then start from cli: 
+            ./yourownscript -v debug ./executable -t
     """
     ctx.vlog("Welcome to use pwncli-debug command~")
     if not ctx.verbose:

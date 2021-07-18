@@ -171,19 +171,6 @@ def _set_filename(ctx, filename, msg=None):
 def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
     """pwncli tools for pwner!
 
-    \b
-    For cli:
-        pwncli -v debug ./executable -t -a -gd malloc
-    For python script:
-        script content:
-            from pwncli import *
-            cli_script(False)
-            p = gift['io']
-            p.recvuntil('xxxx')
-            p.send('data')
-            p.interactive()
-        then start from cli: 
-            ./yourownscript -v debug ./executable -t
     """
     ctx.verbose = verbose
     ctx.use_gdb = use_gdb
