@@ -178,7 +178,7 @@ def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gd
     For python script:
         script content:
             from pwncli import *
-            cli_script(False)
+            cli_script()
             p = gift['io']
             p.recvuntil('xxxx')
             p.send('data')
