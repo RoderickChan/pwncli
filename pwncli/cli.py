@@ -170,6 +170,16 @@ def _set_filename(ctx, filename, msg=None):
 @pass_environ
 def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
     """pwncli tools for pwner!
+
+    \b
+    For cli:
+        pwncli -v subcommand args
+    For python script:
+        script content:
+            from pwncli import *
+            cli_script()
+        then start from cli: 
+            ./yourownscript -v subcommand args
     """
     ctx.verbose = verbose
     ctx.use_gdb = use_gdb

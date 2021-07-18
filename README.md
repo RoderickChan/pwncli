@@ -3,12 +3,12 @@
 
 Prefix subcommand is supported on `pwncli`. For example, there's a subcommand named `debug`, and you can use this command by `pwncli debug xxxxx` or `pwncli de xxxxx` or `pwncli d xxxxx`. `pwncli` can recoginze the prefix characters and call `debug` finally. However, if the prefix characters matches two or more subcommands, an MatchError will be raised.
 
-Furthermore, it's very easy to extend new commands on `pwncli` by adding your own sub-command file named `cmd_yourcmd.py` on directory `pwncli/commands`. `pwncli` detects and loads commands automatically.
+Furthermore, it's very easy to extend new commands on `pwncli` by adding your own subcommand file named `cmd_yourcmd.py` on directory `pwncli/commands`. `pwncli` detects and loads all subcommands automatically.
 
 `pwncli` depends on [click](https://github.com/pallets/click) and [pwntools](https://github.com/Gallopsled/pwntools). The former is a wonderful command line interface tool, and the latter is a helpful CTF-toolkit.
 
 # Installation
-`pwncli` is supported on any posix-like-distribution system. If you want to do pwn on `wsl` distrbution, `Ubuntu-16.04/Ubuntu-18.04/Ubuntu-20.04` is a good choice. And you have to make sure your `wsl` distribution name hasn't been changed.
+`pwncli` is supported on any posix-like-distribution system. If you want to do pwn on `wsl` distrbution, `Ubuntu-16.04/Ubuntu-18.04/Ubuntu-20.04` is a good choice. And you have to make sure your `wsl` distribution's name hasn't been changed.
 Your need to install `click` and `pwntools` first, and then install `pwncli`:
 ```
 git clone https://github.com/RoderickChan/pwncli.git
@@ -25,7 +25,15 @@ Help documentation of pwncli will be outputted after exec `pwncli -h` or `pwncli
 Usage: pwncli [OPTIONS] COMMAND [ARGS]...
 
   pwncli tools for pwner!
-
+  
+  For cli:
+    pwncli -v subcommand args
+  For python script:
+    script content:
+        from pwncli import *
+        cli_script()
+    then start from cli: 
+        ./yourownscript -v subcommand args
 
 Options:
   -f, --filename TEXT  Elf file path to pwn.
@@ -49,18 +57,6 @@ Usage: pwncli debug [OPTIONS] [FILENAME]
 
   FILENAME: The ELF filename.
 
-  For cli:
-      pwncli -v debug ./executable -t -a -gb malloc
-  For python script:
-      script content:
-          from pwncli import *
-          cli_script()
-          p = gift['io']
-          p.recvuntil('xxxx')
-          p.send('data')
-          p.interactive()
-      then start from cli:
-          ./yourownscript -v debug ./executable -t
 
 Options:
   --argv TEXT                     Argv for process.
@@ -138,3 +134,64 @@ passwd=admin123
 rdns=True
 ```
 
+## example
+### use `debug` command through cli
+There is an elf file named `pwnme` and your `exp.py`.
+
+When you are in a tmux window and you want to set a breakpoint at `malloc` and `free`:
+```
+pwncli -v debug ./pwnme -t -gb malloc -gb free
+``` 
+
+or to specify your gdb-script `./script`:
+```
+pwncli -v debug ./pwnme -t -gs "./script"
+```
+
+When you use `wsl` and `open-wsl.exe` to debug pwn file:
+```
+pwncli -v debug ./pwnme -w -a wsl-o -gs "b malloc;b free;directory /usr/src/glibc/glibc-2.23/malloc"
+```
+
+### use `debug` command through python-script
+Content of your own script `exp.py`:
+```python
+#!/usr/bin/python3
+from pwncli import *
+
+cli_script()
+
+if gift['debug']:
+    elf = gift['elf']
+    libc = gift['libc']
+elif gift['remote']:
+    libc = ELF('./libc-2.23.so')
+
+p:tube = gift['io']
+p.sendlineafter('xxx', payload)
+stop() # stop to gdb debug
+leak_addr = u64(p.revn(8))
+log_address('leak_addr', leak_addr) # log address 
+p.interactive()
+```
+and then, use your script on cli:
+```
+./exp.py debug ./pwnme -t -gb malloc
+```
+
+### use `remote` command
+Specify ip and port:
+```
+pwncli remote ./pwnme 127.0.0.1:23333
+```
+
+If the default ip has been given in `~/.pwncli.conf`, you can just input the port:
+```
+pwncli remote -p 23333
+```
+
+Use proxy, the proxy data must be written in `~/.pwncli.conf`:
+```
+pwncli re --set-proxy=default
+```
+The `default` proxy is to set `context.proxy`, and the `primitive` proxy is to use `remote.fromsocktet` and set proxy using `socks` and `socket` modules.
