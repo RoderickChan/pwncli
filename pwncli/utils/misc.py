@@ -17,10 +17,7 @@ __all__ = ['int16',
            'bstr',
            'rprint',
            'gprint',
-           'bprint',
-           'log',
-           'log2',
-           'errlog']
+           'bprint']
 
 int16 = functools.partial(int, base=16)
 int8 = functools.partial(int, base=8)

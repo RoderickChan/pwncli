@@ -5,6 +5,7 @@ from pwnlib.gdb import attach
 import os
 import sys
 from pwncli.cli import pass_environ, _set_filename
+from pwncli.utils.config import try_get_config
 
 
 def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
