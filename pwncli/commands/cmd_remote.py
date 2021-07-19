@@ -1,5 +1,6 @@
 import click
 import os
+from collections import OrderedDict
 from pwncli.cli import pass_environ, _set_filename
 from pwn import remote, ELF,context
 from pwncli.utils.config import *
@@ -23,8 +24,8 @@ def do_setproxy(ctx, set_proxy):
     socks_type2 = dict(zip(socks_type.values(), socks_type.keys()))
     proxy_type = 2 # sockts5
     
-    if 'type' in data:
-        proxy_type = data['proxy_type'].lower()
+    if 'type' in proxy_setting:
+        proxy_type = proxy_setting['type'].lower()
         if proxy_type.isnumeric():
             proxy_type = int(proxy_type)
             if proxy_type not in socks_type:
@@ -34,14 +35,17 @@ def do_setproxy(ctx, set_proxy):
                 ctx.abort(msg="Wrong proxy_type! Valid value:{}".format(socks_type))
             proxy_type = socks_type2[proxy_type]
 
-    proxy_host = data['host'] if 'host' in data else "localhost"
-    proxy_port = int(data['port']) if 'port' in data else 80
-    username = data['username'] if 'username' in data else None
-    passwd = data['passwd'] if 'passwd' in data else None
-    rdns = bool(data['rdns']) if 'rdns' in data else True
+    proxy_host = proxy_setting['host'] if 'host' in proxy_setting else "localhost"
+    proxy_port = int(proxy_setting['port']) if 'port' in proxy_setting else 80
+    username = proxy_setting['username'] if 'username' in proxy_setting else None
+    passwd = proxy_setting['passwd'] if 'passwd' in proxy_setting else None
+    rdns = bool(proxy_setting['rdns']) if 'rdns' in proxy_setting else True
     proxy_descripe = ('proxy_type', 'proxy_host', "proxy_port", "rdns", "username", "passwd")
     proxy_data = (proxy_type, proxy_host, proxy_port, rdns, username, passwd)
-    ctx.vlog("remote-command --> Set proxy: {}".format(dict(zip(proxy_descripe, proxy_data[:-1] + ('******',)))))
+    pstr=''
+    for k, v in OrderedDict(zip(proxy_descripe, proxy_data[:-1] + ('******',))).items():
+        pstr += '{}: {}  '.format(k, v)
+    ctx.vlog("remote-command --> Set 'proxy': {}".format(pstr))
 
     if set_proxy == "default":
         context.proxy = proxy_data
@@ -49,7 +53,7 @@ def do_setproxy(ctx, set_proxy):
     else:
         import socks
         import socket
-        socks.set_default_proxy(proxy_data)
+        socks.set_default_proxy(*proxy_data)
         socket.socket = socks.socksocket
         s = socket.socket()
         return s
