@@ -105,12 +105,13 @@ def do_remote(ctx, filename, target, ip, port, set_proxy):
     if ctx.fromcli:
         ctx.gift['io'].interactive()
 
+_proxy_mode_list = ['notset', 'default', 'primitive']
 
 @click.command(name='remote', short_help="Pwn remote host.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.argument("target", required=False, nargs=1, default=None, type=str)
 @click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
-@click.option('-sp', '--set-proxy', type=click.Choice(['notset', 'default', 'primitive']), show_default=True, default='notset', help="Use proxy from config data or not. default: pwntools context proxy; primitive: pure socks connection proxy.")
+@click.option('-sp', '--set-proxy', type=click.Choice(_proxy_mode_list), show_default=True, default='notset', help="Use proxy from config data or not. default: pwntools context proxy; primitive: pure socks connection proxy.")
 @click.option('-i', '--ip', default=None, show_default=True, type=str, nargs=1, help='The remote ip addr.')
 @click.option('-p', '--port', default=None, show_default=True, type=int, nargs=1, help='The remote port.')
 @pass_environ
@@ -131,14 +132,22 @@ def cli(ctx, filename, target, ip, port, verbose, set_proxy):
         ctx.vlog("remote-command --> Open 'verbose' mode")
 
     ctx.gift['remote'] = True
+    # set log_level from config data
     ll = try_get_config(ctx.config_data, 'context', 'log_level')
     if ll is None:
         ll = 'debug'
     context.log_level = ll
     ctx.vlog("remote-command --> Set 'context.log_level': {}".format(ll))
 
+    # set ip from config data
     if ip is None:
         ip = try_get_config(ctx.config_data, 'remote', 'ip')
-    do_remote(ctx, filename, target, ip, port, set_proxy.lower())
+
+    # set proxy mode in remote from config data
+    proxy_mode = try_get_config(ctx.config_data, 'remote', 'proxy_mode')
+    if proxy_mode is not None and proxy_mode.lower() in _proxy_mode_list:
+        set_proxy = proxy_mode.lower()
+
+    do_remote(ctx, filename, target, ip, port, set_proxy)
 
     
