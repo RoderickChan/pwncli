@@ -76,10 +76,10 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
 
 
 def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script):
-    
     # set filename
     if getattr(ctx, 'filename', None) is None:
         _set_filename(ctx, filename, msg="debug-command --> Set 'filename': {}".format(filename))
+    
     # set argv
     if argv is not None:
         argv = argv.strip().split()
@@ -167,10 +167,10 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
             attach_mode = 'wsl-o'
         elif which("wt.exe"):
             attach_mode = 'wsl-wt'
-        elif which('bash.exe'):
-            attach_mode = 'wsl-b'
-        else:
+        elif which('bash.exe') is None:
             attach_mode = 'wsl-u'
+        else:
+            attach_mode = 'wsl-b' # don't know whether bash.exe is correct 
 
     # set terminal
     _set_terminal(ctx, ctx.gift['io'], t_flag, attach_mode, script, is_file, gdb_script)
