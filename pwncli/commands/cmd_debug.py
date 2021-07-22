@@ -48,11 +48,11 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
                 ctx.abort('debug-command --> Only support ubuntu 16.04/18.04/20.04 in wsl')
 
             distro_name = 'Ubuntu-{}'.format(ubu_name)
+            ubuntu_exe_name = 'ubuntu{}.exe'.format(ubu_name.replace('.', ""))
             ctx.vlog2("debug-command --> Try to find wsl distro, name '{}'".format(distro_name))
 
-            if attach_mode == 'wsl-u' and which('ubuntu'+ubu_name+'.exe'):
-                # terminal = ['cmd.exe', '/c','start', 'ubuntu'+ubu_name+'.exe', '-c'] # home directory
-                cmd_use = cmd.format('ubuntu' + ubu_name + '.exe')
+            if attach_mode == 'wsl-u' and which(ubuntu_exe_name):
+                cmd_use = cmd.format(ubuntu_exe_name)
                 ctx.vlog('debug-command --> Exec os.system({})'.format(cmd_use))
                 os.system(cmd_use)
                 return # return
@@ -61,6 +61,7 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
             elif attach_mode == 'wsl-wt' and which('wt.exe'):
                 terminal = ['cmd.exe', '/c', 'start', 'wt.exe', '-d', '\\\\wsl$\\{}{}'.format(distro_name, dirname.replace('/', '\\')),
                             'wsl.exe', '-d', distro_name, 'bash', '-c']
+    
     if terminal:
         context.terminal = terminal
         ctx.vlog("debug-command --> Set terminal: '{}'".format(' '.join(terminal)))
@@ -85,6 +86,11 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
     else:
         argv = []
     
+    # detect attach_mode
+    if attach_mode.startswith('wsl'):
+        wsl = True
+
+    # check
     t_flag = 0
     # check tmux
     if tmux and (not bool('TMUX' in os.environ and which('tmux'))):
@@ -118,7 +124,7 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
                 script += 'b {}\n'.format(gb)
     script += 'c\n'
 
-    # process special condition
+    # process special condition ---> qemu-gdbremote
     if qemu_gdbremote:
         if not bool('TMUX' in os.environ and which('tmux')):
             ctx.abort("debug-command 'qemu_gdbremote' -->  Not in tmux")
@@ -137,19 +143,23 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
         os.system(' '.join([tmux_path, 'splitw', '-h', gdbx]))
         return
 
+    # if gdb_script is file, then open it
     if is_file:
         script = open(gdb_script, 'r', encoding='utf-8')
 
+    # check filename now
     if getattr(ctx, 'filename', 'error') == 'error':
         ctx.vlog2("debug-command --> No 'filename'!")
         return
 
+    # set binary
     context.binary = ctx.filename
     ctx.gift['io'] = context.binary.process(argv)
     ctx.gift['elf'] = ctx.gift['io'].elf
     ctx.gift['libc'] = ctx.gift['elf'].libc
     ctx.vlog('debug-command --> Set process({}, argv={})'.format(ctx.filename, argv))
 
+    # set attach-mode 'auto'
     if attach_mode == 'auto':
         if tmux:
             attach_mode = 'tmux'
@@ -162,9 +172,11 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
         else:
             attach_mode = 'wsl-u'
 
+    # set terminal
     _set_terminal(ctx, ctx.gift['io'], t_flag, attach_mode, script, is_file, gdb_script)
 
-    if ctx.fromcli: # from cli, keep interactive
+    # from cli, keep interactive
+    if ctx.fromcli: 
         ctx.gift['io'].interactive()
 
 
@@ -189,6 +201,7 @@ def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gd
     if verbose:
         ctx.vlog("debug-command --> Open 'verbose' mode")
 
+    # log verbose info
     ctx.vlog("debug-command --> Get 'filename': {}".format(filename))
     ctx.vlog("debug-command --> Get 'argv': {}".format(argv))
     ctx.vlog("debug-command --> Get 'tmux': {}".format(tmux))
@@ -199,11 +212,19 @@ def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gd
     ctx.vlog("debug-command --> Get 'gdb_script': {}".format(gdb_script))
 
     ctx.gift['debug'] = True
+
+    # try to set context from config data
     ll = try_get_config(ctx.config_data, 'context', 'log_level')
     if ll is None:
         ll = 'debug'
     context.log_level = ll
-    ctx.vlog("debug-command --> Set 'context.log_level': {}".format(context.log_level))
 
+    to = try_get_config(ctx.config_data, 'context', 'timeout')
+    if to:
+        context.timeout = int(to)
+
+    ctx.vlog("debug-command --> Set 'context.log_level': {}".format(ll))
+
+    # set value
     _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script)
     

@@ -1,15 +1,15 @@
 # pwncli - Do pwn by cool command line 
 `pwncli` is a simple cli tool for pwner, which can help you to write and debug your exploit effectively. You can use `pwncli` through command-line or other python-script. 
 
-Prefix subcommand is supported on `pwncli`. For example, there's a subcommand named `debug`, and you can use this command by `pwncli debug xxxxx` or `pwncli de xxxxx` or `pwncli d xxxxx`. `pwncli` can recoginze the prefix characters and call `debug` finally. However, if the prefix characters matches two or more subcommands, an MatchError will be raised.
+Prefix subcommand is supported on `pwncli`. For example, there's a subcommand named `debug`, and you can use this command by `pwncli debug xxxxx` or `pwncli de xxxxx` or `pwncli d xxxxx`. `pwncli` can recoginze the prefix characters and call `debug` finally. However, if the prefix characters match two or more subcommands, an `MatchError` will be raised.
 
 Furthermore, it's very easy to extend new commands on `pwncli` by adding your own subcommand file named `cmd_yourcmd.py` on directory `pwncli/commands`. `pwncli` detects and loads all subcommands automatically.
 
 `pwncli` depends on [click](https://github.com/pallets/click) and [pwntools](https://github.com/Gallopsled/pwntools). The former is a wonderful command line interface tool, and the latter is a helpful CTF-toolkit.
 
 # Installation
-`pwncli` is supported on any posix-like-distribution system. If you want to do pwn on `wsl` distrbution, `Ubuntu-16.04/Ubuntu-18.04/Ubuntu-20.04` is a good choice. And you have to make sure your `wsl` distribution's name hasn't been changed.
-Your need to install `click` and `pwntools` first, and then install `pwncli`:
+`pwncli` is supported on any posix-like-distribution system. If you wanner do pwn on `wsl` distrbution, `Ubuntu-16.04/Ubuntu-18.04/Ubuntu-20.04` is a good choice. And you have to make sure your `wsl` distribution's name hasn't been changed.
+Your need to install `click` and `pwntools` first, and then install `pwncli` in current directory:
 ```
 git clone https://github.com/RoderickChan/pwncli.git
 cd ./pwncli
@@ -120,10 +120,13 @@ The example `~/.pwncli.conf`:
 ```
 [context]
 log_level=notset
+timeout=3
 
 
 [remote]
 ip=127.0.0.1
+proxy_mode=default
+
 
 [proxy]
 type=http
@@ -170,7 +173,7 @@ elif gift['remote']:
 p:tube = gift['io']
 p.sendlineafter('xxx', payload)
 stop() # stop to gdb debug
-leak_addr = u64(p.revn(8))
+leak_addr = u64(p.recvn(8))
 log_address('leak_addr', leak_addr) # log address 
 p.interactive()
 ```

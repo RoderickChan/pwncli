@@ -11,7 +11,7 @@ def read_ini(filenames:str) -> configparser.ConfigParser:
     return parser
 
 
-def try_get_config(data, section, key):
+def try_get_config(data, section, key) -> str:
     if not data:
         return None
     if not data.has_section(section):
