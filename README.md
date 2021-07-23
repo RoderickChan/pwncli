@@ -1,11 +1,11 @@
 # pwncli - Do pwn by cool command line 
 `pwncli` is a simple cli tool for pwner, which can help you to write and debug your exploit effectively. You can use `pwncli` through command-line or other python-script. 
 
-Prefix subcommand is supported on `pwncli`. For example, there's a subcommand named `debug`, and you can use this command by `pwncli debug xxxxx` or `pwncli de xxxxx` or `pwncli d xxxxx`. `pwncli` can recoginze the prefix characters and call `debug` finally. However, if the prefix characters match two or more subcommands, an `MatchError` will be raised.
+Prefix subcommand is supported on `pwncli`. For example, there's a subcommand named `debug`, and you can use this subcommand by `pwncli debug xxxxx` or `pwncli de xxxxx` or `pwncli d xxxxx`. `pwncli` is able to recoginze the prefix characters and call `debug` command finally. However, if the prefix characters match two or more subcommands, an `MatchError` will be raised.
 
 Furthermore, it's very easy to extend new commands on `pwncli` by adding your own subcommand file named `cmd_yourcmd.py` on directory `pwncli/commands`. `pwncli` detects and loads all subcommands automatically.
 
-`pwncli` depends on [click](https://github.com/pallets/click) and [pwntools](https://github.com/Gallopsled/pwntools). The former is a wonderful command line interface tool, and the latter is a helpful CTF-toolkit.
+`pwncli` mainly depends on [click](https://github.com/pallets/click) and [pwntools](https://github.com/Gallopsled/pwntools). The former is a wonderful command line interface tool, and the latter is a helpful CTF-toolkit.
 
 # Installation
 `pwncli` is supported on any posix-like-distribution system. If you wanner do pwn on `wsl` distrbution, `Ubuntu-16.04/Ubuntu-18.04/Ubuntu-20.04` is a good choice. And you have to make sure your `wsl` distribution's name hasn't been changed.
@@ -18,7 +18,7 @@ pip3 install --editable .
 
 # Usage
 ## pwncli
-Help documentation of pwncli will be outputted after exec `pwncli -h` or `pwncli --help`:
+Help documentation of `pwncli` will be outputted after exec `pwncli -h` or `pwncli --help`:
 ```
 # pwncli -h
 
@@ -69,7 +69,7 @@ Options:
                                   Gdb attach mode, wsl: bash.exe | wsl:
                                   ubuntu1234.exe | wsl: open-wsl.exe | wsl:
                                   wt.exe wsl.exe  [default: auto]
-  -qp, --qemu-gdbremote TEXT      Only used for qemu, who opens the gdb
+  -qg, --qemu-gdbremote TEXT      Only used for qemu, who opens the gdb
                                   listening port. Only tmux supported.Format:
                                   ip:port or only port for localhost.
   -gb, --gdb-breakpoint TEXT      Set gdb breakpoints while gdb-debug is used,
@@ -96,7 +96,7 @@ Usage: pwncli remote [OPTIONS] [FILENAME] [TARGET]
   TARGET: Target victim.
 
   For remote target:
-      pwncli -v remote ./pwn 127.0.0.2:23333 --set-proxy=default
+      pwncli -v remote ./pwn 127.0.0.1:23333 --set-proxy=default
   Or to Specify the ip and port:
       pwncli -v remote -i 127.0.0.1 -p 23333
 
@@ -112,11 +112,11 @@ Options:
 ```
 
 ## config file
-A config file will be read if it exists. The path is `~/.pwncli.conf`
+A config file will be read if it exists. The path is `~/.pwncli.conf`.
 
-`pwncli` reads data from config file if some option values are not gived.
+`pwncli` reads data from config file if some option values are not given.
 
-The example `~/.pwncli.conf`:
+The example of `~/.pwncli.conf`:
 ```
 [context]
 log_level=notset
@@ -137,7 +137,7 @@ passwd=admin123
 rdns=True
 ```
 
-## example
+## some examples
 ### use `debug` command through cli
 There is an elf file named `pwnme` and your `exp.py`.
 
@@ -146,12 +146,12 @@ When you are in a tmux window and you want to set a breakpoint at `malloc` and `
 pwncli -v debug ./pwnme -t -gb malloc -gb free
 ``` 
 
-or to specify your gdb-script `./script`:
+or to specify your gdb-script path `./script`:
 ```
 pwncli -v debug ./pwnme -t -gs "./script"
 ```
 
-When you use `wsl` and `open-wsl.exe` to debug pwn file:
+When you use `wsl` and `open-wsl.exe` to debug pwn file and wanner exec two or more gdb commands:
 ```
 pwncli -v debug ./pwnme -w -a wsl-o -gs "b malloc;b free;directory /usr/src/glibc/glibc-2.23/malloc"
 ```
@@ -170,16 +170,30 @@ if gift['debug']:
 elif gift['remote']:
     libc = ELF('./libc-2.23.so')
 
+# get tube
 p:tube = gift['io']
+
+#send and recv
 p.sendlineafter('xxx', payload)
-stop() # stop to gdb debug
+msg = p.recvline()
+
+# stop to debug
+stop() 
+
+# log address
 leak_addr = u64(p.recvn(8))
-log_address('leak_addr', leak_addr) # log address 
+log_address('leak_addr', leak_addr)
+
+# keep tube alive
 p.interactive()
 ```
 and then, use your script on cli:
 ```
 ./exp.py debug ./pwnme -t -gb malloc
+```
+or:
+```
+python3 exp.py -v de ./pwnme -w -gb "\$rebase(0xdead)"
 ```
 
 ### use `remote` command

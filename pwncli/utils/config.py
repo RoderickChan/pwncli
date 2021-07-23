@@ -1,9 +1,12 @@
 
 import configparser
+import os
 
 __all__ = ['read_ini', 'try_get_config']
 
 def read_ini(filenames:str) -> configparser.ConfigParser:
+    if not os.path.exists(filenames):
+        return None
     parser = configparser.ConfigParser()
     data = parser.read(filenames)
     if len(data) == 0:

@@ -4,7 +4,7 @@ from pwncli.cli import pass_environ, AliasedGroup
 
 
 @click.command(cls=AliasedGroup, name='config', short_help="Get or set something about config data.")
-@click.option('-l', '--list', type=str, default='all', required=False, show_default=True, help="List config data by section name.")
+@click.option('-l', '--list', is_flag=True, show_default=True, help="List config data by section name or not.")
 @click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
 @pass_environ
 def cli(ctx, list, verbose):
