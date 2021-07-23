@@ -33,5 +33,5 @@ def stop():
     if pid != -1:
         msg += '  local pid: {}'.format(pid)
     _ctx._log2(msg)
-    input(" Press any keys to continue......")
+    input(" Press any key to continue......")
 

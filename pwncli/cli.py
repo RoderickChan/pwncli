@@ -193,7 +193,7 @@ def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
     if ctx.fromcli:
         ctx.vlog("cli --> Use 'pwncli' from command line")
     else:
-        ctx.vlog("cli --> Use 'pwncli' from python script. Please run 'cli.main(standalone_mode=False)' to enable cli.")
+        ctx.vlog("cli --> Use 'pwncli' from python script. Please run 'cli_script()' to enable cli.")
         ctx.treasure['no_stop'] = no_stop
         ctx.vlog("cli --> Set 'stop_function' status: {}".format("closed" if no_stop else "open"))
 
@@ -211,8 +211,8 @@ def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
     ctx.gift['remote'] = False
 
 
-def cli_script(sd_mode=False):
-    cli.main(standalone_mode=sd_mode)
+def cli_script():
+    cli.main(standalone_mode=False)
 
 
 

@@ -44,6 +44,9 @@ def do_setproxy(ctx, set_proxy):
     proxy_data = (proxy_type, proxy_host, proxy_port, rdns, username, passwd)
     pstr=''
     for k, v in OrderedDict(zip(proxy_descripe, proxy_data[:-1] + ('******',))).items():
+        # make proxy_type pretty
+        if k == "proxy_type":
+            v = socks_type[v]
         pstr += '{}: {}  '.format(k, v)
     ctx.vlog("remote-command --> Set 'proxy': {}".format(pstr))
 
