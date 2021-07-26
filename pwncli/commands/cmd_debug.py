@@ -5,7 +5,7 @@ from pwnlib.gdb import attach
 import os
 import sys
 from pwncli.cli import pass_environ, _set_filename
-from pwncli.utils.config import try_get_config
+from pwncli.utils.config import try_get_config_data_by_key
 
 
 def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
@@ -214,12 +214,12 @@ def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gd
     ctx.gift['debug'] = True
 
     # try to set context from config data
-    ll = try_get_config(ctx.config_data, 'context', 'log_level')
+    ll = try_get_config_data_by_key(ctx.config_data, 'context', 'log_level')
     if ll is None:
         ll = 'debug'
     context.log_level = ll
 
-    to = try_get_config(ctx.config_data, 'context', 'timeout')
+    to = try_get_config_data_by_key(ctx.config_data, 'context', 'timeout')
     if to:
         context.timeout = int(to)
 

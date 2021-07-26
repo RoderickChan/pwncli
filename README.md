@@ -18,7 +18,7 @@ pip3 install --editable .
 
 # Usage
 ## pwncli
-Help documentation of `pwncli` will be outputted after exec `pwncli -h` or `pwncli --help`:
+Get help messages of `pwncli` by exec `pwncli -h` or `pwncli --help`:
 ```
 # pwncli -h
 

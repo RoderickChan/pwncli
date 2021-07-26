@@ -136,7 +136,7 @@ def cli(ctx, filename, target, ip, port, verbose, set_proxy):
 
     ctx.gift['remote'] = True
     # set log_level from config data
-    ll = try_get_config(ctx.config_data, 'context', 'log_level')
+    ll = try_get_config_data_by_key(ctx.config_data, 'context', 'log_level')
     if ll is None:
         ll = 'debug'
     context.log_level = ll
@@ -144,10 +144,10 @@ def cli(ctx, filename, target, ip, port, verbose, set_proxy):
 
     # set ip from config data
     if ip is None:
-        ip = try_get_config(ctx.config_data, 'remote', 'ip')
+        ip = try_get_config_data_by_key(ctx.config_data, 'remote', 'ip')
 
     # set proxy mode in remote from config data
-    proxy_mode = try_get_config(ctx.config_data, 'remote', 'proxy_mode')
+    proxy_mode = try_get_config_data_by_key(ctx.config_data, 'remote', 'proxy_mode')
     if proxy_mode is not None and proxy_mode.lower() in _proxy_mode_list:
         set_proxy = proxy_mode.lower()
 
