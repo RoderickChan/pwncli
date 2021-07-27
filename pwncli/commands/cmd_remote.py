@@ -5,10 +5,10 @@ from pwncli.cli import pass_environ, _set_filename
 from pwn import remote, ELF,context
 from pwncli.utils.config import *
 
-def do_setproxy(ctx, set_proxy):
-    if set_proxy == 'notset':
+def do_setproxy(ctx, proxy_mode):
+    if proxy_mode == 'notset':
         return None
-    ctx.vlog("remote-command --> Get 'set_proxy': {}".format(set_proxy))
+    ctx.vlog("remote-command --> Get 'proxy_mode': {}".format(proxy_mode))
 
     if not ctx.config_data:
         ctx.verrlog("remote-command --> Set-proxy failed do to no config data!")
@@ -50,7 +50,7 @@ def do_setproxy(ctx, set_proxy):
         pstr += '{}: {}  '.format(k, v)
     ctx.vlog("remote-command --> Set 'proxy': {}".format(pstr))
 
-    if set_proxy == "default":
+    if proxy_mode == "default":
         context.proxy = proxy_data
         return None
     else:
@@ -62,7 +62,7 @@ def do_setproxy(ctx, set_proxy):
         return s
 
 
-def do_remote(ctx, filename, target, ip, port, set_proxy):
+def do_remote(ctx, filename, target, ip, port, proxy_mode):
     # detect filename and target
     if filename and target:
         if os.path.exists(target):
@@ -98,7 +98,7 @@ def do_remote(ctx, filename, target, ip, port, set_proxy):
         ctx.abort("remote-command --> Cannot get the victim host!")
     
     # set proxy
-    s = do_setproxy(ctx, set_proxy)
+    s = do_setproxy(ctx, proxy_mode)
     if s is None:
         ctx.gift['io'] = remote(ip, port)
     else:
@@ -114,17 +114,18 @@ _proxy_mode_list = ['notset', 'default', 'primitive']
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.argument("target", required=False, nargs=1, default=None, type=str)
 @click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
-@click.option('-sp', '--set-proxy', type=click.Choice(_proxy_mode_list), show_default=True, default='notset', help="Use proxy from config data or not. default: pwntools context proxy; primitive: pure socks connection proxy.")
+@click.option('-up', '--use-proxy', is_flag=True, show_default=True, help="Use proxy or not.")
+@click.option('-pm', '--proxy-mode', type=click.Choice(_proxy_mode_list), show_default=True, default='notset', help="Set proxy mode. default: pwntools context proxy; primitive: pure socks connection proxy.")
 @click.option('-i', '--ip', default=None, show_default=True, type=str, nargs=1, help='The remote ip addr.')
 @click.option('-p', '--port', default=None, show_default=True, type=int, nargs=1, help='The remote port.')
 @pass_environ
-def cli(ctx, filename, target, ip, port, verbose, set_proxy):
+def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode):
     """FILENAME: ELF filename.\n
     TARGET: Target victim.
 
     \b
     For remote target:
-        pwncli -v remote ./pwn 127.0.0.1:23333 --set-proxy=default
+        pwncli -v remote ./pwn 127.0.0.1:23333 -up --set-proxy=default
     Or to Specify the ip and port:
         pwncli -v remote -p 23333
     """
@@ -146,11 +147,20 @@ def cli(ctx, filename, target, ip, port, verbose, set_proxy):
     if ip is None:
         ip = try_get_config_data_by_key(ctx.config_data, 'remote', 'ip')
 
+    if not use_proxy:
+        proxy_mode = "notset"
     # set proxy mode in remote from config data
-    proxy_mode = try_get_config_data_by_key(ctx.config_data, 'remote', 'proxy_mode')
-    if proxy_mode is not None and proxy_mode.lower() in _proxy_mode_list:
-        set_proxy = proxy_mode.lower()
+    elif proxy_mode == "notset":
+        _proxy_mode = try_get_config_data_by_key(ctx.config_data, 'remote', 'proxy_mode')
+        if _proxy_mode is not None and _proxy_mode.lower() in _proxy_mode_list:
+            proxy_mode = _proxy_mode.lower()
+        else:
+            proxy_mode = 'default'
+            ctx.vlog2("remote-command --> Use proxy but proxy mode is not given, choose default mode.")
+    
+    if proxy_mode != "notset":
+        ctx.vlog("remote-command --> Use proxy, proxy mode: {}".format(proxy_mode))
 
-    do_remote(ctx, filename, target, ip, port, set_proxy)
+    do_remote(ctx, filename, target, ip, port, proxy_mode)
 
     

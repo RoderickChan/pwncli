@@ -27,7 +27,7 @@ def stop(enable=True):
         lineno = -1
 
     # try to get pid
-    if gift.get('io', None):
+    if gift.get('io', None) and gift.get('debug', None):
         pid = gift['io'].proc.pid
 
     msg = '[*] stop'
