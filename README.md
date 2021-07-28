@@ -89,23 +89,24 @@ Options:
 ```
 # pwncli remote -h
 
-Usage: pwncli remote [OPTIONS] [FILENAME] [TARGET]
+Usage: pwncli r [OPTIONS] [FILENAME] [TARGET]
 
   FILENAME: ELF filename.
 
   TARGET: Target victim.
 
   For remote target:
-      pwncli -v remote ./pwn 127.0.0.1:23333 --set-proxy=default
+      pwncli -v remote ./pwn 127.0.0.1:23333 -up --set-proxy=default
   Or to Specify the ip and port:
-      pwncli -v remote -i 127.0.0.1 -p 23333
+      pwncli -v remote -p 23333
 
 Options:
   -v, --verbose                   Show more info or not.  [default: False]
-  -sp, --set-proxy [notset|default|primitive]
-                                  Use proxy from config data or not. default:
-                                  pwntools context proxy; primitive: pure
-                                  socks connection proxy.  [default: notset]
+  -up, --use-proxy                Use proxy or not.  [default: False]
+  -pm, --proxy-mode [notset|default|primitive]
+                                  Set proxy mode. default: pwntools context
+                                  proxy; primitive: pure socks connection
+                                  proxy.  [default: notset]
   -i, --ip TEXT                   The remote ip addr.
   -p, --port INTEGER              The remote port.
   -h, --help                      Show this message and exit.

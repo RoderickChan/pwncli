@@ -87,6 +87,8 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
         ctx.gift['libc'] = ctx.gift['elf'].libc
     
     if target:
+        if ":" not in target: # little check
+            ctx.abort("remote-command --> {} is a wrong 'target' format, should be 'ip:port'".format(target))
         ip, port = target.strip().split(':')
         ip = ip.strip()
         port = int(port)
