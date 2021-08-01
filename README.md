@@ -210,6 +210,6 @@ pwncli remote -p 23333
 
 Use proxy, the proxy data must be written in `~/.pwncli.conf`:
 ```
-pwncli re --set-proxy=default
+pwncli re --use-proxy --proxy-mode=primitive
 ```
 The `default` proxy is to set `context.proxy`, and the `primitive` proxy is to use `remote.fromsocktet` and set proxy using `socks` and `socket` modules.

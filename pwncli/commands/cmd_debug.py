@@ -185,7 +185,7 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
 @click.option('--argv', type=str, default=None, required=False, show_default=True, help="Argv for process.")
 @click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
 @click.option('-t', '--tmux', is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
-@click.option('-w', '--wsl', is_flag=True, show_default=True, help="Use ubuntu.exe to gdb-debug or not.")
+@click.option('-w', '--wsl', is_flag=True, show_default=True, help="Use wsl to pop up windows for gdb-debug or not.")
 @click.option('-a', '--attach-mode', type=click.Choice(['auto', 'tmux', 'wsl-b', 'wsl-u', 'wsl-o', 'wsl-wt']), nargs=1, default='auto', show_default=True, help="Gdb attach mode, wsl: bash.exe | wsl: ubuntu1234.exe | wsl: open-wsl.exe | wsl: wt.exe wsl.exe")
 @click.option('-qg', '--qemu-gdbremote', type=str, default=None, show_default=True, help="Only used for qemu, who opens the gdb listening port. Only tmux supported.Format: ip:port or only port for localhost.")
 @click.option('-gb', '--gdb-breakpoint', default=[], type=str, multiple=True, show_default=True, help="Set gdb breakpoints while gdb-debug is used, it should be a hex address or '\$rebase' addr or a function name. Multiple breakpoints are supported.")
