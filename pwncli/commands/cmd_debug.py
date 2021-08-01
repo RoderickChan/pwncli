@@ -183,7 +183,7 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
 @click.command(name='debug', short_help="Debug the pwn file locally.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.option('--argv', type=str, default=None, required=False, show_default=True, help="Argv for process.")
-@click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
+@click.option('-v', '--verbose', count=True, help="Show more info or not.")
 @click.option('-nl', '--nolog', is_flag=True, show_default=True, help="Disable context.log or not.")
 @click.option('-t', '--tmux', is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
 @click.option('-w', '--wsl', is_flag=True, show_default=True, help="Use wsl to pop up windows for gdb-debug or not.")

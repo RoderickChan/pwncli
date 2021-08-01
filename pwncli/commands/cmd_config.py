@@ -7,7 +7,7 @@ from pwncli.utils.config import  *
 @click.command(cls=AliasedGroup, name='config', short_help="Get or set something about config data.")
 @pass_environ
 def cli(ctx):
-    ctx.verbose = True
+    ctx.verbose = 2
     pass
 
 
@@ -38,7 +38,7 @@ def list_config(ctx, listdata, section_name):
     
     for sec in section_name:
         if not ctx.config_data.has_section(sec):
-            ctx.vlog("config-command --> Error section name '%s'" % sec)
+            ctx.verrlog("config-command --> Error section name '%s'" % sec)
             continue
         show_config_data_by_section(ctx.config_data, sec)
 

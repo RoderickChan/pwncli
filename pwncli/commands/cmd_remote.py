@@ -8,10 +8,9 @@ from pwncli.utils.config import *
 def do_setproxy(ctx, proxy_mode):
     if proxy_mode == 'notset':
         return None
-    ctx.vlog("remote-command --> Get 'proxy_mode': {}".format(proxy_mode))
 
     if not ctx.config_data:
-        ctx.verrlog("remote-command --> Set-proxy failed do to no config data!")
+        ctx.verrlog("remote-command --> Set-proxy failed due to no config data!")
         return None
 
     data = ctx.config_data
@@ -110,12 +109,13 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
     if ctx.fromcli:
         ctx.gift['io'].interactive()
 
+
 _proxy_mode_list = ['notset', 'default', 'primitive']
 
 @click.command(name='remote', short_help="Pwn remote host.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.argument("target", required=False, nargs=1, default=None, type=str)
-@click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
+@click.option('-v', '--verbose', count=True, help="Show more info or not.")
 @click.option('-nl', '--nolog', is_flag=True, show_default=True, help="Disable context.log or not.")
 @click.option('-up', '--use-proxy', is_flag=True, show_default=True, help="Use proxy or not.")
 @click.option('-pm', '--proxy-mode', type=click.Choice(_proxy_mode_list), show_default=True, default='notset', help="Set proxy mode. default: pwntools context proxy; primitive: pure socks connection proxy.")
