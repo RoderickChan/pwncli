@@ -78,7 +78,7 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
     elif ip is None or port is None or len(ip) == 0 or port <= 0: # little check
             ctx.abort("remote-command --> Cannot get the victim host!")
 
-    if getattr(ctx, 'filename', None) is None:
+    if getattr(ctx, 'filename', "error_file_name") == "error_file_name":
         _set_filename(ctx, filename, msg="remote-command --> Set 'filename': {}".format(filename))
 
     if filename:
@@ -116,12 +116,13 @@ _proxy_mode_list = ['notset', 'default', 'primitive']
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.argument("target", required=False, nargs=1, default=None, type=str)
 @click.option('-v', '--verbose', is_flag=True, show_default=True, help="Show more info or not.")
+@click.option('-nl', '--nolog', is_flag=True, show_default=True, help="Disable context.log or not.")
 @click.option('-up', '--use-proxy', is_flag=True, show_default=True, help="Use proxy or not.")
 @click.option('-pm', '--proxy-mode', type=click.Choice(_proxy_mode_list), show_default=True, default='notset', help="Set proxy mode. default: pwntools context proxy; primitive: pure socks connection proxy.")
 @click.option('-i', '--ip', default=None, show_default=True, type=str, nargs=1, help='The remote ip addr.')
 @click.option('-p', '--port', default=None, show_default=True, type=int, nargs=1, help='The remote port.')
 @pass_environ
-def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode):
+def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, nolog):
     """FILENAME: ELF filename.\n
     TARGET: Target victim.
 
@@ -138,20 +139,14 @@ def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode):
         ctx.vlog("remote-command --> Open 'verbose' mode")
 
     ctx.gift['remote'] = True
-    # set log_level from config data
-    ll = try_get_config_data_by_key(ctx.config_data, 'context', 'log_level')
-    if ll is None:
-        ll = 'debug'
-    context.log_level = ll
-    ctx.vlog("remote-command --> Set 'context.log_level': {}".format(ll))
 
     # set ip from config data
     if ip is None:
         ip = try_get_config_data_by_key(ctx.config_data, 'remote', 'ip')
 
+    # set proxy mode in remote from config data
     if not use_proxy:
         proxy_mode = "notset"
-    # set proxy mode in remote from config data
     elif proxy_mode == "notset":
         _proxy_mode = try_get_config_data_by_key(ctx.config_data, 'remote', 'proxy_mode')
         if _proxy_mode is not None and _proxy_mode.lower() in _proxy_mode_list:
@@ -164,5 +159,16 @@ def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode):
         ctx.vlog("remote-command --> Use proxy, proxy mode: {}".format(proxy_mode))
 
     do_remote(ctx, filename, target, ip, port, proxy_mode)
+
+        # set log level
+    if nolog:
+        ll = 'error'
+    else:
+        # try to set context from config data
+        ll = try_get_config_data_by_key(ctx.config_data, 'context', 'log_level')
+        if ll is None:
+            ll = 'debug'
+    context.update(log_level=ll)
+    ctx.vlog("remote-command --> Set 'context.log_level': {}".format(ll))
 
     

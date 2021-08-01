@@ -3,7 +3,6 @@ from pwncli.cli import _treasure, gift
 from pwncli.cli import Environment as _ctx
 from pwncli.utils.misc import get_callframe_info
 
-
 __all__ = ['stop']
 
 def stop(enable=True):
