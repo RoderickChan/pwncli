@@ -116,19 +116,19 @@ _proxy_mode_list = ['notset', 'default', 'primitive']
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.argument("target", required=False, nargs=1, default=None, type=str)
 @click.option('-v', '--verbose', count=True, help="Show more info or not.")
-@click.option('-nl', '--nolog', is_flag=True, show_default=True, help="Disable context.log or not.")
+@click.option('-nl', '--no-log', is_flag=True, show_default=True, help="Disable context.log or not.")
 @click.option('-up', '--use-proxy', is_flag=True, show_default=True, help="Use proxy or not.")
 @click.option('-pm', '--proxy-mode', type=click.Choice(_proxy_mode_list), show_default=True, default='notset', help="Set proxy mode. default: pwntools context proxy; primitive: pure socks connection proxy.")
 @click.option('-i', '--ip', default=None, show_default=True, type=str, nargs=1, help='The remote ip addr.')
 @click.option('-p', '--port', default=None, show_default=True, type=int, nargs=1, help='The remote port.')
 @pass_environ
-def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, nolog):
+def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, no_log):
     """FILENAME: ELF filename.\n
     TARGET: Target victim.
 
     \b
     For remote target:
-        pwncli -v remote ./pwn 127.0.0.1:23333 -up --set-proxy=default
+        pwncli -v remote ./pwn 127.0.0.1:23333 -up --proxy-mode default
     Or to Specify the ip and port:
         pwncli -v remote -p 23333
     """
@@ -145,9 +145,7 @@ def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, nolog):
         ip = try_get_config_data_by_key(ctx.config_data, 'remote', 'ip')
 
     # set proxy mode in remote from config data
-    if not use_proxy:
-        proxy_mode = "notset"
-    elif proxy_mode == "notset":
+    if (not use_proxy) and proxy_mode == "notset":
         _proxy_mode = try_get_config_data_by_key(ctx.config_data, 'remote', 'proxy_mode')
         if _proxy_mode is not None and _proxy_mode.lower() in _proxy_mode_list:
             proxy_mode = _proxy_mode.lower()
@@ -161,7 +159,7 @@ def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, nolog):
     do_remote(ctx, filename, target, ip, port, proxy_mode)
 
         # set log level
-    if nolog:
+    if no_log:
         ll = 'error'
     else:
         # try to set context from config data

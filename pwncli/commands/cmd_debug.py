@@ -184,7 +184,7 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.option('--argv', type=str, default=None, required=False, show_default=True, help="Argv for process.")
 @click.option('-v', '--verbose', count=True, help="Show more info or not.")
-@click.option('-nl', '--nolog', is_flag=True, show_default=True, help="Disable context.log or not.")
+@click.option('-nl', '--no-log', is_flag=True, show_default=True, help="Disable context.log or not.")
 @click.option('-t', '--tmux', is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
 @click.option('-w', '--wsl', is_flag=True, show_default=True, help="Use wsl to pop up windows for gdb-debug or not.")
 @click.option('-a', '--attach-mode', type=click.Choice(['auto', 'tmux', 'wsl-b', 'wsl-u', 'wsl-o', 'wsl-wt']), nargs=1, default='auto', show_default=True, help="Gdb attach mode, wsl: bash.exe | wsl: ubuntu1234.exe | wsl: open-wsl.exe | wsl: wt.exe wsl.exe")
@@ -192,7 +192,7 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
 @click.option('-gb', '--gdb-breakpoint', default=[], type=str, multiple=True, show_default=True, help="Set gdb breakpoints while gdb-debug is used, it should be a hex address or '\$rebase' addr or a function name. Multiple breakpoints are supported.")
 @click.option('-gs', '--gdb-script', default=None, type=str, show_default=True, help="Set gdb commands like '-ex' or '-x' while gdb-debug is used, the content will be passed to gdb and use ';' to split lines. Besides eval-commands, file path is supported.")
 @pass_environ
-def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script, nolog):
+def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script, no_log):
     """FILENAME: The ELF filename.
 
     """
@@ -214,7 +214,7 @@ def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gd
 
     ctx.gift['debug'] = True
 
-    if nolog:
+    if no_log:
         ll = 'error'
     else:
         # try to set context from config data
