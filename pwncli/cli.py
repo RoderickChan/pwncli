@@ -34,7 +34,7 @@ class AliasedGroup(click.Group):
         elif len(matches) == 1:
             return click.Group.get_command(self, ctx, matches[0])
         else:
-            ctx.abort('cli --> Too many matches: %s' % ', '.join(sorted(matches)))
+            ctx.fail('\033[31mcli --> Too many matches: %s\033[0m' % ', '.join(sorted(matches)))
 
 
 class CommandsAliasedGroup(click.Group):
@@ -90,7 +90,7 @@ class CommandsAliasedGroup(click.Group):
                 raise
             return mod.cli
         else:
-            ctx.abort('cli --> Too many matches: %s' % ', '.join(sorted(matches)))
+            ctx.fail('\033[31mcli --> Too many matches: %s\033[0m' % ', '.join(sorted(matches)))
         
         
 
@@ -102,7 +102,9 @@ class Environment:
         self.config_data = None
         pass
 
-    def abort(self, msg=None, **args):
+    def abort(self, msg, *args):
+        if not msg:
+            msg = "EXIT!"
         if args:
             msg %= args
         click.secho("[---] Abort: {}".format(msg), fg='black', bg='red', err=1)
