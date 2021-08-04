@@ -2,8 +2,6 @@
 import configparser
 import os
 
-__all__ = ['read_ini', 'try_get_config_data_by_key', 'show_config_data_by_section', "show_config_data_all", "show_config_data_file"]
-
 _check_data_section_ok = lambda data, section: bool(data and data.has_section(section))
 
 def read_ini(filename:str) -> configparser.ConfigParser:
@@ -44,27 +42,28 @@ def show_config_data_file(filename:str):
     show_config_data_all(read_ini(filename))
 
 
-def set_config_data_by_section(data:configparser.ConfigParser, section, **kwargs):
-    if not _check_data_section_ok(data, section):
-        return None
-    section = str(section)
-    
-
-
-
-def set_config_data_by_key(data:configparser.ConfigParser, section, key, value):
+def set_config_data_by_section(data:configparser.ConfigParser, section:str, **kwargs):
     section = str(section)
     if not _check_data_section_ok(data, section):
         return None
     
-    key = str(key)
-    value = str(value)
-    data[section][key] = value
+    # guarantee type of key and value is str
+    for k, v in kwargs.items():
+        data[section][str(k)] = str(v)
+    
+
+def set_config_data_by_key(data:configparser.ConfigParser, section:str, key:str, value:str):
+    section = str(section)
+    if not _check_data_section_ok(data, section):
+        return None
+    
+    # guarantee type of key and value is str
+    data[section][str(key)] = str(value)
 
 
-def write_config_data(data:configparser.ConfigParser, filepath="~/.pwncli.conf"):
+def write_config_data(data:configparser.ConfigParser, filepath:str="~/.pwncli.conf") -> bool:
     if not data:
-        return None
+        return False
 
     if filepath.startswith("~"):
         filepath = os.path.expanduser(filepath)
@@ -72,7 +71,7 @@ def write_config_data(data:configparser.ConfigParser, filepath="~/.pwncli.conf")
     filepath = os.path.abspath(filepath)
 
     if not os.path.isfile(filepath):
-        return None
+        return False
     
     with open(filepath, "w") as configfile:
         data.write(configfile)
