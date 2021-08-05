@@ -6,9 +6,10 @@ from pwncli.utils.misc import get_callframe_info
 __all__ = ['stop']
 
 def stop(enable=True):
-    """
-    stop the program and print the caller's info
-    :return:
+    """Stop the program and print the caller's info
+
+    Args:
+        enable (bool, optional): if it's False, this function will return directly. Defaults to True.
     """
     if not enable:
         return

@@ -5,6 +5,14 @@ import os
 _check_data_section_ok = lambda data, section: bool(data and data.has_section(section))
 
 def read_ini(filename:str) -> configparser.ConfigParser:
+    """Read ini file using configerparser with little check
+
+    Args:
+        filename (str): Target filepath
+
+    Returns:
+        configparser.ConfigParser: Return None if failed
+    """
     if not os.path.exists(filename):
         return None
     parser = configparser.ConfigParser()
@@ -15,6 +23,16 @@ def read_ini(filename:str) -> configparser.ConfigParser:
 
 
 def try_get_config_data_by_key(data:configparser.ConfigParser, section:str, key:str) -> str:
+    """Try to get value by section name and option name with little check
+
+    Args:
+        data (configparser.ConfigParser): Data
+        section (str): Section name
+        key (str): Option name
+
+    Returns:
+        str: Value, Return None if error occurs
+    """
     if not _check_data_section_ok(data, section):
         return None
     val = data[section]
@@ -22,6 +40,13 @@ def try_get_config_data_by_key(data:configparser.ConfigParser, section:str, key:
 
 
 def show_config_data_by_section(data:configparser.ConfigParser, section:str):
+    """Print a section's data by section name
+
+    Args:
+        data (configparser.ConfigParser): Data
+        section (str): Section name
+
+    """
     if not _check_data_section_ok(data, section):
         return None
     val = data[section]
@@ -32,6 +57,12 @@ def show_config_data_by_section(data:configparser.ConfigParser, section:str):
 
 
 def show_config_data_all(data:configparser.ConfigParser):
+    """Show the whole config data
+
+    Args:
+        data (configparser.ConfigParser): Data
+
+    """
     if not _check_data_section_ok(data, section):
         return None
     for sec in data.sections():
@@ -39,20 +70,43 @@ def show_config_data_all(data:configparser.ConfigParser):
 
 
 def show_config_data_file(filename:str):
+    """Show the whole config data
+
+    Args:
+        filename (str): Config data file path
+    
+    """
     show_config_data_all(read_ini(filename))
 
 
-def set_config_data_by_section(data:configparser.ConfigParser, section:str, **kwargs):
+def set_config_data_by_section(data:configparser.ConfigParser, section:str, **content):
+    """Set a section's content of config-data with little check
+
+    Args:
+        data (configparser.ConfigParser): Data
+        section (str): Section name
+        content (dict): Content to set
+
+    """
     section = str(section)
     if not _check_data_section_ok(data, section):
         return None
     
     # guarantee type of key and value is str
-    for k, v in kwargs.items():
+    for k, v in content.items():
         data[section][str(k)] = str(v)
     
 
 def set_config_data_by_key(data:configparser.ConfigParser, section:str, key:str, value:str):
+    """Set option value in a section of a config-data with little check
+
+    Args:
+        data (configparser.ConfigParser): Data
+        section (str): Section name
+        key (str): Option name
+        value (str): Value to set
+
+    """
     section = str(section)
     if not _check_data_section_ok(data, section):
         return None
@@ -62,6 +116,15 @@ def set_config_data_by_key(data:configparser.ConfigParser, section:str, key:str,
 
 
 def write_config_data(data:configparser.ConfigParser, filepath:str="~/.pwncli.conf") -> bool:
+    """Write data to file
+
+    Args:
+        data (configparser.ConfigParser): Data
+        filepath (str, optional): The target file path. Defaults to "~/.pwncli.conf".
+
+    Returns:
+        bool: whether the writting is successful
+    """
     if not data:
         return False
 
