@@ -35,7 +35,7 @@ def do_setproxy(ctx, proxy_mode):
             proxy_type = socks_type2[proxy_type]
 
     proxy_host = proxy_setting['host'] if 'host' in proxy_setting else "localhost"
-    proxy_port = int(proxy_setting['port']) if 'port' in proxy_setting else 80
+    proxy_port = int(proxy_setting['port']) if 'port' in proxy_setting else 8080
     username = proxy_setting['username'] if 'username' in proxy_setting else None
     passwd = proxy_setting['passwd'] if 'passwd' in proxy_setting else None
     rdns = bool(proxy_setting['rdns']) if 'rdns' in proxy_setting else True

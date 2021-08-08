@@ -25,9 +25,16 @@ int2 = functools.partial(int, base=2)
 
 
 def get_callframe_info(depth:int=2):
-    """
-    get callframe info
-    :return: module_name, func_name, lineno
+    """Get stackframe info
+
+    Args:
+        depth (int, optional): The depth of stack frame. Defaults to 2
+
+    Raises:
+        OSError: If depth < 1, then raise OSError
+
+    Returns:
+        tuple: module_name, func_name, lineno
     """
     if depth < 1:
         raise OSError("depth must be bigger than 1")
@@ -41,11 +48,11 @@ def get_callframe_info(depth:int=2):
 
 
 def log_address(desc:str, address:int):
-    """
-    print address by hex format
-    :param desc: address description
-    :param address: address value
-    :return:
+    """Print address of hex fromat
+
+    Args:
+        desc (str): The description of address
+        address (int): Address
     """
     print("[+] {} ===> {}".format(desc, hex(address)))
 

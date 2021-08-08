@@ -43,6 +43,7 @@ def list_config(ctx, listdata, section_name):
         show_config_data_by_section(ctx.config_data, sec)
 
 
+
 @cli.command(name="set", short_help="Set config data.")
 @click.argument("clause", type=str, default=None, required=False, nargs=1)
 @pass_environ

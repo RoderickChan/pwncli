@@ -6,10 +6,11 @@ __all__  = ['time_count', 'SleepMode', 'sleep_call']
 
 
 def time_count(func):
-    """
-    A decorate: count the time used by function
-    :param func:
-    :return:
+    """Count the time consuming of a function
+
+    Args:
+        func ([type]): Func
+
     """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -31,11 +32,11 @@ class SleepMode(Enum):
 
 
 def sleep_call(second: int = 1, mod: SleepMode = SleepMode.BEFORE):
-    """
-    A decorate: sleep before and after call function
-    :param second: sleep seconds
-    :param mod: sleep mode
-    :return:
+    """Sleep before and after call function
+
+    Args:
+        second (int, optional): Sleep time. Defaults to 1.
+        mod (SleepMode, optional): Sleep mode. Defaults to SleepMode.BEFORE.
     """
 
     def wrapper1(func):
