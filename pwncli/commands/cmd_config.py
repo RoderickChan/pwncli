@@ -13,7 +13,7 @@ def cli(ctx):
 
 @cli.command(name="list", short_help="List config data.")
 @click.argument("listdata", type=str, default=None, required=False, nargs=1)
-@click.option('-s', '--section-name', default=[], type=str, multiple=True, show_default=True, help="List config data by section name or not.")
+@click.option('-s', '--section-name', default=[], type=str, multiple=True, show_default=True, help="List config data by section name.")
 @pass_environ
 def list_config(ctx, listdata, section_name):
     """LISTDATA: List all data or example data or section names.
@@ -33,7 +33,7 @@ def list_config(ctx, listdata, section_name):
         elif listdata == 'section':
              print("sections:", ctx.config_data.sections())
         else:
-            ctx.verrlog("config-command --> Get error listdata '{}', must be 'all' or  'example'".format(listdata))
+            ctx.verrlog("config-command --> Get error listdata '{}', must be 'all' or  'example' or 'section'".format(listdata))
         return
     
     for sec in section_name:
@@ -43,10 +43,23 @@ def list_config(ctx, listdata, section_name):
         show_config_data_by_section(ctx.config_data, sec)
 
 
+def parse_clause_and_set(data, section_name:str, clause:str):
+    from re import sub
+    subwords = sub(r"\s*=\s*", "=", clause.strip()).split()
+    for sc in subwords:
+        if '=' not in sc:
+            ctx.abort('config-command --> Error clause while setting config data, section: {} clause: {}'.format(section_name, clause))
+        k, v = sc.split('=')
+        set_config_data_by_key(data, section_name, k, v)
+    write_config_data(data)
+
 
 @cli.command(name="set", short_help="Set config data.")
 @click.argument("clause", type=str, default=None, required=False, nargs=1)
+@click.option('-s', '--section-name', default=None, type=str, show_default=True, help="Set config data by section name.")
 @pass_environ
-def set_config(ctx):
-    print("set conifg...")
-    pass
+def set_config(ctx, section_name, clause):
+    if (not section_name) or (not ctx.confg_data.has_section(section_name)):
+        ctx.verrlog("config-command --> Error section name '%s'" % section_name)
+    else:
+        parse_clause_and_set(ctx.confg_data, section_name, clause)
