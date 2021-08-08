@@ -16,7 +16,7 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
         terminal = ['tmux', 'splitw', '-h']
     elif (flag & 2) and which('cmd.exe'):
         if is_file:
-            subcmd = " {}\"".format("-x " + gdb_script)
+            gdbcmd = " {}\"".format("-x " + gdb_script)
         else:
             ex_script = ''
             for line in script.rstrip("\nc\n").split('\n'):
@@ -24,11 +24,10 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
                     continue
                 ex_script += "-ex '{}' ".format(line)
 
-            subcmd = " {}\"".format(ex_script)
-        cmd = "cmd.exe /c start {} -c " + "\"cd {};gdb -q attach {}".format(dirname, p.proc.pid) + subcmd
+            gdbcmd = " {}\"".format(ex_script)
+        cmd = "cmd.exe /c start {} -c " + "\"cd {};gdb -q attach {}".format(dirname, p.proc.pid) + gdbcmd
 
         if attach_mode == 'wsl-b' and which('bash.exe'):
-            # terminal = ['cmd.exe', '/c','start','bash.exe', '-c']
             ctx.vlog2("debug-command --> Tips: Something error will happen if bash.exe not represent the default distribution.")
             cmd_use = cmd.format('bash.exe')
             ctx.vlog('debug-command --> Exec os.system({})'.format(cmd_use))
@@ -149,8 +148,7 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
 
     # check filename now
     if getattr(ctx, 'filename', 'error_file_name') == 'error_file_name':
-        ctx.vlog2("debug-command --> No 'filename'!")
-        return
+        ctx.abort("debug-command --> No 'filename'!")
 
     # set binary
     context.binary = ctx.filename
@@ -161,7 +159,7 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
 
     # set attach-mode 'auto'
     if attach_mode == 'auto':
-        if tmux:
+        if tmux or ('TMUX' in os.environ and which('tmux')):
             attach_mode = 'tmux'
         elif which('open-wsl.exe'):
             attach_mode = 'wsl-o'
