@@ -29,7 +29,7 @@ def list_config(ctx, listdata, section_name):
             show_config_data_all(ctx.config_data)
         elif listdata == 'example':
             ctx.vlog("config-command --> Show example config data")
-            show_config_data_file(os.path.abspath("../example/config_data.conf"))
+            show_config_data_file(os.path.abspath("example/config_data.conf"))
         elif listdata == 'section':
              print("sections:", ctx.config_data.sections())
         else:
@@ -43,15 +43,16 @@ def list_config(ctx, listdata, section_name):
         show_config_data_by_section(ctx.config_data, sec)
 
 
-def parse_clause_and_set(data, section_name:str, clause:str):
+def parse_clause_and_set(ctx, section_name:str, clause:str):
     from re import sub
     subwords = sub(r"\s*=\s*", "=", clause.strip()).split()
     for sc in subwords:
         if '=' not in sc:
             ctx.abort('config-command --> Error clause while setting config data, section: {} clause: {}'.format(section_name, clause))
         k, v = sc.split('=')
-        set_config_data_by_key(data, section_name, k, v)
-    write_config_data(data)
+        set_config_data_by_key(ctx.config_data, section_name, k, v)
+        ctx.vlog("config-command --> Set '{} = {}' for section [{}]".format(k, v, section_name))
+    write_config_data(ctx.config_data)
 
 
 @cli.command(name="set", short_help="Set config data.")
@@ -59,7 +60,7 @@ def parse_clause_and_set(data, section_name:str, clause:str):
 @click.option('-s', '--section-name', default=None, type=str, show_default=True, help="Set config data by section name.")
 @pass_environ
 def set_config(ctx, section_name, clause):
-    if (not section_name) or (not ctx.confg_data.has_section(section_name)):
+    if (not section_name) or (not ctx.config_data.has_section(section_name)):
         ctx.verrlog("config-command --> Error section name '%s'" % section_name)
     else:
-        parse_clause_and_set(ctx.confg_data, section_name, clause)
+        parse_clause_and_set(ctx, section_name, clause)

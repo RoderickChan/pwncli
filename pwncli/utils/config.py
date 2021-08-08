@@ -63,8 +63,8 @@ def show_config_data_all(data:configparser.ConfigParser):
         data (configparser.ConfigParser): Data
 
     """
-    if not _check_data_section_ok(data, section):
-        return None
+    if not data:
+        return
     for sec in data.sections():
         show_config_data_by_section(data, sec)
 
