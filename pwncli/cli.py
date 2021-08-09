@@ -17,7 +17,7 @@ __all__ = ['gift', 'cli_script']
 
 gift = OrderedDict() # public property
 _CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
-
+_PWNCLI_DIR_NAME = os.path.dirname(os.path.abspath(__file__))
 
 _treasure  = OrderedDict() # internal property
 _init_all_subcommands = True # init all commands flag
@@ -43,9 +43,7 @@ class CommandsAliasedGroup(click.Group):
         self._all_commands = []
         self._used_commands = []
         # get all commands
-        cur_dirname = os.path.dirname(__file__)
-        # os.chdir(cur_dirname)
-        cmd_folder = os.path.abspath(os.path.join(cur_dirname, "commands"))
+        cmd_folder = os.path.join(_PWNCLI_DIR_NAME, "commands")
         for filename in os.listdir(cmd_folder):
             if filename.endswith(".py") and filename.startswith("cmd_"):
                 self._all_commands.append(filename[4:-3])
