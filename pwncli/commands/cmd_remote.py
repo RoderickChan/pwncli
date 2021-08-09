@@ -6,7 +6,7 @@ from pwn import remote, ELF,context
 from pwncli.utils.config import *
 
 def do_setproxy(ctx, proxy_mode):
-    if proxy_mode == 'notset':
+    if proxy_mode in ('notset', 'undefined'):
         return None
 
     if not ctx.config_data:
@@ -110,7 +110,7 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
         ctx.gift['io'].interactive()
 
 
-_proxy_mode_list = ['notset', 'default', 'primitive']
+_proxy_mode_list = ['undefined', 'notset', 'default', 'primitive']
 
 @click.command(name='remote', short_help="Pwn remote host.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
@@ -118,7 +118,7 @@ _proxy_mode_list = ['notset', 'default', 'primitive']
 @click.option('-v', '--verbose', count=True, help="Show more info or not.")
 @click.option('-nl', '--no-log', is_flag=True, show_default=True, help="Disable context.log or not.")
 @click.option('-p', '--use-proxy', is_flag=True, show_default=True, help="Use proxy or not.")
-@click.option('-m', '--proxy-mode', type=click.Choice(_proxy_mode_list), show_default=True, default='notset', help="Set proxy mode. default: pwntools context proxy; primitive: pure socks connection proxy.")
+@click.option('-m', '--proxy-mode', type=click.Choice(_proxy_mode_list), show_default=True, default='undefined', help="Set proxy mode. undefined: read proxy data from config data(do not set this type in your file); notset: not use proxy; default: pwntools context proxy; primitive: pure socks connection proxy.")
 @click.option('-i', '--ip', default=None, show_default=True, type=str, nargs=1, help='The remote ip addr.')
 @click.option('-p', '--port', default=None, show_default=True, type=int, nargs=1, help='The remote port.')
 @pass_environ
@@ -144,16 +144,15 @@ def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, no_log)
     if ip is None:
         ip = try_get_config_data_by_key(ctx.config_data, 'remote', 'ip')
 
-    # set proxy mode in remote from config data
-    if (not use_proxy) and proxy_mode == "notset":
+    if use_proxy and proxy_mode == "undefined": # set proxy mode in remote from config data
         _proxy_mode = try_get_config_data_by_key(ctx.config_data, 'remote', 'proxy_mode')
-        if _proxy_mode is not None and _proxy_mode.lower() in _proxy_mode_list:
+        if _proxy_mode is not None and _proxy_mode.lower() in _proxy_mode_list[1:]:
             proxy_mode = _proxy_mode.lower()
         else:
             proxy_mode = 'default'
-            ctx.vlog2("remote-command --> Use proxy but proxy mode is not given, choose default mode.")
+            ctx.vlog2("remote-command --> Use proxy but proxy mode is not valid, choose default mode")
     
-    if proxy_mode != "notset":
+    if proxy_mode != "undefined":
         ctx.vlog("remote-command --> Use proxy, proxy mode: {}".format(proxy_mode))
 
     do_remote(ctx, filename, target, ip, port, proxy_mode)
