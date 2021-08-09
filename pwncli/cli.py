@@ -44,7 +44,7 @@ class CommandsAliasedGroup(click.Group):
         self._used_commands = []
         # get all commands
         cur_dirname = os.path.dirname(__file__)
-        os.chdir(cur_dirname)
+        # os.chdir(cur_dirname)
         cmd_folder = os.path.abspath(os.path.join(cur_dirname, "commands"))
         for filename in os.listdir(cmd_folder):
             if filename.endswith(".py") and filename.startswith("cmd_"):
