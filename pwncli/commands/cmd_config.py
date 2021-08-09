@@ -29,7 +29,7 @@ def list_config(ctx, listdata, section_name):
             show_config_data_all(ctx.config_data)
         elif listdata == 'example':
             ctx.vlog("config-command --> Show example config data")
-            show_config_data_file(os.path.abspath("example/config_data.conf"))
+            show_config_data_file(os.path.abspath("../example/config_data.conf"))
         elif listdata == 'section':
              print("sections:", ctx.config_data.sections())
         else:
