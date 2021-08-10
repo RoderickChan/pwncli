@@ -149,8 +149,8 @@ def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, no_log)
         if _proxy_mode is not None and _proxy_mode.lower() in _proxy_mode_list[1:]:
             proxy_mode = _proxy_mode.lower()
         else:
-            proxy_mode = 'default'
-            ctx.vlog2("remote-command --> Use proxy but proxy mode is not valid, choose default mode")
+            proxy_mode = 'notset'
+            ctx.vlog2("remote-command --> Use proxy but proxy mode is not valid, choose 'notset' mode")
     
     if proxy_mode != "undefined":
         ctx.vlog("remote-command --> Use proxy, proxy mode: {}".format(proxy_mode))
