@@ -117,7 +117,7 @@ _proxy_mode_list = ['undefined', 'notset', 'default', 'primitive']
 @click.argument("target", required=False, nargs=1, default=None, type=str)
 @click.option('-v', '--verbose', count=True, help="Show more info or not.")
 @click.option('-nl', '--no-log', is_flag=True, show_default=True, help="Disable context.log or not.")
-@click.option('-p', '--use-proxy', is_flag=True, show_default=True, help="Use proxy or not.")
+@click.option('-up', '--use-proxy', is_flag=True, show_default=True, help="Use proxy or not.")
 @click.option('-m', '--proxy-mode', type=click.Choice(_proxy_mode_list), show_default=True, default='undefined', help="Set proxy mode. undefined: read proxy data from config data(do not set this type in your file); notset: not use proxy; default: pwntools context proxy; primitive: pure socks connection proxy.")
 @click.option('-i', '--ip', default=None, show_default=True, type=str, nargs=1, help='The remote ip addr.')
 @click.option('-p', '--port', default=None, show_default=True, type=int, nargs=1, help='The remote port.')
@@ -128,7 +128,7 @@ def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, no_log)
 
     \b
     For remote target:
-        pwncli -v remote ./pwn 127.0.0.1:23333 -p --proxy-mode default
+        pwncli -v remote ./pwn 127.0.0.1:23333 -up --proxy-mode default
     Or to Specify the ip and port:
         pwncli -v remote -p 23333
     """
@@ -155,9 +155,7 @@ def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, no_log)
     if proxy_mode != "undefined":
         ctx.vlog("remote-command --> Use proxy, proxy mode: {}".format(proxy_mode))
 
-    do_remote(ctx, filename, target, ip, port, proxy_mode)
-
-        # set log level
+    # set log level
     if no_log:
         ll = 'error'
     else:
@@ -167,5 +165,9 @@ def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, no_log)
             ll = 'debug'
     context.update(log_level=ll)
     ctx.vlog("remote-command --> Set 'context.log_level': {}".format(ll))
+
+
+    do_remote(ctx, filename, target, ip, port, proxy_mode)
+
 
     

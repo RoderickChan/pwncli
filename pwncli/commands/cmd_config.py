@@ -18,7 +18,7 @@ def cli(ctx):
 def list_config(ctx, listdata, section_name):
     """LISTDATA: List all data or example data or section names.
     """
-    if listdata is None and len(section) == 0:
+    if listdata is None and len(section_name) == 0:
         ctx.vlog2("Use `pwncli config list all/example/section config data")
         return
 
