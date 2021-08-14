@@ -84,6 +84,7 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
         context.binary = ctx.filename
         ctx.gift['elf'] = ELF(filename)
         ctx.gift['libc'] = ctx.gift['elf'].process().libc
+        ctx.gift['libc'].address = 0
     
     if target:
         if ":" not in target: # little check
