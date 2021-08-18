@@ -154,8 +154,9 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
     context.binary = ctx.filename
     ctx.gift['io'] = context.binary.process(argv)
     ctx.gift['elf'] = ctx.gift['io'].elf
-    ctx.gift['libc'] = ctx.gift['io'].libc
-    ctx.gift['libc'].address = 0
+    if ctx.gift['io'].libc:
+        ctx.gift['libc'] = ctx.gift['io'].libc
+        ctx.gift['libc'].address = 0
     ctx.vlog('debug-command --> Set process({}, argv={})'.format(ctx.filename, argv))
 
     # set attach-mode 'auto'
