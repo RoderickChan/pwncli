@@ -18,7 +18,7 @@ def get_arch_info_from_file(filepath):
         ctx.abort()
 
 
-@click.command(name='patchelf', short_help="Patchelf command.")
+@click.command(name='patchelf', short_help="Patchelf executable file using glibc-all-in-one.")
 @click.argument('filename', type=str, required=True, nargs=1)
 @click.argument("libc-version", required=True, nargs=1, type=str)
 @click.option('-b', '--back-up', is_flag=True, help="Backup target file or not.")
@@ -28,7 +28,7 @@ def cli(ctx, filename, libc_version, back_up):
     LIBC_VERSION: Libc version.
 
     \b
-    pwncli patchelf ./filename 2.29
+    pwncli patchelf ./filename 2.29 -b
     """
     ctx.verbose = 2
     
@@ -66,6 +66,7 @@ def cli(ctx, filename, libc_version, back_up):
         ctx.vlog("patchelf-command --> Backup file named: {}".format(filename+".bk"))
         os.system(cmd)
     
+    # execute patchelf
     subdirname = subdirs[has_versions.index(libc_version)]
     last_dirname = os.path.join(libc_dirname, subdirname)
     ctx.vlog("patchelf-command --> The dirname of libs using by patchelf: {}".format(last_dirname))
