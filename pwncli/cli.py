@@ -102,7 +102,7 @@ class Environment:
         self.config_data = None
         pass
 
-    def abort(self, msg, *args):
+    def abort(self, msg=None, *args):
         if not msg:
             msg = "EXIT!"
         if args:
