@@ -161,7 +161,7 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
 
     # set attach-mode 'auto'
     if attach_mode == 'auto':
-        if tmux or ('TMUX' in os.environ and which('tmux')):
+        if tmux or (('TMUX' in os.environ and which('tmux')) and (not wsl)):
             attach_mode = 'tmux'
         elif which('open-wsl.exe'):
             attach_mode = 'wsl-o'
