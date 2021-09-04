@@ -4,6 +4,7 @@ from collections import OrderedDict
 from pwncli.cli import pass_environ, _set_filename
 from pwn import remote, ELF,context
 from pwncli.utils.config import *
+from subprocess import check_output
 
 def do_setproxy(ctx, proxy_mode):
     if proxy_mode in ('notset', 'undefined'):
@@ -83,10 +84,17 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
     if filename:
         context.binary = ctx.filename
         ctx.gift['elf'] = ELF(filename)
-        _tmp_ibc = ctx.gift['elf'].process().libc
-        if _tmp_ibc:
-            ctx.gift['libc'] = _tmp_ibc
+        out = check_output(["ldd", filename]).decode().split()
+        rp = None
+        for o in out:
+            if "/libc.so.6" in o or "/libc-2." in o:
+                rp = os.path.realpath(o)
+                break
+        if rp is not None:
+            ctx.gift['libc'] = ELF(rp)
             ctx.gift['libc'].address = 0
+    else:
+        ctx.vlog2("remote-command --> Filename is None, so maybe you need to set context manually.")
     
     if target:
         if ":" not in target: # little check
