@@ -114,6 +114,18 @@ class IO_FILE_plus_struct(FileStructure):
 
     # only support amd64
     def getshell_by_str_jumps_finish_when_exit(self, _IO_str_jumps_addr:int, system_addr:int, bin_sh_addr:int):
+        """Execute system("/bin/sh) through fake IO_FILE struct, and the version of libc should lower than 2.29.
+
+        Usually, you have hijacked _IO_list_all, and will call _IO_flush_all_lockp by exit or other function.
+
+        Args:
+            _IO_str_jumps_addr (int): Addr of _IO_str_jumps
+            system_addr (int): Addr of system
+            bin_sh_addr (int): Addr of the string: /bin/sh
+
+        Returns:
+            [bytes]: payload
+        """
         assert context.bits == 64, "only support amd64!"
         self.flags &= ~1
         self.unknown2 = 0
@@ -126,7 +138,8 @@ class IO_FILE_plus_struct(FileStructure):
 
     def house_of_pig_exec_shellcode(self, fp_heap_addr:int, gadget_addr:int, str_jumps_addr:int, 
                         setcontext_off_addr:int, mprotect_addr:int, shellcode:(str, bytes), lock:int=0):
-        """house of pig to exec shellcode
+        """House of pig to exec shellcode with setcontext.
+
         You should fill tcache_perthread_struct[0x400] with '__free_hook - 0x1c0' addr.
 
         Args:

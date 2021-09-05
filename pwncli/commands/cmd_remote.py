@@ -91,7 +91,7 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
                 rp = os.path.realpath(o)
                 break
         if rp is not None:
-            ctx.gift['libc'] = ELF(rp)
+            ctx.gift['libc'] = ELF(rp, checksec=False)
             ctx.gift['libc'].address = 0
     else:
         ctx.vlog2("remote-command --> Filename is None, so maybe you need to set context manually.")
