@@ -30,7 +30,7 @@ def stop(enable=True):
     if gift.get('io', None) and gift.get('debug', None):
         pid = gift['io'].proc.pid
 
-    msg = '[*] stop'
+    msg = 'Stop'
     if lineno != -1:
         msg += ' at module: {}  function: {}  line: {}'.format(module_name, func_name, lineno)
     if pid != -1:

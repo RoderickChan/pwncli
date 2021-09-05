@@ -164,6 +164,8 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
     if rp is not None:
         ctx.gift['libc'] = ELF(rp, checksec=False)
         ctx.gift['libc'].address = 0
+    else:
+        ctx.vlog2('debug-command --> ldd cannot find the libc.so.6 or libc-2.xx.so')
     ctx.vlog('debug-command --> Set process({}, argv={})'.format(ctx.filename, argv))
 
     # set attach-mode 'auto'

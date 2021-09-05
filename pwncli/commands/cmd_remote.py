@@ -83,7 +83,7 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
 
     if filename:
         context.binary = ctx.filename
-        ctx.gift['elf'] = ELF(filename)
+        ctx.gift['elf'] = ELF(filename, checksec=False)
         out = check_output(["ldd", filename]).decode().split()
         rp = None
         for o in out:
@@ -93,6 +93,8 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
         if rp is not None:
             ctx.gift['libc'] = ELF(rp, checksec=False)
             ctx.gift['libc'].address = 0
+        else:
+            ctx.vlog2('debug-command --> ldd cannot find the libc.so.6 or libc-2.xx.so')
     else:
         ctx.vlog2("remote-command --> Filename is None, so maybe you need to set context manually.")
     
