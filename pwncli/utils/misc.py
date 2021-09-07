@@ -171,6 +171,7 @@ def errlog_ex(msg, *args):
 
 
 def errlog_exit(msg, *args):
+    """Logs a message to stderr and then exit."""
     errlog_ex(msg, *args)
     exit(-1)
 
@@ -197,7 +198,15 @@ def log_code_base_addr(address:int):
     log_address("code_base_addr", address)
 
 
-def ldd_get_libc_path(filepath):
+def ldd_get_libc_path(filepath:str) -> str:
+    """Get binary file's libc realpath.
+
+    Args:
+        filepath (str): The binary file path.
+
+    Returns:
+        str: Absolute path of libc used for the binary file.
+    """
     rp = None
     try:
         out = subprocess.check_output(["ldd", filepath], encoding='utf-8').split()
@@ -210,7 +219,16 @@ def ldd_get_libc_path(filepath):
     return rp
 
 
-def one_gadget(so_path:str, more=False):
+def one_gadget(so_path:str, more=False) -> int:
+    """Get all one_gadget by exec one_gadget.
+
+    Args:
+        so_path (str): Libc.so path.
+        more (bool, optional): Get more one_gadget or not. Defaults to False.
+
+    Yields:
+        int: Address of each one_gadget.
+    """
     cmd_list = ["one_gadget", so_path]
     if more:
         cmd_list.append("-l")
@@ -224,7 +242,10 @@ def one_gadget(so_path:str, more=False):
         errlog_exit("Cannot exec one_gadget, maybe you don't install one_gadget or filename is wrong!")
 
 
-def one_gadget_binary(binary_path, more=False):
+def one_gadget_binary(binary_path:str, more=False) -> int:
+    """Get all one_gadget about a binary file.
+
+    """
     binary_path = os.path.realpath(binary_path)
     rp = ldd_get_libc_path(binary_path)
     if rp:

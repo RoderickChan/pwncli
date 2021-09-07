@@ -1,8 +1,8 @@
 
 from pwncli.cli import _treasure, gift
-from pwncli.utils.misc import get_callframe_info, log2_ex
+from pwncli.utils.misc import get_callframe_info, log2_ex, errlog_exit,one_gadget_binary
 
-__all__ = ['stop']
+__all__ = ['stop', "get_current_one_gadget"]
 
 def stop(enable=True):
     """Stop the program and print the caller's info
@@ -39,3 +39,10 @@ def stop(enable=True):
 
 
 #----------------------------useful command-------------------------
+def get_current_one_gadget(more=False):
+    """Get current filename's all one_gadget.
+
+    """
+    if not gift.get(['filename'], None):
+        errlog_exit("Cannot get_current_one_gadget, filename is None!")
+    return one_gadget_binary(gift['filename'], more)
