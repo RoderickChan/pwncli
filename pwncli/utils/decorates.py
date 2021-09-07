@@ -73,52 +73,53 @@ class _EnumerateAttackMode(Enum):
     REMOTE=1
 
 
-def _call_func_invoke(p:tube, libc:ELF, loop_list):
+def _call_func_invoke(call_func, libc_path, loop_time, loop_list, tube_func, *tube_args):
+    libc = ELF(libc_path)
     if loop_list:
+        l_count = 0
         for iter_items in product(*loop_list):
+            l_count += 1
+            t = tube_func(*tube_args)
+            libc.address = 0
+            print("[{}] ===> call func: {}, loop-args: {}".format(l_count, call_func.__name__, iter_items))
             try:
-                print("call func: {}, loop-args: {}".format(call_func.__name__, iter_items))
-                call_func(p, libc, *iter_items)
+                call_func(t, libc, *iter_items)
             except PwncliExit as ex:
                 print("Pwncli is exiting...", ex)
-                return True
-            except:
-                p.close()
+                break
+            finally:
+                try:
+                    t.close()
+                except:
+                    pass
     else:
-        try:
-            print("call func: {}".format(call_func.__name__))
-            call_func(p, libc)
-        except PwncliExit as ex:
-            print("Pwncli is exiting...", ex)
-            return True
-        except:
-            p.close()
-    return False
+        for i in range(loop_time):
+            t = tube_func(*tube_args)
+            libc.address = 0
+            print("[{}] ===> call func: {}".format(i+1, call_func.__name__))
+            try:
+                call_func(t, libc)
+            except PwncliExit as ex:
+                print("Pwncli is exiting...", ex)
+                break
+            finally:
+                try:
+                    t.close()
+                except:
+                    pass
 
 
 def _attack_local(argv, libc_path, call_func, loop_time, loop_list):
     # check para
     if argv is None or (not os.path.isfile(libc_path)) or loop_time <= 0 or call_func is None:
         raise RuntimeError("Para error! argv:{} libc_path:{} loop_time: {} call_func: {}".format(argv, libc_path, loop_time, call_func.__name__))
-    libc = ELF(libc_path)
-    while loop_time > 0:
-        loop_time -= 1
-        p = process(argv)
-        libc.address = 0
-        if _call_func_invoke(p, libc, loop_list):
-            break
+    _call_func_invoke(call_func, libc_path, loop_time, loop_list, process, (argv, ))
 
 
 def _attack_remote(libc_path, ip, port, call_func, loop_time, loop_list):
     if ip is None or port is None or (not os.path.isfile(libc_path)) or loop_time <= 0 or call_func is None:
         raise RuntimeError("Para error! is:{} port: {} libc_path:{} loop_time: {} call_func: {}".format(ip, port, libc_path, loop_time, call_func.__name__))
-    libc = ELF(libc_path)
-    while loop_time > 0:
-        loop_time -= 1
-        p = remote(ip, port)
-        libc.address = 0
-        if _call_func_invoke(p, libc, loop_list):
-            break
+    _call_func_invoke(call_func, libc_path, loop_time, loop_list, remote, (ip, port))
 
 
 def _check_func_args(func_call, loop_list):
@@ -149,13 +150,11 @@ def _check_func_args(func_call, loop_list):
         vl[0].annotation, kl[1], vl[1].annotation)+com_help_info
 
 
-def _light_enumerate_attack(argv, libc_path, ip, port, loop_time, attack_mode, loop_list:List[List]):
+def _light_enumerate_attack(argv, libc_path, ip, port, attack_mode, loop_time=0x10, loop_list:List[List]=None):
     def wrapper1(func_call):
         @functools.wraps(func_call)
         def wrapper2(*args, **kwargs):
                 _check_func_args(func_call, loop_list)
-                if loop_list: # use loop_list instead of loop_time
-                    loop_time = 1
                 # process or remote
                 if attack_mode == _EnumerateAttackMode.LOCAL:
                     _attack_local(argv, libc_path, func_call, loop_time, loop_list)
