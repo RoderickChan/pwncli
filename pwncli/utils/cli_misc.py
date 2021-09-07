@@ -1,7 +1,6 @@
 
 from pwncli.cli import _treasure, gift
-from pwncli.cli import Environment as _ctx
-from pwncli.utils.misc import get_callframe_info
+from pwncli.utils.misc import get_callframe_info, log2_ex
 
 __all__ = ['stop']
 
@@ -35,6 +34,8 @@ def stop(enable=True):
         msg += ' at module: {}  function: {}  line: {}'.format(module_name, func_name, lineno)
     if pid != -1:
         msg += '  local pid: {}'.format(pid)
-    _ctx._log2(msg)
+    log2_ex(msg)
     input(" Press any key to continue......")
 
+
+#----------------------------useful command-------------------------

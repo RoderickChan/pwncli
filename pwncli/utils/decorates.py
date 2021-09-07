@@ -7,6 +7,7 @@ from inspect import signature, _empty
 from pwncli.utils.exceptions import PwncliExit
 from typing import List
 from itertools import product
+from pwncli.utils.misc import log_ex
 
 __all__  = ['time_count', 'sleep_call_before', "sleep_call_after", "sleep_call_all", "local_enumerate_attack", "remote_enumerate_attack"]
 
@@ -81,11 +82,11 @@ def _call_func_invoke(call_func, libc_path, loop_time, loop_list, tube_func, *tu
             l_count += 1
             t = tube_func(*tube_args)
             libc.address = 0
-            print("[{}] ===> call func: {}, loop-args: {}".format(l_count, call_func.__name__, iter_items))
+            log_ex("[{}] ===> call func: {}, loop-args: {}".format(l_count, call_func.__name__, iter_items))
             try:
                 call_func(t, libc, *iter_items)
             except PwncliExit as ex:
-                print("Pwncli is exiting...", ex)
+                log_ex("Pwncli is exiting...", ex)
                 break
             finally:
                 try:
@@ -96,11 +97,11 @@ def _call_func_invoke(call_func, libc_path, loop_time, loop_list, tube_func, *tu
         for i in range(loop_time):
             t = tube_func(*tube_args)
             libc.address = 0
-            print("[{}] ===> call func: {}".format(i+1, call_func.__name__))
+            log_ex("[{}] ===> call func: {}".format(i+1, call_func.__name__))
             try:
                 call_func(t, libc)
             except PwncliExit as ex:
-                print("Pwncli is exiting...", ex)
+                log_ex("Pwncli is exiting...", ex)
                 break
             finally:
                 try:

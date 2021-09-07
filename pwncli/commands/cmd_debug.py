@@ -6,11 +6,12 @@ import os
 import sys
 from pwncli.cli import pass_environ, _set_filename
 from pwncli.utils.config import try_get_config_data_by_key
+from pwncli.utils.misc import ldd_get_libc_path
 
 
 def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
     terminal = None
-    dirname = os.path.dirname(os.path.abspath(ctx.filename))
+    dirname = os.path.dirname(os.path.abspath(ctx.gift['filename']))
 
     if flag & 1:
         terminal = ['tmux', 'splitw', '-h']
@@ -76,7 +77,7 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
 
 def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script):
     # set filename
-    if getattr(ctx, 'filename', "error_file_name") == "error_file_name":
+    if not ctx.gift.get('filename', None):
         _set_filename(ctx, filename, msg="debug-command --> Set 'filename': {}".format(filename))
     
     # set argv
@@ -147,29 +148,21 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
         script = open(gdb_script, 'r', encoding='utf-8')
 
     # check filename now
-    if getattr(ctx, 'filename', 'error_file_name') == 'error_file_name':
+    if not ctx.gift.get('filename', None):
         ctx.abort("debug-command --> No 'filename'!")
-
+    filename = ctx.gift['filename']
     # set binary
-    context.binary = ctx.filename
+    context.binary = filename
     ctx.gift['io'] = context.binary.process(argv)
-    ctx.gift['elf'] = ELF(ctx.filename, checksec=False)
+    ctx.gift['elf'] = ELF(filename, checksec=False)
 
-    rp = None
-    try:
-        out = subprocess.check_output(["ldd", filename]).decode().split()
-        for o in out:
-            if "/libc.so.6" in o or "/libc-2." in o:
-                rp = os.path.realpath(o)
-                break
-    except:
-        pass
+    rp = ldd_get_libc_path(filename)
     if rp is not None:
         ctx.gift['libc'] = ELF(rp, checksec=False)
         ctx.gift['libc'].address = 0
     else:
         ctx.vlog2('debug-command --> ldd cannot find the libc.so.6 or libc-2.xx.so')
-    ctx.vlog('debug-command --> Set process({}, argv={})'.format(ctx.filename, argv))
+    ctx.vlog('debug-command --> Set process({}, argv={})'.format(filename, argv))
 
     # set attach-mode 'auto'
     if attach_mode == 'auto':

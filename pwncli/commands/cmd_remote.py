@@ -4,7 +4,8 @@ from collections import OrderedDict
 from pwncli.cli import pass_environ, _set_filename
 from pwn import remote, ELF,context
 from pwncli.utils.config import *
-from subprocess import check_output
+from pwncli.utils.misc import ldd_get_libc_path
+
 
 def do_setproxy(ctx, proxy_mode):
     if proxy_mode in ('notset', 'undefined'):
@@ -78,22 +79,14 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
     elif ip is None or port is None or len(ip) == 0 or port <= 0: # little check
             ctx.abort("remote-command --> Cannot get the victim host!")
 
-    if getattr(ctx, 'filename', "error_file_name") == "error_file_name":
+    if not ctx.gift.get('filename', None):
         _set_filename(ctx, filename, msg="remote-command --> Set 'filename': {}".format(filename))
-
+    filename = ctx.gift.get('filename', None)
     if filename:
-        context.binary = ctx.filename
+        context.binary = filename
         ctx.gift['elf'] = ELF(filename, checksec=False)
         
-        rp = None
-        try:
-            out = check_output(["ldd", filename]).decode().split()
-            for o in out:
-                if "/libc.so.6" in o or "/libc-2." in o:
-                    rp = os.path.realpath(o)
-                    break
-        except:
-            pass
+        rp = ldd_get_libc_path(filename)
         if rp is not None:
             ctx.gift['libc'] = ELF(rp, checksec=False)
             ctx.gift['libc'].address = 0

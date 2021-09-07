@@ -1,28 +1,11 @@
 import sys
 import os
 import functools
-
-__all__ = ['int16', 
-           'int8', 
-           'int2',
-           'get_callframe_info',
-           'log_address', 
-           'FontColor', 
-           'BackgroundColor', 
-           'TerminalMode', 
-           'get_str_with_color', 
-           'print_color',
-           'rstr',
-           'gstr',
-           'bstr',
-           'rprint',
-           'gprint',
-           'bprint']
+import subprocess
 
 int16 = functools.partial(int, base=16)
 int8 = functools.partial(int, base=8)
 int2 = functools.partial(int, base=2)
-
 
 def get_callframe_info(depth:int=2):
     """Get stackframe info
@@ -45,16 +28,6 @@ def get_callframe_info(depth:int=2):
     func_name = bf.f_code.co_name
     lineno = bf.f_lineno
     return module_name, func_name, lineno
-
-
-def log_address(desc:str, address:int):
-    """Print address of hex fromat
-
-    Args:
-        desc (str): The description of address
-        address (int): Address
-    """
-    print("[+] {} ===> {}".format(desc, hex(address)))
 
 
 # print str with color
@@ -176,22 +149,85 @@ bprint = functools.partial(print_color,
                     terminal_mode=TerminalMode.DEFAULT)
 
 
-def log(msg, *args):
+def log_ex(msg, *args):
     """Logs a message to stdout."""
     if args:
         msg %= args
-    gprint("[***] INFO: {}".format(msg))
+    gprint("[*] INFO: {}".format(msg))
 
 
-def log2(msg, *args):
+def log2_ex(msg, *args):
     """Logs an important message to stdout."""
     if args:
         msg %= args
-    bprint("[###] IMPORTANT INFO: {}".format(msg))
+    bprint("[#] IMPORTANT INFO: {}".format(msg))
 
 
-def errlog(msg, *args):
+def errlog_ex(msg, *args):
     """Logs a message to stderr."""
     if args:
         msg %= args
-    rprint("[!!!] ERROR: {}".format(msg))
+    rprint("[!] ERROR: {}".format(msg))
+
+
+def errlog_exit(msg, *args):
+    errlog_ex(msg, *args)
+    exit(-1)
+
+
+def log_address(desc:str, address:int):
+    """Print address of hex fromat
+
+    Args:
+        desc (str): The description of address
+        address (int): Address
+    """
+    log_ex("{} ===> {}".format(desc, hex(address)))
+
+
+def log_libc_base_addr(address:int):
+    log_address("libc_base_addr", address)
+
+
+def log_heap_base_addr(address:int):
+    log_address("heap_base_addr", address)
+
+
+def log_code_base_addr(address:int):
+    log_address("code_base_addr", address)
+
+
+def ldd_get_libc_path(filepath):
+    rp = None
+    try:
+        out = subprocess.check_output(["ldd", filepath], encoding='utf-8').split()
+        for o in out:
+            if "/libc.so.6" in o or "/libc-2." in o:
+                rp = os.path.realpath(o)
+                break
+    except:
+        pass
+    return rp
+
+
+def one_gadget(so_path:str, more=False):
+    cmd_list = ["one_gadget", so_path]
+    if more:
+        cmd_list.append("-l")
+        cmd_list.append("2")
+    try:
+        out = subprocess.check_output(cmd_list, encoding='utf-8').split("\n")
+        for o in out:
+            if "execve" in o:
+                yield int16(o.split()[0])
+    except:
+        errlog_exit("Cannot exec one_gadget, maybe you don't install one_gadget or filename is wrong!")
+
+
+def one_gadget_binary(binary_path, more=False):
+    binary_path = os.path.realpath(binary_path)
+    rp = ldd_get_libc_path(binary_path)
+    if rp:
+        return one_gadget(rp, more)
+    else:
+        errlog_exit("Exec ldd {} fail!".format(binary_path))
