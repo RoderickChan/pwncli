@@ -84,12 +84,16 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
     if filename:
         context.binary = ctx.filename
         ctx.gift['elf'] = ELF(filename, checksec=False)
-        out = check_output(["ldd", filename]).decode().split()
+        
         rp = None
-        for o in out:
-            if "/libc.so.6" in o or "/libc-2." in o:
-                rp = os.path.realpath(o)
-                break
+        try:
+            out = check_output(["ldd", filename]).decode().split()
+            for o in out:
+                if "/libc.so.6" in o or "/libc-2." in o:
+                    rp = os.path.realpath(o)
+                    break
+        except:
+            pass
         if rp is not None:
             ctx.gift['libc'] = ELF(rp, checksec=False)
             ctx.gift['libc'].address = 0

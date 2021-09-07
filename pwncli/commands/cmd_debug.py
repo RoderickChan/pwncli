@@ -155,12 +155,15 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
     ctx.gift['io'] = context.binary.process(argv)
     ctx.gift['elf'] = ELF(ctx.filename, checksec=False)
 
-    out = subprocess.check_output(["ldd", filename]).decode().split()
     rp = None
-    for o in out:
-        if "/libc.so.6" in o or "/libc-2." in o:
-            rp = os.path.realpath(o)
-            break
+    try:
+        out = subprocess.check_output(["ldd", filename]).decode().split()
+        for o in out:
+            if "/libc.so.6" in o or "/libc-2." in o:
+                rp = os.path.realpath(o)
+                break
+    except:
+        pass
     if rp is not None:
         ctx.gift['libc'] = ELF(rp, checksec=False)
         ctx.gift['libc'].address = 0
