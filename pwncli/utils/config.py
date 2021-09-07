@@ -139,12 +139,3 @@ def write_config_data(data:configparser.ConfigParser, filepath:str="~/.pwncli.co
     with open(filepath, "w") as configfile:
         data.write(configfile)
     return True
-
-
-    
-
-
-
-
-
-
