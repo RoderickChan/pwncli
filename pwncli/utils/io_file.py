@@ -18,7 +18,11 @@ class IO_FILE_plus_struct(FileStructure):
         if item in IO_FILE_plus_struct.__dict__ or item in FileStructure.__dict__ or item in self.vars_:
             return object.__getattribute__(self,item)
         error("Unknown variable %r" % item)
+    
+    def __str__(self):
+        return str(self.__bytes__())[2:-1]
 
+    
     @property
     def _mode(self):
         off = 320
@@ -34,7 +38,7 @@ class IO_FILE_plus_struct(FileStructure):
             off = 112
         self.unknown2 |= (value << off)
 
-        
+
     @staticmethod
     def show_struct(arch="amd64"):
         if arch not in ("amd64", "i386"):
@@ -109,8 +113,6 @@ class IO_FILE_plus_struct(FileStructure):
         for k, v in _IO_FILE_plus_struct_map[arch].items():
             print("  {} : {} ".format(hex(k), v))
 
-    def __str__(self):
-        return str(self.__bytes__())[2:-1]
 
     # only support amd64
     def getshell_by_str_jumps_finish_when_exit(self, _IO_str_jumps_addr:int, system_addr:int, bin_sh_addr:int):
@@ -124,7 +126,7 @@ class IO_FILE_plus_struct(FileStructure):
             bin_sh_addr (int): Addr of the string: /bin/sh
 
         Returns:
-            [bytes]: payload
+            bytes: payload
         """
         assert context.bits == 64, "only support amd64!"
         self.flags &= ~1
@@ -152,7 +154,7 @@ class IO_FILE_plus_struct(FileStructure):
             lock (int, optional): lock value if needed. Defaults to 0.
 
         Returns:
-            [bytes]: payload
+            bytes: payload
         """
         assert context.bits == 64, "only support amd64!"
         self.flags = 0xfbad2800
@@ -179,3 +181,30 @@ class IO_FILE_plus_struct(FileStructure):
             }
         })
         return payload
+
+
+def payload_replace(payload:(str, bytes), rpdict:dict=None, filler="\x00"):
+    assert isinstance(payload, (str, bytes, int)), "wrong payload!"
+    assert context.bits in (32, 64), "wrong context.bits!"
+    assert len(filler) == 1, "wrong filler!"
+    
+    output = list(payload) if isinstance(payload, bytes) else list(payload.encode())
+    
+    if isinstance(filler, str):
+        filler = filler.encode()
+
+    for off, data in rpdict.items():
+        assert isinstance(off, int), "wrong off in rpdict!"
+        assert isinstance(data, (int, bytes, str)), "wrong data: {}!".format(data)
+
+        if isinstance(data, str):
+            data = data.encode()
+        elif isinstance(data, int):
+            data = pack(data, word_size=context.bits, endianness=context.endian)
+        distance = len(output) - len(data)
+        if off > distance:
+            output.extend([int.from_bytes(filler, "little")]*(off - distance))
+
+        for i, d in enumerate(data):
+            output[off+i] = d
+        return bytes(output)
