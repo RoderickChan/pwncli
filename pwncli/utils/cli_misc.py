@@ -43,6 +43,6 @@ def get_current_one_gadget(more=False):
     """Get current filename's all one_gadget.
 
     """
-    if not gift.get(['filename'], None):
+    if not gift.get('filename', None):
         errlog_exit("Cannot get_current_one_gadget, filename is None!")
     return one_gadget_binary(gift['filename'], more)

@@ -86,8 +86,10 @@ def _call_func_invoke(call_func, libc_path, loop_time, loop_list, tube_func, *tu
             try:
                 call_func(t, libc, *iter_items)
             except PwncliExit as ex:
-                log_ex("Pwncli is exiting...", ex)
+                log_ex("Pwncli is exiting...ex info: {}".format(ex))
                 break
+            except:
+                pass
             finally:
                 try:
                     t.close()
@@ -101,8 +103,10 @@ def _call_func_invoke(call_func, libc_path, loop_time, loop_list, tube_func, *tu
             try:
                 call_func(t, libc)
             except PwncliExit as ex:
-                log_ex("Pwncli is exiting...", ex)
+                log_ex("Pwncli is exiting...ex info: {}".format(ex))
                 break
+            except:
+                pass
             finally:
                 try:
                     t.close()
