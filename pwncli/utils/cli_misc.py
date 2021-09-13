@@ -38,7 +38,7 @@ def stop(enable=True):
     input(" Press any key to continue......")
 
 
-#----------------------------useful command-------------------------
+#----------------------------useful function-------------------------
 def get_current_one_gadget(more=False):
     """Get current filename's all one_gadget.
 

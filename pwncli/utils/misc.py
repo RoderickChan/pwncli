@@ -2,6 +2,7 @@ import sys
 import os
 import functools
 import subprocess
+from pwn import unpack
 
 int16 = functools.partial(int, base=16)
 int8 = functools.partial(int, base=8)
@@ -156,11 +157,25 @@ def log_ex(msg, *args):
     gprint("[*] INFO: {}".format(msg))
 
 
+def log_ex_highlight(msg, *args):
+    """Logs a message to stdout."""
+    if args:
+        msg %= args
+    print_color("[*] INFO: {}".format(msg), font_color=FontColor.GREEN, background_color=BackgroundColor.WHITE)
+
+
 def log2_ex(msg, *args):
     """Logs an important message to stdout."""
     if args:
         msg %= args
     bprint("[#] IMPORTANT INFO: {}".format(msg))
+
+
+def log2_ex_highlight(msg, *args):
+    """Logs a message to stdout."""
+    if args:
+        msg %= args
+    print_color("[#] IMPORTANT INFO: {}".format(msg), font_color=FontColor.BLUE, background_color=BackgroundColor.WHITE)
 
 
 def errlog_ex(msg, *args):
@@ -170,9 +185,22 @@ def errlog_ex(msg, *args):
     rprint("[!] ERROR: {}".format(msg))
 
 
+def errlog_highlight(msg, *args):
+    """Logs a message to stdout."""
+    if args:
+        msg %= args
+    print_color("[!] ERROR: {}".format(msg), font_color=FontColor.RED, background_color=BackgroundColor.WHITE)
+
+
 def errlog_exit(msg, *args):
     """Logs a message to stderr and then exit."""
     errlog_ex(msg, *args)
+    exit(-1)
+
+
+def errlog_highlight_exit(msg, *args):
+    """Logs a message to stderr and then exit."""
+    errlog_highlight(msg, *args)
     exit(-1)
 
 
@@ -184,6 +212,27 @@ def log_address(desc:str, address:int):
         address (int): Address
     """
     log_ex("{} ===> {}".format(desc, hex(address)))
+
+
+def log_address_ex(variable:str, depth=2):
+    """Log address from the variable's name by use of stack frame.
+
+    Args:
+        variable (str): The name.
+        depth (int, optional): Stack frame depth. Defaults to 2.
+    """
+    assert isinstance(variable, str), "Variable must be a string!"
+    assert depth >= 2, "depth error!"
+    bf = sys._getframe()
+    for i in range(depth - 1):
+        bf = bf.f_back
+    loc_var = bf.f_locals
+    if variable not in loc_var:
+        errlog_ex("Cannot find {}! Maybe the depth is wrong!".format(variable))
+    else:
+        var = loc_var[variable]
+        assert isinstance(var, int), "The address is not int!"
+        log_address(variable, var)
 
 
 def log_libc_base_addr(address:int):
@@ -198,8 +247,10 @@ def log_code_base_addr(address:int):
     log_address("code_base_addr", address)
 
 
+#-------------------------------libc-path and one_gadget-------------------
+
 def ldd_get_libc_path(filepath:str) -> str:
-    """Get binary file's libc realpath.
+    """Get binary file's libc.so.6 realpath.
 
     Args:
         filepath (str): The binary file path.
@@ -243,7 +294,7 @@ def one_gadget(so_path:str, more=False) -> int:
 
 
 def one_gadget_binary(binary_path:str, more=False) -> int:
-    """Get all one_gadget about a binary file.
+    """Get all one_gadget about a elf binary file.
 
     """
     binary_path = os.path.realpath(binary_path)
@@ -252,3 +303,25 @@ def one_gadget_binary(binary_path:str, more=False) -> int:
         return one_gadget(rp, more)
     else:
         errlog_exit("Exec ldd {} fail!".format(binary_path))
+
+
+#--------------------------------usefule function------------------------------
+
+def u32_ex(data:(str, bytes)):
+    length = len(data)
+    assert length <= 4, "len(data) > 4!"
+    assert isinstance(data, (str, bytes))
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    data = data.ljust(4, b"\x00")
+    return unpack(data, 32)
+    
+
+def u64_ex(data:(str, bytes)):
+    length = len(data)
+    assert length <= 8, "len(data) > 8!"
+    assert isinstance(data, (str, bytes))
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    data = data.ljust(8, b"\x00")
+    return unpack(data, 64)

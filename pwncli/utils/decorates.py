@@ -7,7 +7,7 @@ from inspect import signature, _empty
 from pwncli.utils.exceptions import PwncliExit
 from typing import List
 from itertools import product
-from pwncli.utils.misc import log_ex
+from pwncli.utils.misc import log_ex, ldd_get_libc_path
 
 __all__  = ['time_count', 'sleep_call_before', "sleep_call_after", "sleep_call_all", "local_enumerate_attack", "remote_enumerate_attack"]
 
@@ -155,16 +155,22 @@ def _check_func_args(func_call, loop_list):
         vl[0].annotation, kl[1], vl[1].annotation)+com_help_info
 
 
-def _light_enumerate_attack(argv, libc_path, ip, port, attack_mode, loop_time=0x10, loop_list:List[List]=None):
+def _light_enumerate_attack(argv, ip, port, attack_mode, libc_path=None, loop_time=0x10, loop_list:List[List]=None):
     def wrapper1(func_call):
         @functools.wraps(func_call)
         def wrapper2(*args, **kwargs):
+                # check 
                 _check_func_args(func_call, loop_list)
+                # auto detect libc_path
+                if argv is not None and libc_path is None:
+                    _libc_path = ldd_get_libc_path(argv)
+                else:
+                    _libc_path = libc_path
                 # process or remote
                 if attack_mode == _EnumerateAttackMode.LOCAL:
-                    _attack_local(argv, libc_path, func_call, loop_time, loop_list)
+                    _attack_local(argv, _libc_path, func_call, loop_time, loop_list)
                 elif attack_mode == _EnumerateAttackMode.REMOTE:
-                    _attack_remote(libc_path, ip, port, func_call, loop_time, loop_list)
+                    _attack_remote(_libc_path, ip, port, func_call, loop_time, loop_list)
         return wrapper2
     return wrapper1
 
