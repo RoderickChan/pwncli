@@ -287,7 +287,7 @@ def one_gadget(so_path:str, more=False) -> int:
     try:
         out = subprocess.check_output(cmd_list, encoding='utf-8').split("\n")
         for o in out:
-            if "execve" in o:
+            if "exec" in o and "/bin/sh" in o:
                 yield int16(o.split()[0])
     except:
         errlog_exit("Cannot exec one_gadget, maybe you don't install one_gadget or filename is wrong!")
@@ -310,7 +310,7 @@ def one_gadget_binary(binary_path:str, more=False) -> int:
 def u32_ex(data:(str, bytes)):
     length = len(data)
     assert length <= 4, "len(data) > 4!"
-    assert isinstance(data, (str, bytes))
+    assert isinstance(data, (str, bytes)), "wrong data type!"
     if isinstance(data, str):
         data = data.encode('utf-8')
     data = data.ljust(4, b"\x00")
@@ -320,8 +320,11 @@ def u32_ex(data:(str, bytes)):
 def u64_ex(data:(str, bytes)):
     length = len(data)
     assert length <= 8, "len(data) > 8!"
-    assert isinstance(data, (str, bytes))
+    assert isinstance(data, (str, bytes)), "wrong data type!"
     if isinstance(data, str):
         data = data.encode('utf-8')
     data = data.ljust(8, b"\x00")
     return unpack(data, 64)
+
+
+print(list(one_gadget("/root/glibc-all-in-one/libs/2.23-0ubuntu11_i386/libc-2.23.so")))

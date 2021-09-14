@@ -11,6 +11,20 @@ from pwncli.utils.misc import log_ex, ldd_get_libc_path
 
 __all__  = ['time_count', 'sleep_call_before', "sleep_call_after", "sleep_call_all", "local_enumerate_attack", "remote_enumerate_attack"]
 
+def smart_decorator(decorator):
+    """Make a function to be a decorator.
+
+    Args:
+        decorator (Callable): Callable object.
+    """
+    def wrapper(func=None, *args, **kwargs):
+        if func is not None:
+            return decorator(func=func, *args, **kwargs)
+        def wrapper(func):
+            return decorator(func=func, *args, **kwargs)
+        return wrapper
+    return wrapper
+
 
 def time_count(func):
     """Count the time consuming of a function
