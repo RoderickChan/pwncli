@@ -325,6 +325,3 @@ def u64_ex(data:(str, bytes)):
         data = data.encode('utf-8')
     data = data.ljust(8, b"\x00")
     return unpack(data, 64)
-
-
-print(list(one_gadget("/root/glibc-all-in-one/libs/2.23-0ubuntu11_i386/libc-2.23.so")))

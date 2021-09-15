@@ -1,8 +1,6 @@
-from enum import Enum, unique
 
 class SyscallNumber:
-    @unique
-    class i386(Enum):
+    class i386:
         RESTART_SYSCALL = 0
         EXIT = 1
         FORK = 2
@@ -380,9 +378,7 @@ class SyscallNumber:
         PREADV2 = 378
         PWRITEV2 = 379
 
-
-    @unique
-    class amd64(Enum):
+    class amd64:
         READ = 0
         WRITE = 1
         OPEN = 2
