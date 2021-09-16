@@ -22,8 +22,9 @@ def get_arch_info_from_file(filepath):
 @click.argument('filename', type=str, required=True, nargs=1)
 @click.argument("libc-version", required=True, nargs=1, type=str)
 @click.option('-b', '--back-up', is_flag=True, help="Backup target file or not.")
+@click.option('-f', '--filter-string', default=[], type=str, multiple=True, help="Add filter condition.")
 @pass_environ
-def cli(ctx, filename, libc_version, back_up):
+def cli(ctx, filename, libc_version, back_up, filter_string):
     """FILENAME: ELF executable filename.\n
     LIBC_VERSION: Libc version.
 
@@ -50,13 +51,24 @@ def cli(ctx, filename, libc_version, back_up):
         
     filename = os.path.abspath(filename)
     archinfo = get_arch_info_from_file(filename)
-    
-    subdirs = list(filter(lambda x: (archinfo in x) and (os.path.isdir(os.path.join(libc_dirname, x))), os.listdir(libc_dirname)))
+    def _filter_dir(_d):
+        for _i in filter_string:
+                if _i not in _d:
+                    return False
+        if (archinfo in _d) and (os.path.isdir(os.path.join(libc_dirname, _d))):
+            return True
+        return False
+
+    subdirs = list(filter(_filter_dir, os.listdir(libc_dirname)))
+    if not subdirs or len(subdirs) == 0:
+        ctx.verrlog("patchelf-command --> Do not find the matched dirctories in {}, with libc_version: {}, filter-string:{}!".format(libc_dirname, libc_version, filter_string))
+        ctx.abort()
+
     subdirs.sort()
     
     has_versions = [x[:4] for x in subdirs]
     
-    if libc_version not in has_versions:
+    if not has_versions or len(has_versions) == 0 or libc_version not in has_versions:
         ctx.verrlog("patchelf-command --> Do not have the libc version of {}, only have {}!".format(libc_version, has_versions))
         ctx.abort()
 
