@@ -325,3 +325,13 @@ def u64_ex(data:(str, bytes)):
         data = data.encode('utf-8')
     data = data.ljust(8, b"\x00")
     return unpack(data, 64)
+
+
+def get_flag_when_get_shell(p, use_cat=True, contain_str="flag{"):
+    if use_cat:
+        p.sendline("cat /flag")
+    s= p.recvline_contains("flag{")
+    if contain_str.encode('utf-8') in s:
+        log_ex("{}".format(s))
+    else:
+        errlog_ex("Cannot get flag")
