@@ -2,7 +2,7 @@ import sys
 import os
 import functools
 import subprocess
-from pwn import unpack
+from pwn import unpack, pack
 
 int16 = functools.partial(int, base=16)
 int8 = functools.partial(int, base=8)
@@ -185,7 +185,7 @@ def errlog_ex(msg, *args):
     rprint("[!] ERROR: {}".format(msg))
 
 
-def errlog_highlight(msg, *args):
+def errlog_ex_highlight(msg, *args):
     """Logs a message to stdout."""
     if args:
         msg %= args
@@ -198,9 +198,9 @@ def errlog_exit(msg, *args):
     exit(-1)
 
 
-def errlog_highlight_exit(msg, *args):
+def errlog_ex_highlight_exit(msg, *args):
     """Logs a message to stderr and then exit."""
-    errlog_highlight(msg, *args)
+    errlog_ex_highlight(msg, *args)
     exit(-1)
 
 
@@ -327,11 +327,33 @@ def u64_ex(data:(str, bytes)):
     return unpack(data, 64)
 
 
-def get_flag_when_get_shell(p, use_cat=True, contain_str="flag{"):
+def p8_ex(num:int):
+    num &= 0xff
+    return pack(num, word_size=8)
+
+
+def p16_ex(num:int):
+    num &= 0xffff
+    return pack(num, word_size=16)
+
+
+def p32_ex(num:int):
+    num &= 0xffffffff
+    return pack(num, word_size=32)
+
+
+def get_flag_when_get_shell(p, use_cat:bool=True, contain_str:str="flag{"):
+    """Get flag while get a shell
+
+    Args:
+        p (tube): Instance of tube in pwntools
+        use_cat (bool, optional): Use cat /flag or not. Defaults to True.
+        contain_str (str, optional): String contained in flag. Defaults to "flag{".
+    """
     if use_cat:
         p.sendline("cat /flag")
-    s= p.recvline_contains("flag{")
+    s = p.recvline_contains("flag{")
     if contain_str.encode('utf-8') in s:
-        log_ex("{}".format(s))
+        log2_ex_highlight("{}".format(s))
     else:
-        errlog_ex("Cannot get flag")
+        errlog_ex_highlight("Cannot get flag")
