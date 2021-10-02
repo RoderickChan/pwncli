@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 import functools
 import subprocess
 from pwn import unpack, pack
@@ -352,8 +353,55 @@ def get_flag_when_get_shell(p, use_cat:bool=True, contain_str:str="flag{"):
     """
     if use_cat:
         p.sendline("cat /flag")
-    s = p.recvline_contains("flag{")
+    s = p.recvline_contains(contain_str)
     if contain_str.encode('utf-8') in s:
         log2_ex_highlight("{}".format(s))
     else:
         errlog_ex_highlight("Cannot get flag")
+
+
+def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
+    """Read /proc/pid/maps file to get base address. Return a dictionary obtaining 'code',
+    'libc', 'ld', 'stack', 'heap', 'vdso'.
+
+    Args:
+        pid (int): Pid of process.
+        filename (str, optional): Filename to get code base address. Defaults to None.
+
+    Returns:
+        dict: All segment address. Key: str, Val: int.
+    """
+    assert isinstance(pid, int), "error type!"
+    res = None
+    try:
+        res = subprocess.check_output(["cat", "/proc/{}/maps".format(pid)]).decode().split("\n")
+    except:
+        errlog_exit("cat /proc/{}/maps faild!".format(pid))
+    _d = {}
+    code_flag = 0
+    libc_flag = 0
+    ld_flag = 0
+
+    for r in res:
+        rc = re.compile(r"^([0123456789abcdef]{6,14})-([0123456789abcdef]{6,14})", re.S)
+        rc = rc.findall(r)
+        if len(rc) != 1 or len(rc[0]) != 2:
+            continue
+        start_addr = int(rc[0][0], base=16)
+        end_addr = int(rc[0][1], base=16)
+        if (filename is not None) and (not code_flag) and filename in r:
+            code_flag = 1
+            _d['code'] = start_addr
+        elif (not libc_flag) and ("/libc-2." in r or "/libc.so" in r):
+            libc_flag = 1
+            _d['libc'] = start_addr
+        elif (not ld_flag) and ("/ld-2." in r):
+            ld_flag = 1
+            _d['ld'] = start_addr
+        elif "heap" in r:
+            _d['heap'] = start_addr
+        elif "stack" in r:
+            _d['stack'] = start_addr  
+        elif "vdso" in r:
+            _d['vdso'] = start_addr
+    return _d

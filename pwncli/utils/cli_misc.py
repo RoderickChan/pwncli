@@ -1,6 +1,6 @@
 
 from pwncli.cli import _treasure, gift
-from pwncli.utils.misc import get_callframe_info, log2_ex, errlog_exit,one_gadget_binary
+from pwncli.utils.misc import get_callframe_info, log2_ex, errlog_exit,one_gadget_binary, get_segment_base_addr_by_proc_maps
 
 __all__ = ['stop', "get_current_one_gadget"]
 
@@ -46,3 +46,29 @@ def get_current_one_gadget(more=False):
     if not gift.get('filename', None):
         errlog_exit("Cannot get_current_one_gadget, filename is None!")
     return one_gadget_binary(gift['filename'], more)
+
+
+def get_current_segment_base_addr() -> dict:
+    """Get current process's segments' base address."""
+    # try to get pid
+    if gift.get('io', None) and gift.get('debug', None):
+        pid = gift['io'].proc.pid
+        return get_segment_base_addr_by_proc_maps(pid, filename=gift.get['filename'], None)
+    else:
+        errlog_exit("get_current_segment_base_addr failed! No pid!")
+
+def get_current_codebase_addr() -> int:
+    r = get_current_segment_base_addr()
+    return r['code']
+
+def get_current_libcbase_addr() -> int:
+    r = get_current_segment_base_addr()
+    return r['libc']
+
+def get_current_stackbase_addr() -> int:
+    r = get_current_segment_base_addr()
+    return r['stack']
+
+def get_current_heapbase_addr() -> int:
+    r = get_current_segment_base_addr()
+    return r['heap']
