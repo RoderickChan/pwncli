@@ -57,17 +57,21 @@ def get_current_segment_base_addr() -> dict:
     else:
         errlog_exit("get_current_segment_base_addr failed! No pid!")
 
+
 def get_current_codebase_addr() -> int:
     r = get_current_segment_base_addr()
     return r['code']
+
 
 def get_current_libcbase_addr() -> int:
     r = get_current_segment_base_addr()
     return r['libc']
 
+
 def get_current_stackbase_addr() -> int:
     r = get_current_segment_base_addr()
     return r['stack']
+
 
 def get_current_heapbase_addr() -> int:
     r = get_current_segment_base_addr()
