@@ -48,7 +48,7 @@ def get_current_one_gadget(more=False):
     return one_gadget_binary(gift['filename'], more)
 
 _cache_segment_base_addr = None
-def get_current_segment_base_addr(use_cache=True) -> dict:
+def __get_current_segment_base_addr(use_cache=True) -> dict:
     global _cache_segment_base_addr
     """Get current process's segments' base address."""
     if use_cache and _cache_segment_base_addr is not None:
@@ -66,20 +66,20 @@ def get_current_segment_base_addr(use_cache=True) -> dict:
 
 
 def get_current_codebase_addr(use_cache=True) -> int:
-    r = get_current_segment_base_addr(use_cache)
+    r = __get_current_segment_base_addr(use_cache)
     return r['code']
 
 
 def get_current_libcbase_addr(use_cache=True) -> int:
-    r = get_current_segment_base_addr(use_cache)
+    r = __get_current_segment_base_addr(use_cache)
     return r['libc']
 
 
 def get_current_stackbase_addr(use_cache=True) -> int:
-    r = get_current_segment_base_addr(use_cache)
+    r = __get_current_segment_base_addr(use_cache)
     return r['stack']
 
 
 def get_current_heapbase_addr(use_cache=True) -> int:
-    r = get_current_segment_base_addr(use_cache)
+    r = __get_current_segment_base_addr(use_cache)
     return r['heap']

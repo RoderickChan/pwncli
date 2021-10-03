@@ -97,7 +97,7 @@ def _call_func_invoke(call_func, libc_path, loop_time, loop_list, tube_func, *tu
             l_count += 1
             t = tube_func(*tube_args)
             libc.address = 0
-            log_ex("[{}] ===> call func: {}, loop-args: {}".format(l_count, call_func.__name__, iter_items))
+            log_ex("[{}] ===> call func: {}, tube-args: {}, loop-args: {}".format(l_count, call_func.__name__, tube_args, iter_items))
             try:
                 call_func(t, libc, *iter_items)
             except PwncliExit as ex:
@@ -114,7 +114,7 @@ def _call_func_invoke(call_func, libc_path, loop_time, loop_list, tube_func, *tu
         for i in range(loop_time):
             t = tube_func(*tube_args)
             libc.address = 0
-            log_ex("[{}] ===> call func: {}".format(i+1, call_func.__name__))
+            log_ex("[{}] ===> call func: {}, tube-args: {}".format(i+1, call_func.__name__, tube_args))
             try:
                 call_func(t, libc)
             except PwncliExit as ex:
