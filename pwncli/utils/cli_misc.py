@@ -1,8 +1,8 @@
 
+import os
 from pwncli.cli import _treasure, gift
 from pwncli.utils.misc import get_callframe_info, log2_ex, errlog_exit,one_gadget_binary, get_segment_base_addr_by_proc_maps
 
-__all__ = ['stop', "get_current_one_gadget"]
 
 def stop(enable=True):
     """Stop the program and print the caller's info
@@ -47,32 +47,39 @@ def get_current_one_gadget(more=False):
         errlog_exit("Cannot get_current_one_gadget, filename is None!")
     return one_gadget_binary(gift['filename'], more)
 
-
-def get_current_segment_base_addr() -> dict:
+_cache_segment_base_addr = None
+def get_current_segment_base_addr(use_cache=True) -> dict:
+    global _cache_segment_base_addr
     """Get current process's segments' base address."""
+    if use_cache and _cache_segment_base_addr is not None:
+        return _cache_segment_base_addr
     # try to get pid
     if gift.get('io', None) and gift.get('debug', None):
         pid = gift['io'].proc.pid
-        return get_segment_base_addr_by_proc_maps(pid, filename=gift.get('filename', None))
+        filename = gift.get('filename', None)
+        if filename is not None:
+            filename = os.path.split(os.path.abspath(filename))[1]
+        _cache_segment_base_addr = get_segment_base_addr_by_proc_maps(pid, filename)
+        return _cache_segment_base_addr
     else:
         errlog_exit("get_current_segment_base_addr failed! No pid!")
 
 
-def get_current_codebase_addr() -> int:
-    r = get_current_segment_base_addr()
+def get_current_codebase_addr(use_cache=True) -> int:
+    r = get_current_segment_base_addr(use_cache)
     return r['code']
 
 
-def get_current_libcbase_addr() -> int:
-    r = get_current_segment_base_addr()
+def get_current_libcbase_addr(use_cache=True) -> int:
+    r = get_current_segment_base_addr(use_cache)
     return r['libc']
 
 
-def get_current_stackbase_addr() -> int:
-    r = get_current_segment_base_addr()
+def get_current_stackbase_addr(use_cache=True) -> int:
+    r = get_current_segment_base_addr(use_cache)
     return r['stack']
 
 
-def get_current_heapbase_addr() -> int:
-    r = get_current_segment_base_addr()
+def get_current_heapbase_addr(use_cache=True) -> int:
+    r = get_current_segment_base_addr(use_cache)
     return r['heap']

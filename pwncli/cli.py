@@ -155,7 +155,7 @@ def _set_filename(ctx, filename, msg=None):
     if filename is not None:
         # set filename and check
         if os.path.isfile(filename):
-            ctx.gift['filename'] = filename
+            ctx.gift['filename'] = os.path.abspath(filename)
             if not msg:
                 ctx.vlog("cli --> Set 'filename': {}".format(filename))
             else:

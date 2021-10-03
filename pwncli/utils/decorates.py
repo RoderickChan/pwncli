@@ -90,6 +90,7 @@ class _EnumerateAttackMode(Enum):
 
 def _call_func_invoke(call_func, libc_path, loop_time, loop_list, tube_func, *tube_args):
     libc = ELF(libc_path)
+    # print(tube_args)
     if loop_list:
         l_count = 0
         for iter_items in product(*loop_list):
@@ -132,13 +133,13 @@ def _attack_local(argv, libc_path, call_func, loop_time, loop_list):
     # check para
     if argv is None or (not os.path.isfile(libc_path)) or loop_time <= 0 or call_func is None:
         raise RuntimeError("Para error! argv:{} libc_path:{} loop_time: {} call_func: {}".format(argv, libc_path, loop_time, call_func.__name__))
-    _call_func_invoke(call_func, libc_path, loop_time, loop_list, process, (argv, ))
+    _call_func_invoke(call_func, libc_path, loop_time, loop_list, process, argv)
 
 
 def _attack_remote(libc_path, ip, port, call_func, loop_time, loop_list):
     if ip is None or port is None or (not os.path.isfile(libc_path)) or loop_time <= 0 or call_func is None:
         raise RuntimeError("Para error! is:{} port: {} libc_path:{} loop_time: {} call_func: {}".format(ip, port, libc_path, loop_time, call_func.__name__))
-    _call_func_invoke(call_func, libc_path, loop_time, loop_list, remote, (ip, port))
+    _call_func_invoke(call_func, libc_path, loop_time, loop_list, remote, ip, port)
 
 
 def _check_func_args(func_call, loop_list):
