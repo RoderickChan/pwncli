@@ -3,6 +3,7 @@ import os
 import re
 import functools
 import subprocess
+import struct
 from pwn import unpack, pack
 
 int16 = functools.partial(int, base=16)
@@ -342,6 +343,24 @@ def p32_ex(num:int):
     num &= 0xffffffff
     return pack(num, word_size=32)
 
+
+def p32_float(num:float, endian="little") -> bytes:
+    if endian.lower() == "little":
+        return struct.pack("<f", num)
+    elif endian.lower() == "big":
+        return struct.pack(">f", num)
+    else:
+        raise RuntimeError("Wrong endian!")
+        
+
+def p64_float(num:float, endian="little"):
+    if endian.lower() == "little":
+        return struct.pack("<d", num)
+    elif endian.lower() == "big":
+        return struct.pack(">d", num)
+    else:
+        raise RuntimeError("Wrong endian!")
+    
 
 def get_flag_when_get_shell(p, use_cat:bool=True, contain_str:str="flag{"):
     """Get flag while get a shell
