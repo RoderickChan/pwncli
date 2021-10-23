@@ -5,6 +5,7 @@
 import requests
 import json
 import threading
+import os
 from tempfile import TemporaryFile
 from pwncli.utils.misc import errlog_exit, log2_ex
 
@@ -13,12 +14,14 @@ class LibcBox:
         self._data = {} # post data, is a dict
         self._res = None # post res, is a dict
         self._symbols = None
+        self._call_searcher = False
 
     def __post_to_find(self):
         r = requests.post(url="https://libc.rip/api/find", data=json.dumps(self._data), headers={'Content-Type': 'application/json'})
         if r.status_code != 200:
             errlog_exit("Error status_code: {}".format(r.status_code))
         self._res = json.loads(r.text)
+        # print(self._res)
     
 
     def __process_symbols(self, data:dict):
@@ -31,9 +34,18 @@ class LibcBox:
                     errlog_exit("{} exists and you add two different values for symbol '{}'. First value: {} second value: {}.".format(k, k, cur_symbols[k], v))
                 cur_symbols[k] = v
         
-    # TODO
     def __process_hash(self, hash_type, hash_value):
-        pass
+        if isinstance(hash_value, int):
+            hash_value = hex(hash_value)[2:]
+        elif isinstance(hash_value, str):
+            if hash_value.startswith("0x"):
+                hash_value = hash_value[2:]
+        else:
+            errlog_exit("Wrong hash_value: {}, must be int or hex-str!".format(hash_value))
+
+        if hash_type in self._data and hash_value != self._data[hash_type]:
+            errlog_exit("{} exists and you add two different values for '{}'. First value: {} second value: {}.".format(hash_type, hash_type, self._data[hash_type], hash_value))
+        self._data[hash_type] = hash_value
     
     def __show_result(self):
         print("="*90)
@@ -43,9 +55,30 @@ class LibcBox:
 """[{}] ==> version: {}
         buildid: {}
         sha256 : {}
-""".format(i+1, r['id'], r['buildid'], r['sha256']))
+        symbols: {}
+""".format(i+1, r['id'], r['buildid'], r['sha256'], r['symbols']))
         print("="*90)
         pass
+
+    
+    def __download_resources(self, key, mode):
+        url = self._res[key]
+        fn = url.split("/")[-1]
+        if os.path.exists(fn):
+            log2_ex("{} exists in current directory, it will not be downloaded again!".format(fn))
+            return
+        if mode == "t":
+            r = requests.get(url)
+            with open(fn, "w", encoding='utf-8') as f:
+                f.write(r.text)
+        elif mode == 'b':
+            r = requests.get(url, stream=True)
+            with open(fn, "wb") as f:
+                for chunk in r.iter_content(1024):
+                    if chunk:
+                        f.write(chunk)
+        log2_ex("Download {} success!".format(fn))
+
 
     def add_symbol(self, symbol_name:str, address:int):
         self.__process_symbols({symbol_name:hex(address)})
@@ -68,7 +101,7 @@ class LibcBox:
         return self
 
     
-    def search(self, *, download_symbols=False, download_so=False):
+    def search(self, *, download_symbols=False, download_so=False, download_libs=False):
         if not self._data:
             errlog_exit("No condition! Please add condition first!")
         self.__post_to_find()
@@ -91,31 +124,26 @@ class LibcBox:
             self._res = self._res[0]
         
         if download_symbols:
-            def _download_symbols():
-                url = self._res['symbols_url']
-                r = requests.get(url)
-                fn = url.split("/")[-1]
-                with open(fn, "w", encoding='utf-8') as f:
-                    f.write(r.text)
-                self._symbols = r.text
-                log2_ex("Download {} success!".format(fn))
-            t = threading.Thread(target=_download_symbols)
+            t = threading.Thread(target=self.__download_resources, args=('symbols_url', 't'))
             t.start()
+            fn = self._res['symbols_url'].split("/")[-1]
+            if os.path.exists(fn):
+                with open(fn, "r", encoding="utf-8") as f:
+                    self._symbols = f.read()
 
         if download_so:
-            def _download_so():
-                url = self._res['download_url']
-                r = requests.get(url, stream=True)
-                fn = url.split("/")[-1]
-                with open(fn, "wb") as f:
-                    for chunk in r.iter_content(1024):
-                        if chunk:
-                            f.write(chunk)
-                log2_ex("Download {} success!".format(fn))
-            t = threading.Thread(target=_download_so)
+            t = threading.Thread(target=self.__download_resources, args=('download_url', 'b'))
             t.start()
+
+        if download_libs:
+            t = threading.Thread(target=self.__download_resources, args=('libs_url', 'b'))
+            t.start()
+
+        self._call_searcher = True
     
     def dump(self, symbol_name:str) -> int:
+        if not self._call_searcher:
+            errlog_exit("Please call search before you dump!")
         if symbol_name in ('dup2', 'printf', 'puts', 'str_bin_sh', 'read', 'strcpy', 'system', 'write', '__libc_start_main_ret'):
             res = self._res['symbols'][symbol_name]
             return int(res, base=16)
@@ -127,10 +155,7 @@ class LibcBox:
                 name, adr = line.split()
                 if name == symbol_name:
                     return int(adr, base=16)
+        
         errlog_exit("Cannot find symbol: {}".format(symbol_name))
 
 
-# f = LibcBox()
-# f.add_symbol("strcpy", 0xab0).search(download_symbols=0)
-# print(f.dump("malloc"))
-# print(f.dump('free'))
