@@ -39,13 +39,15 @@ def stop(enable=True):
 
 
 #----------------------------useful function-------------------------
-def get_current_one_gadget(more=False):
+def get_current_one_gadget(libc_base=0, more=False):
     """Get current filename's all one_gadget.
 
     """
     if not gift.get('filename', None):
         errlog_exit("Cannot get_current_one_gadget, filename is None!")
-    return one_gadget_binary(gift['filename'], more)
+    res = [x + libc_base for x in one_gadget_binary(gift['filename'], more)]
+    log2_ex("Get one_gadget: {}".format([hex(x) for x in res]))
+    return res
 
 _cache_segment_base_addr = None
 def __get_current_segment_base_addr(use_cache=True) -> dict:

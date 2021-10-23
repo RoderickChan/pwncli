@@ -287,10 +287,12 @@ def one_gadget(so_path:str, more=False) -> int:
         cmd_list.append("-l")
         cmd_list.append("2")
     try:
+        res = []
         out = subprocess.check_output(cmd_list, encoding='utf-8').split("\n")
         for o in out:
             if "exec" in o and "/bin/sh" in o:
-                yield int16(o.split()[0])
+                res.append(int16(o.split()[0]))
+        return res
     except:
         errlog_exit("Cannot exec one_gadget, maybe you don't install one_gadget or filename is wrong!")
 
@@ -308,6 +310,14 @@ def one_gadget_binary(binary_path:str, more=False) -> int:
 
 
 #--------------------------------usefule function------------------------------
+def u16_ex(data:(str, bytes)):
+    length = len(data)
+    assert length <= 2, "len(data) > 2!"
+    assert isinstance(data, (str, bytes)), "wrong data type!"
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    data = data.ljust(2, b"\x00")
+    return unpack(data, 16)
 
 def u32_ex(data:(str, bytes)):
     length = len(data)
@@ -343,6 +353,9 @@ def p32_ex(num:int):
     num &= 0xffffffff
     return pack(num, word_size=32)
 
+def p64_ex(num:int):
+    num &= 0xffffffffffffffff
+    return pack(num, word_size=64)
 
 def p32_float(num:float, endian="little") -> bytes:
     if endian.lower() == "little":
