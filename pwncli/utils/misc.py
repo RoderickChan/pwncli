@@ -393,7 +393,7 @@ def get_flag_when_get_shell(p, use_cat:bool=True, contain_str:str="flag{"):
 
 
 def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
-    """Read /proc/pid/maps file to get base address. Return a dictionary obtaining 'code',
+    """Read /proc/pid/maps file to get base address. Return a dictionary obtaining keys: 'code',
     'libc', 'ld', 'stack', 'heap', 'vdso'.
 
     Args:

