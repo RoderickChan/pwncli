@@ -375,6 +375,18 @@ def p64_float(num:float, endian="little"):
         raise RuntimeError("Wrong endian!")
     
 
+def recv_libc_addr(p, bits=64, offset=0) -> int:
+    assert bits == 32 or bits == 64
+    contains = b"\x7f" if bits == 64 else b"\xf7"
+    m = p.recvuntil(contains, timeout=3)
+    if contains not in m:
+        raise RuntimeError("Cannot get libc addr")
+    if bits == 32:
+        return u32_ex(m[-4:]) - offset
+    else:
+        return u64_ex(m[-6:]) - offset
+
+
 def get_flag_when_get_shell(p, use_cat:bool=True, contain_str:str="flag{"):
     """Get flag while get a shell
 
