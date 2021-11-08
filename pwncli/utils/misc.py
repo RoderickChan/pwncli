@@ -10,6 +10,10 @@ int16 = functools.partial(int, base=16)
 int8 = functools.partial(int, base=8)
 int2 = functools.partial(int, base=2)
 
+int16_ex = lambda x: int16(x.decode()) if isinstance(x, bytes) else int16(x)
+int8_ex = lambda x: int8(x.decode()) if isinstance(x, bytes) else int8(x)
+int2_ex = lambda x: int2(x.decode()) if isinstance(x, bytes) else int2(x)
+
 def get_callframe_info(depth:int=2):
     """Get stackframe info
 
@@ -311,18 +315,19 @@ def one_gadget_binary(binary_path:str, more=False) -> int:
 
 #--------------------------------usefule function------------------------------
 def u16_ex(data:(str, bytes)):
+    assert isinstance(data, (str, bytes)), "wrong data type!"
     length = len(data)
     assert length <= 2, "len(data) > 2!"
-    assert isinstance(data, (str, bytes)), "wrong data type!"
     if isinstance(data, str):
         data = data.encode('utf-8')
     data = data.ljust(2, b"\x00")
     return unpack(data, 16)
 
+
 def u32_ex(data:(str, bytes)):
+    assert isinstance(data, (str, bytes)), "wrong data type!"
     length = len(data)
     assert length <= 4, "len(data) > 4!"
-    assert isinstance(data, (str, bytes)), "wrong data type!"
     if isinstance(data, str):
         data = data.encode('utf-8')
     data = data.ljust(4, b"\x00")
@@ -353,9 +358,11 @@ def p32_ex(num:int):
     num &= 0xffffffff
     return pack(num, word_size=32)
 
+
 def p64_ex(num:int):
     num &= 0xffffffffffffffff
     return pack(num, word_size=64)
+
 
 def p32_float(num:float, endian="little") -> bytes:
     if endian.lower() == "little":
@@ -375,7 +382,20 @@ def p64_float(num:float, endian="little"):
         raise RuntimeError("Wrong endian!")
     
 
-def recv_libc_addr(p, bits=64, offset=0) -> int:
+def recv_libc_addr(p, *, bits=64, offset=0) -> int:
+    """Calcuate libc-base addr while recv '\x7f' in amd64 or '\xf7' in i386.
+
+    Args:
+        p (tube): Tube.
+        bits (int, optional): 32 or 64. Defaults to 64.
+        offset (int, optional): Help to get libc-base address. Defaults to 0.
+
+    Raises:
+        RuntimeError: Raise error if cannot recv bytes about libc-addr in 3 seconds.
+
+    Returns:
+        int: Libc address
+    """
     assert bits == 32 or bits == 64
     contains = b"\x7f" if bits == 64 else b"\xf7"
     m = p.recvuntil(contains, timeout=3)
