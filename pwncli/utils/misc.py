@@ -1,3 +1,35 @@
+"""
+doctest for these functions
+>>> int16('deadbeef')
+3735928559
+
+>>> int16('0xdeadbeef')
+3735928559
+
+>>> int8('7654')
+4012
+
+>>> int2('11010110110')
+1718
+
+>>> int16_ex('deadbeef')
+3735928559
+
+>>> int16_ex(b'deadbeef')
+3735928559
+
+>>> int16_ex(b'0xdeadbeef')
+3735928559
+
+>>> int8_ex(b'7654')
+4012
+
+>>> int2_ex(b'11010110110')
+1718
+"""
+
+
+
 import sys
 import os
 import re
@@ -5,6 +37,7 @@ import functools
 import subprocess
 import struct
 from pwn import unpack, pack
+
 
 int16 = functools.partial(int, base=16)
 int8 = functools.partial(int, base=8)
@@ -469,3 +502,8 @@ def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
         elif "vdso" in r:
             _d['vdso'] = start_addr
     return _d
+
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod(verbose=True)

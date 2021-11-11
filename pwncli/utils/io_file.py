@@ -203,6 +203,18 @@ class IO_FILE_plus_struct(FileStructure):
         return payload
 
 
+# TODO
+class IO_Jumps:
+    def __init__(self, null=0):
+        pass
+
+class IO_file_jumps(IO_Jumps):
+    pass
+
+class IO_str_jumps(IO_Jumps):
+    pass
+
+
 def payload_replace(payload:(str, bytes), rpdict:dict=None, filler="\x00"):
     assert isinstance(payload, (str, bytes, int)), "wrong payload!"
     assert context.bits in (32, 64), "wrong context.bits!"
