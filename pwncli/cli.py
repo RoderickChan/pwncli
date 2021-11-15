@@ -15,7 +15,11 @@ from pwncli.utils.config import read_ini
 
 __all__ = ['gift', 'cli_script']
 
-gift = OrderedDict() # public property
+class _Inner_Dict(OrderedDict):
+    def __getattr__(self, name):
+        return self[name]
+
+gift = _Inner_Dict() # public property
 _CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 _PWNCLI_DIR_NAME = os.path.dirname(os.path.abspath(__file__))
 

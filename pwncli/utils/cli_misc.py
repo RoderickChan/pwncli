@@ -3,6 +3,14 @@ import os
 from pwncli.cli import _treasure, gift
 from pwncli.utils.misc import get_callframe_info, log2_ex, errlog_exit,one_gadget_binary, get_segment_base_addr_by_proc_maps
 
+__all__ = [
+    "stop",
+    "get_current_one_gadget",
+    "get_current_codebase_addr",
+    "get_current_libcbase_addr",
+    "get_current_stackbase_addr",
+    "get_current_heapbase_addr"
+    ]
 
 def stop(enable=True):
     """Stop the program and print the caller's info

@@ -4,6 +4,7 @@ import os
 
 _check_data_section_ok = lambda data, section: bool(data and data.has_section(section))
 
+
 def read_ini(filename:str) -> configparser.ConfigParser:
     """Read ini file using configerparser with little check
 

@@ -1,6 +1,11 @@
 
 """Sell some convenient shellcodes"""
 
+__all__ = [
+    "ShellcodeMall",
+    "shellcode2unicode"
+]
+
 class ShellcodeMall:
     class amd64:
         __all_execve_bin_sh = {

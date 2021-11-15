@@ -2,6 +2,13 @@
 """
 from pwn import FileStructure, error, context, pack, flat
 
+__all__ = [
+    "IO_FILE_plus_struct",
+    "IO_Jumps",
+    "IO_file_jumps",
+    "IO_str_jumps",
+    "payload_replace"
+]
 
 class IO_FILE_plus_struct(FileStructure):
 

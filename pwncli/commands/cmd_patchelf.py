@@ -3,7 +3,6 @@ import sys
 import os
 from pwncli.cli import pass_environ
 from pwn import which
-from pwncli.utils.config import *
 
 
 def get_arch_info_from_file(filepath):

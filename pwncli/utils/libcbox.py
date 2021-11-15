@@ -9,6 +9,8 @@ import os
 from tempfile import TemporaryFile
 from pwncli.utils.misc import errlog_exit, log2_ex
 
+__all__ = ["LibcBox"]
+
 class LibcBox:
     def __init__(self):
         self._data = {} # post data, is a dict

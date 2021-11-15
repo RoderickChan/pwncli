@@ -1,3 +1,4 @@
+__all__ = ["SyscallNumber"]
 
 class SyscallNumber:
     class i386:
