@@ -200,6 +200,9 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
 def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script, no_log):
     """FILENAME: The ELF filename.
 
+    \b
+    Debug in tmux:
+        python3 exp.py debug ./pwn -t -gb malloc -gb 0x400789
     """
     ctx.vlog("Welcome to use pwncli-debug command~")
     if not ctx.verbose:

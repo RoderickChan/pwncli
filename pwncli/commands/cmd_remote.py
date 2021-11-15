@@ -140,7 +140,7 @@ def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, no_log)
     For remote target:
         pwncli -v remote ./pwn 127.0.0.1:23333 -up --proxy-mode default
     Or to Specify the ip and port:
-        pwncli -v remote -p 23333
+        pwncli -v remote -i 127.0.0.1 -p 23333
     """
     ctx.vlog("Welcome to use pwncli-remote command~")
     if not ctx.verbose:

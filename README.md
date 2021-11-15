@@ -1,15 +1,25 @@
 # pwncli - Do pwn by cool command line 
-`pwncli` is a simple cli tool for pwner, which can help you to write and debug your exploit effectively. You can use `pwncli` through command-line or other python-script. 
+[EN](https://github.com/RoderickChan/pwncli/blob/main/README.md) | [ZH](https://github.com/RoderickChan/pwncli/blob/main/README-CN.md) | [API](https://github.com/RoderickChan/pwncli/blob/main/API-doc.md)
 
-Prefix subcommand is supported on `pwncli`. For example, there's a subcommand named `debug`, and you can use this subcommand by `pwncli debug xxxxx` or `pwncli de xxxxx` or `pwncli d xxxxx`. `pwncli` is able to recoginze the prefix characters and call `debug` command finally. However, if the prefix characters match two or more subcommands, an `MatchError` will be raised.
+
+`pwncli` is a simple cli-tool for pwner, which can help you to write and debug your exploit effectively. You can use `pwncli` through command-line or in a python-script, and you can also use `pwncli` directly, just like `pwntools`. In addition, there are many practical functions and methods. 
+
+Like `git`, `pwncli` contains a series of subcommands. Prefix subcommand is supported on `pwncli`. For example, there's a subcommand named `debug`, and you can use this subcommand by `pwncli debug xxxxx` or `pwncli de xxxxx` or `pwncli d xxxxx`. `pwncli` is able to recoginze the prefix characters and call `debug` command finally. However, if the prefix characters match two or more subcommands, an `MatchError` will be raised.
 
 Furthermore, it's very easy to extend new commands on `pwncli` by adding your own subcommand file named `cmd_yourcmd.py` on directory `pwncli/commands`. `pwncli` detects and loads all subcommands automatically.
 
 `pwncli` mainly depends on [click](https://github.com/pallets/click) and [pwntools](https://github.com/Gallopsled/pwntools). The former is a wonderful command line interface tool, and the latter is a helpful CTF-toolkit.
 
+# Advantages
+- write the script just one time, switch `debug` or `remote` mode using cool command
+- set breakpoints or input other `gdb-commands` conveniently
+- debug in tmux or wsl-terminal quickly
+- more useful functions and tricks
+- design costume commands easily
+
 # Installation
-`pwncli` is supported on any posix-like-distribution system. If you wanner do pwn on `wsl` distrbution, `Ubuntu-16.04/Ubuntu-18.04/Ubuntu-20.04` is a good choice. And you have to make sure your `wsl` distribution's name hasn't been changed.
-Your need to install `click` and `pwntools` first, and then install `pwncli` in current directory:
+`pwncli` is supported on any posix-like-distribution system, and `Ubuntu` is recommended. If you want to do pwn on `wsl` distrbutions(I suggest to use `wsl` because wsl-related options are designed), `Ubuntu-16.04/Ubuntu-18.04/Ubuntu-20.04` is a good choice. And you have to make sure your `wsl` distribution's name hasn't been changed because the default names are used to detect the `ubuntu.exe` files.
+First, you need to install `click` and `pwntools` in a **python3** environment, and then install `pwncli` in current directory:
 ```
 git clone https://github.com/RoderickChan/pwncli.git
 cd ./pwncli
@@ -25,31 +35,33 @@ Get help messages of `pwncli` by exec `pwncli -h` or `pwncli --help`:
 Usage: pwncli [OPTIONS] COMMAND [ARGS]...
 
   pwncli tools for pwner!
-  
+
   For cli:
-    pwncli -v subcommand args
+      pwncli -v subcommand args
   For python script:
-    script content:
-        from pwncli import *
-        cli_script()
-    then start from cli: 
-        ./yourownscript -v subcommand args
+      script content:
+          from pwncli import *
+          cli_script()
+      then start from cli: 
+          python3 yourownscript.py -v subcommand args
 
 Options:
   -f, --filename TEXT  Elf file path to pwn.
   -g, --use-gdb        Always use gdb to debug.  [default: False]
   -ns, --no-stop       Use the 'stop' function or not. Only for debug-command
                        using python script.  [default: False]
-  -v, --verbose        Show more info or not.  [default: False]
+  -v, --verbose        Show more info or not.
   -h, --help           Show this message and exit.
 
 Commands:
-  debug   Debug the pwn file locally.
-  remote  Pwn remote host.
+  config    Get or set something about config data.
+  debug     Debug the pwn file locally.
+  patchelf  Patchelf executable file using glibc-all-in-one.
+  remote    Pwn remote host.
 ```
 
 ## debug command
-`debug` is a subcommand of `pwncli`, exec `pwncli debug -h` to get it's helpful doc:
+`debug` is a subcommand of `pwncli`, execute `pwncli debug -h` to get it's helpful document:
 ```
 # pwncli debug -h
 
@@ -57,15 +69,19 @@ Usage: pwncli debug [OPTIONS] [FILENAME]
 
   FILENAME: The ELF filename.
 
+  Debug in tmux:
+      python3 exp.py debug ./pwn -t -gb malloc -gb 0x400789
 
 Options:
   --argv TEXT                     Argv for process.
-  -v, --verbose                   Show more info or not.  [default: False]
+  -v, --verbose                   Show more info or not.
+  -nl, --no-log                   Disable context.log or not.  [default:
+                                  False]
   -t, --tmux                      Use tmux to gdb-debug or not.  [default:
                                   False]
-  -w, --wsl                       Use ubuntu.exe to gdb-debug or not.
-                                  [default: False]
-  -a, --attach-mode [auto|tmux|wsl-b|wsl-u|wsl-o|wsl-wt]
+  -w, --wsl                       Use wsl to pop up windows for gdb-debug or
+                                  not.  [default: False]
+  -m, --attach-mode [auto|tmux|wsl-b|wsl-u|wsl-o|wsl-wt]
                                   Gdb attach mode, wsl: bash.exe | wsl:
                                   ubuntu1234.exe | wsl: open-wsl.exe | wsl:
                                   wt.exe wsl.exe  [default: auto]
@@ -112,6 +128,23 @@ Options:
   -h, --help                      Show this message and exit.
 ```
 
+## patchelf command
+Make sure you use `glibc-all-in-one` to organize all libc files so the path of libc.so.6 is normalized, for example, it's `~/glibc-all-in-one/libs/2.32-0ubuntu3.2_amd64/libc-2.32.so`. This command helps you patch elf quickly.
+```
+Usage: pwncli patchelf [OPTIONS] FILENAME LIBC_VERSION
+
+  FILENAME: ELF executable filename.
+
+  LIBC_VERSION: Libc version.
+
+  pwncli patchelf ./filename 2.29 -b
+
+Options:
+  -b, --back-up             Backup target file or not.
+  -f, --filter-string TEXT  Add filter condition.
+  -h, --help                Show this message and exit.
+```
+
 ## config file
 A config file will be read if it exists. The path is `~/.pwncli.conf`.
 
@@ -120,7 +153,7 @@ A config file will be read if it exists. The path is `~/.pwncli.conf`.
 The example of `~/.pwncli.conf`:
 ```
 [context]
-log_level=notset
+log_level=error
 timeout=3
 
 
@@ -138,7 +171,7 @@ passwd=admin123
 rdns=True
 ```
 
-## some examples
+## examples and screenshots
 ### use `debug` command through cli
 There is an elf file named `pwnme` and your `exp.py`.
 
