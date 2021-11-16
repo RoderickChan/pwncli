@@ -1,6 +1,6 @@
 import click
 import subprocess
-from pwn import context, process, which, ELF
+from pwn import context, process, which, ELF, sleep
 from pwnlib.gdb import attach
 import os
 import sys
@@ -13,9 +13,9 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
     terminal = None
     dirname = os.path.dirname(os.path.abspath(ctx.gift['filename']))
 
-    if flag & 1:
+    if flag & 1: # use tmux
         terminal = ['tmux', 'splitw', '-h']
-    elif (flag & 2) and which('cmd.exe'):
+    elif (flag & 2) and which('cmd.exe'): # use cmd.exe to launch wt.exe bash.ex ...
         if is_file:
             gdbcmd = " {}\"".format("-x " + gdb_script)
         else:
@@ -61,18 +61,25 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
             elif attach_mode == 'wsl-wt' and which('wt.exe'):
                 terminal = ['cmd.exe', '/c', 'start', 'wt.exe', '-d', '\\\\wsl$\\{}{}'.format(distro_name, dirname.replace('/', '\\')),
                             'wsl.exe', '-d', distro_name, 'bash', '-c']
-    
+
     if terminal:
         context.terminal = terminal
         ctx.vlog("debug-command --> Set terminal: '{}'".format(' '.join(terminal)))
-        attach(target=p, gdbscript=script)
+        gdb_pid, gdb_obj = attach(target=p, gdbscript=script, api=True)
+        ctx.gift['gdb_pid'] = gdb_pid
+        ctx.gift['gdb_obj'] = gdb_obj
+        if (flag & 1): # in tmux
+            os.system("kill -2 {}".format(gdb_pid)) # ctrl + C
+            sleep(1)
+            
     else:
         if ctx.use_gdb:
-            ctx.vlog2("debug-command --> No tmux, no wsl, but use the pwntools' default terminal to use gdb because of use-gdb enabled.")
-            attach(target=p, gdbscript=script)
+            ctx.vlog2("debug-command --> No tmux, no wsl, but use the pwntools' default terminal to use gdb because of 'use-gdb' enabled.")
+            gdb_pid, gdb_obj = attach(target=p, gdbscript=script, api=True)
+            ctx.gift['gdb_pid'] = gdb_pid
+            ctx.gift['gdb_obj'] = gdb_obj
             return
         ctx.vlog2("debug-command --> Terminal not set, no tmux, no wsl")
-    
 
 
 def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script):
@@ -168,10 +175,10 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
     if attach_mode == 'auto':
         if tmux or (('TMUX' in os.environ and which('tmux')) and (not wsl)):
             attach_mode = 'tmux'
-        elif which('open-wsl.exe'):
-            attach_mode = 'wsl-o'
         elif which("wt.exe"):
             attach_mode = 'wsl-wt'
+        elif which('open-wsl.exe'):
+            attach_mode = 'wsl-o'
         elif which('bash.exe') is None:
             attach_mode = 'wsl-u'
         else:
@@ -229,13 +236,9 @@ def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gd
         ll = try_get_config_data_by_key(ctx.config_data, 'context', 'log_level')
         if ll is None:
             ll = 'debug'
-    context.clear(log_level=ll)
+    context.update(log_level=ll)
     ctx.vlog("debug-command --> Set 'context.log_level': {}".format(ll))
 
-    to = try_get_config_data_by_key(ctx.config_data, 'context', 'timeout')
-    if to:
-        context.update(timeout=int(to))
-    
     # set value
     _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script)
 

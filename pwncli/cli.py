@@ -11,7 +11,7 @@ import click
 import os
 import sys
 from collections import OrderedDict
-from pwncli.utils.config import read_ini
+from pwncli.utils.config import read_ini, try_get_config_data_by_key
 
 __all__ = ['gift', 'cli_script']
 
@@ -211,6 +211,11 @@ def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
         ctx.vlog("cli --> Read config data from ~/.pwncli.conf success!")
     else:
         ctx.vlog2("cli --> Cannot read config data from ~/.pwncli.conf!")
+    
+    # read config data
+    to = try_get_config_data_by_key(ctx.config_data, 'context', 'timeout')
+    if to:
+        context.update(timeout=int(to))
 
     # init debug/remote flag
     ctx.gift['debug'] = False

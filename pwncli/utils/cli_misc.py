@@ -9,7 +9,10 @@ __all__ = [
     "get_current_codebase_addr",
     "get_current_libcbase_addr",
     "get_current_stackbase_addr",
-    "get_current_heapbase_addr"
+    "get_current_heapbase_addr",
+    "kill_current_gdb",
+    "execute_cmd_in_current_gdb",
+    "set_current_pie_breakpoints"
     ]
 
 def stop(enable=True):
@@ -93,3 +96,33 @@ def get_current_stackbase_addr(use_cache=True) -> int:
 def get_current_heapbase_addr(use_cache=True) -> int:
     r = __get_current_segment_base_addr(use_cache)
     return r['heap']
+
+
+#----------------------------gdb related-------------------------
+from pwncli.utils.gdb_helper import *
+
+def _check_current_gdb():
+    if not gift.get('gdb_pid', None):
+        errlog_exit("cannot get gdb_obj, you don't launch gdb?")
+
+
+def kill_current_gdb():
+    """Kill current gdb process."""
+    _check_current_gdb()
+    try:
+        kill_gdb(gift['gdb_obj'])
+    except:
+        kill_gdb(gift['gdb_pid'])
+
+
+def execute_cmd_in_current_gdb(cmd:str):
+    """Execute commands in current gdb, split commands by ';' or \\n."""
+    _check_current_gdb()
+    execute_cmd_in_gdb(gift["gdb_obj"], cmd)
+    
+
+def set_current_pie_breakpoints(offset:int):
+    """Set breakpoints by offset when binary's PIE enabled. Only support for `pwndbg'."""
+    _check_current_gdb()
+    set_pie_breakpoints(gift["gdb_obj"], offset)
+
