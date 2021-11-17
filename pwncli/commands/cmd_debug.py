@@ -68,9 +68,6 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
         gdb_pid, gdb_obj = attach(target=p, gdbscript=script, api=True)
         ctx.gift['gdb_pid'] = gdb_pid
         ctx.gift['gdb_obj'] = gdb_obj
-        if (flag & 1): # in tmux
-            os.system("kill -2 {}".format(gdb_pid)) # ctrl + C
-            sleep(1)
             
     else:
         if ctx.use_gdb:

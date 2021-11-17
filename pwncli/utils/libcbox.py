@@ -63,10 +63,10 @@ class LibcBox:
         pass
 
     
-    def __download_resources(self, key, mode):
+    def __download_resources(self, key, mode, redownload):
         url = self._res[key]
         fn = url.split("/")[-1]
-        if os.path.exists(fn):
+        if os.path.exists(fn) and (not redownload):
             log2_ex("{} exists in current directory, it will not be downloaded again!".format(fn))
             return
         if mode == "t":
@@ -87,15 +87,15 @@ class LibcBox:
         return self
 
     def add_md5(self, hash_val):
-        self.__process_hash('md5', hash_value)
+        self.__process_hash('md5', hash_val)
         return self
 
     def add_sha1(self, hash_val):
-        self.__process_hash('sha1', hash_value)
+        self.__process_hash('sha1', hash_val)
         return self
 
     def add_sha256(self, hash_val):
-        self.__process_hash('sha256', hash_value)
+        self.__process_hash('sha256', hash_val)
         return self
 
     def add_buildid(self, buildid):
@@ -103,7 +103,7 @@ class LibcBox:
         return self
 
     
-    def search(self, *, download_symbols=False, download_so=False, download_libs=False):
+    def search(self, *, download_symbols=False, download_so=False, download_libs=False, redownload=False):
         if not self._data:
             errlog_exit("No condition! Please add condition first!")
         self.__post_to_find()
@@ -126,7 +126,7 @@ class LibcBox:
             self._res = self._res[0]
         
         if download_symbols:
-            t = threading.Thread(target=self.__download_resources, args=('symbols_url', 't'))
+            t = threading.Thread(target=self.__download_resources, args=('symbols_url', 't', redownload))
             t.start()
             fn = self._res['symbols_url'].split("/")[-1]
             if os.path.exists(fn):
@@ -134,14 +134,15 @@ class LibcBox:
                     self._symbols = f.read()
 
         if download_so:
-            t = threading.Thread(target=self.__download_resources, args=('download_url', 'b'))
+            t = threading.Thread(target=self.__download_resources, args=('download_url', 'b', redownload))
             t.start()
 
         if download_libs:
-            t = threading.Thread(target=self.__download_resources, args=('libs_url', 'b'))
+            t = threading.Thread(target=self.__download_resources, args=('libs_url', 'b', redownload))
             t.start()
 
         self._call_searcher = True
+        
     
     def dump(self, symbol_name:str) -> int:
         if not self._call_searcher:
