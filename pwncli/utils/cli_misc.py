@@ -12,7 +12,8 @@ __all__ = [
     "get_current_heapbase_addr",
     "kill_current_gdb",
     "execute_cmd_in_current_gdb",
-    "set_current_pie_breakpoints"
+    "set_current_pie_breakpoints",
+    "tele_current_pie_content"
     ]
 
 def stop(enable=True):
@@ -126,3 +127,7 @@ def set_current_pie_breakpoints(offset:int):
     _check_current_gdb()
     set_pie_breakpoints(gift["gdb_obj"], offset)
 
+
+def tele_current_pie_content(offset:int, number=10):
+    """Telescope current content by offset when binary's PIE enabled. Only support for 'pwndbg'."""
+    tele_pie_content(gift["gdb_obj"], offset, number)

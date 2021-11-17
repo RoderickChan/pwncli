@@ -76,7 +76,7 @@ class LibcBox:
         elif mode == 'b':
             r = requests.get(url, stream=True)
             with open(fn, "wb") as f:
-                for chunk in r.iter_content(1024):
+                for chunk in r.iter_content(4096):
                     if chunk:
                         f.write(chunk)
         log2_ex("Download {} success!".format(fn))
