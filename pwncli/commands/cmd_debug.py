@@ -157,7 +157,7 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
     filename = ctx.gift['filename']
     # set binary
     context.binary = filename
-    ctx.gift['io'] = context.binary.process(argv)
+    ctx.gift['io'] = context.binary.process(argv, timeout=ctx.gift['context_timeout'])
     ctx.gift['elf'] = ELF(filename, checksec=False)
 
     rp = ldd_get_libc_path(filename)
@@ -226,13 +226,7 @@ def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gd
 
     ctx.gift['debug'] = True
 
-    if no_log:
-        ll = 'error'
-    else:
-        # try to set context from config data
-        ll = try_get_config_data_by_key(ctx.config_data, 'context', 'log_level')
-        if ll is None:
-            ll = 'debug'
+    ll = 'error' if no_log else ctx.gift['context_log_level']
     context.update(log_level=ll)
     ctx.vlog("debug-command --> Set 'context.log_level': {}".format(ll))
 

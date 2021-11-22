@@ -111,7 +111,7 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
     # set proxy
     s = do_setproxy(ctx, proxy_mode)
     if s is None:
-        ctx.gift['io'] = remote(ip, port)
+        ctx.gift['io'] = remote(ip, port, timeout=ctx.gift['context_timeout'])
     else:
         s.connect((ip, port))
         ctx.gift['io'] = remote.fromsocket(s)
@@ -166,16 +166,9 @@ def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, no_log)
         ctx.vlog("remote-command --> Use proxy, proxy mode: {}".format(proxy_mode))
 
     # set log level
-    if no_log:
-        ll = 'error'
-    else:
-        # try to set context from config data
-        ll = try_get_config_data_by_key(ctx.config_data, 'context', 'log_level')
-        if ll is None:
-            ll = 'debug'
+    ll = 'error' if no_log else ctx.gift['context_log_level']
     context.update(log_level=ll)
     ctx.vlog("remote-command --> Set 'context.log_level': {}".format(ll))
-
 
     do_remote(ctx, filename, target, ip, port, proxy_mode)
 

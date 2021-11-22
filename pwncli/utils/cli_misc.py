@@ -116,6 +116,11 @@ def kill_current_gdb():
         kill_gdb(gift['gdb_pid'])
 
 
+def send_signal2current_gdbprocess(sig_val:int=2):
+    _check_current_gdb()
+    os.system("kill -{} {}".format(sig_val, gift['gdb_pid']))
+
+
 def execute_cmd_in_current_gdb(cmd:str):
     """Execute commands in current gdb, split commands by ';' or \\n."""
     _check_current_gdb()

@@ -212,10 +212,13 @@ def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
     else:
         ctx.vlog2("cli --> Cannot read config data from ~/.pwncli.conf!")
     
-    # read config data
+    # read config data and set for debug and remote
     to = try_get_config_data_by_key(ctx.config_data, 'context', 'timeout')
-    if to:
-        context.update(timeout=int(to))
+    ctx.gift['context_timeout'] = to if to else 10 # set default timeout
+
+    ll = try_get_config_data_by_key(ctx.config_data, 'context', 'log_level')
+    ctx.gift['context_log_level'] = ll if ll else 'debug' # set default timeout
+
 
     # init debug/remote flag
     ctx.gift['debug'] = False
