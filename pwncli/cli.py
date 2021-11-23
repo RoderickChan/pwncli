@@ -173,6 +173,7 @@ def _set_filename(ctx, filename, msg=None):
 @click.option('-g', '--use-gdb', is_flag=True, show_default=True, help="Always use gdb to debug.")
 @click.option('-ns', '--no-stop', is_flag=True, show_default=True, help="Use the 'stop' function or not. Only for debug-command using python script.")
 @click.option('-v', '--verbose', count=True, help="Show more info or not.")
+@click.version_option('1.0', "-V", "--version", prog_name='pwncli', message="%(prog)s: version %(version)s\nauthor: roderick chan\ngithub: https://github.com/RoderickChan/pwncli")
 @pass_environ
 def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
     """pwncli tools for pwner!
