@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
+'''
+@File    : cmd_debug.py
+@Time    : 2021/11/23 23:49:55
+@Author  : Roderick Chan
+@Email   : ch22166@163.com
+@Desc    : debug subcommand
+'''
+
+
 import click
 import subprocess
 from pwn import context, process, which, ELF, sleep

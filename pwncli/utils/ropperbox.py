@@ -155,3 +155,46 @@ class RopperBox:
 
     def search_opcode(self, opcode: str, name: str=None, get_list: bool=False) -> Union[List[int], int]:
         return self._inner_search(opcode, name, "opcode", get_list)
+
+
+    def get_pop_rdi_ret(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("pop rdi; ret;", name)
+        except RopperError:
+            return self.search_opcode("5fc3")
+
+
+    def get_pop_rsi_ret(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("pop rsi; ret;", name)
+        except RopperError:
+            return self.search_opcode("5ec3")
+
+
+    def get_pop_rdx_ret(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("pop rdx; ret;", name)
+        except RopperError:
+            return self.search_opcode("5ac3")
+
+
+    def get_ret(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("ret;", name)
+        except RopperError:
+            return self.search_opcode("c3")
+
+
+    def get_syscall(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("syscall;", name)
+        except RopperError:
+            return self.search_opcode("0f05")
+
+
+    def get_syscall_ret(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("syscall; ret;", name)
+        except RopperError:
+            return self.search_opcode("0f05c3")
+    

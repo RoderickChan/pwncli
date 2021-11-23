@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
+'''
+@File    : cmd_config.py
+@Time    : 2021/11/23 23:49:28
+@Author  : Roderick Chan
+@Email   : ch22166@163.com
+@Desc    : config subcommand
+'''
+
+
 import click
 import sys
 from pwncli.cli import pass_environ, AliasedGroup, _PWNCLI_DIR_NAME

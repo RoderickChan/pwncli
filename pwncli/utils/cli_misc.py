@@ -11,6 +11,7 @@ __all__ = [
     "get_current_stackbase_addr",
     "get_current_heapbase_addr",
     "kill_current_gdb",
+    "send_signal2current_gdbprocess",
     "execute_cmd_in_current_gdb",
     "set_current_pie_breakpoints",
     "tele_current_pie_content"

@@ -1,6 +1,13 @@
-"""Find libc by web api from https://github.com/niklasb/libc-database/tree/master/searchengine
+#!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
+'''
+@File    : libcbox.py
+@Time    : 2021/11/23 23:46:27
+@Author  : Roderick Chan
+@Email   : ch22166@163.com
+@Desc    : Find libc by web api from https://github.com/niklasb/libc-database/tree/master/searchengine
+'''
 
-"""
 
 import requests
 import json

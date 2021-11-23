@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
+'''
+@File    : config.py
+@Time    : 2021/11/23 23:48:28
+@Author  : Roderick Chan
+@Email   : ch22166@163.com
+@Desc    : None
+'''
+
+
 
 import configparser
 import os

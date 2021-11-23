@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
+'''
+@File    : cmd_patchelf.py
+@Time    : 2021/11/23 23:50:09
+@Author  : Roderick Chan
+@Email   : ch22166@163.com
+@Desc    : patchelf subcommand
+'''
+
+
 import click
 import sys
 import os

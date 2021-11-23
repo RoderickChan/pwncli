@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
+'''
+@File    : gdb_helper.py
+@Time    : 2021/11/23 23:47:26
+@Author  : Roderick Chan
+@Email   : ch22166@163.com
+@Desc    : Use gdb by python api when debugging
+'''
+
+
 from pwnlib import gdb
 
 __all__ = [

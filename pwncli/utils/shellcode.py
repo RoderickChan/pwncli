@@ -1,5 +1,13 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
+'''
+@File    : shellcode.py
+@Time    : 2021/11/23 23:44:54
+@Author  : Roderick Chan
+@Email   : ch22166@163.com
+@Desc    : Sell convienent shellcodes
+'''
 
-"""Sell some convenient shellcodes"""
 
 __all__ = [
     "ShellcodeMall",

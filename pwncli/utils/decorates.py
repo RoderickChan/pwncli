@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
+'''
+@File    : decorates.py
+@Time    : 2021/11/23 23:48:12
+@Author  : Roderick Chan
+@Email   : ch22166@163.com
+@Desc    : Decorators
+'''
+
+
 import functools
 import time
 import os

@@ -1,5 +1,14 @@
-"""Extension for FileStructure in pwntools
-"""
+#!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
+'''
+@File    : io_file.py
+@Time    : 2021/11/23 23:46:48
+@Author  : Roderick Chan
+@Email   : ch22166@163.com
+@Desc    : Extension for FileStructure in pwntools and define useful IO_FILE related methods
+'''
+
+
 from pwn import FileStructure, error, context, pack, flat
 
 __all__ = [

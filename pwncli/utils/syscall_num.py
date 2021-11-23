@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
+'''
+@File    : syscall_num.py
+@Time    : 2021/11/23 23:45:56
+@Author  : Roderick Chan
+@Email   : ch22166@163.com
+@Desc    : Syscall number of i386 and amd64
+'''
+
+
 __all__ = ["SyscallNumber"]
 
 class SyscallNumber:
