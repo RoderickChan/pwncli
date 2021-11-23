@@ -13,4 +13,9 @@ setup(
         [console_scripts]
         pwncli=pwncli.cli:cli
     """,
+    url="https://github.com/RoderickChan/pwncli",
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License"
+    ],
 )

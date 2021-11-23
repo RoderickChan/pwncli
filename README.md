@@ -25,6 +25,9 @@ git clone https://github.com/RoderickChan/pwncli.git
 cd ./pwncli
 pip3 install --editable .
 ```
+
+Of course, you can install it using pip: `pip3 install pwncli`.
+
 and use `pwncli --version` to validate whether you install pwncli successfully.
 
 # Usage
