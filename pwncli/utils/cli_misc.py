@@ -1,5 +1,6 @@
 
 import os
+import time
 from pwncli.cli import _treasure, gift
 from pwncli.utils.misc import get_callframe_info, log2_ex, errlog_exit,one_gadget_binary, get_segment_base_addr_by_proc_maps
 
@@ -120,6 +121,7 @@ def kill_current_gdb():
 def send_signal2current_gdbprocess(sig_val:int=2):
     _check_current_gdb()
     os.system("kill -{} {}".format(sig_val, gift['gdb_pid']))
+    time.sleep(0.2)
 
 
 def execute_cmd_in_current_gdb(cmd:str):

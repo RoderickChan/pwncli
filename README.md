@@ -18,7 +18,10 @@ Furthermore, it's very easy to extend new commands on `pwncli` by adding your ow
 - design costume commands easily
 
 # Installation
-`pwncli` is supported on any posix-like-distribution system, and `Ubuntu` is recommended. If you want to do pwn on `wsl` distrbutions(I suggest to use `wsl` because wsl-related options are designed), `Ubuntu-16.04/Ubuntu-18.04/Ubuntu-20.04` is a good choice. And you have to make sure your `wsl` distribution's name hasn't been changed because the default names are used to detect the `ubuntu.exe` files.
+`pwncli` is supported on any posix-like-distribution system, and `Ubuntu` is recommended. If you want to do pwn on `wsl` distrbutions(I suggest to use `wsl` because wsl-related options are designed), `Ubuntu-16.04/Ubuntu-18.04/Ubuntu-20.04` is a good choice. 
+
+And you have to make sure your `wsl` distribution's name hasn't been changed because the default names are used to detect the `ubuntu.exe` files.
+
 First, you need to install `click` and `pwntools` in a **python3** environment, and then install `pwncli` in current directory:
 ```
 git clone https://github.com/RoderickChan/pwncli.git
@@ -26,9 +29,12 @@ cd ./pwncli
 pip3 install --editable .
 ```
 
-Of course, you can install it using pip: `pip3 install pwncli`.
+Or, you can install it using pip:
+ ```
+ pip3 install pwncli
+ ```
 
-and use `pwncli --version` to validate whether you install pwncli successfully.
+Use `pwncli --version` to validate whether you install pwncli successfully.
 
 # Usage
 ## pwncli
@@ -200,6 +206,7 @@ Content of your own script `exp.py`:
 #!/usr/bin/python3
 from pwncli import *
 
+# don't forget add this to wrap the script
 cli_script()
 
 if gift['debug']:

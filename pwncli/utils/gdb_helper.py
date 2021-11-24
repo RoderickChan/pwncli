@@ -10,6 +10,7 @@
 
 
 from pwnlib import gdb
+import time
 
 __all__ = [
     "kill_gdb",
@@ -23,6 +24,7 @@ def kill_gdb(gdb_ins):
     """Kill gdb process."""
     if isinstance(gdb_ins, int):
         os.system("kill -9 {}".format(gdb_ins))
+        time.sleep(0.2)
     else:
         gdb_ins.quit()
 
@@ -31,7 +33,8 @@ def execute_cmd_in_gdb(gdb_obj, cmd:str):
     """Execute commands in gdb, split commands by ';' or \\n."""
     cmd = cmd.replace(";", "\n")
     for x in cmd.splitlines():
-        gdb_obj.execute(x)
+        if x:
+            gdb_obj.execute(x)
 
 
 def set_pie_breakpoints(gdb_obj, offset:int):
