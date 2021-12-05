@@ -16,3 +16,9 @@ class PwncliExit(SystemExit):
     PwncliExit
     """
     pass
+
+class PwncliTodoException(Exception):
+    """
+    TODO Exception
+    """
+    pass

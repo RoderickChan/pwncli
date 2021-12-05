@@ -175,7 +175,7 @@ class IO_FILE_plus_struct(FileStructure):
 
 
     def house_of_pig_exec_shellcode(self, fp_heap_addr:int, gadget_addr:int, str_jumps_addr:int, 
-                        setcontext_off_addr:int, mprotect_addr:int, shellcode:(str, bytes), lock:int=0):
+                        setcontext_off_addr:int, mprotect_addr:int, shellcode: str or bytes, lock:int=0):
         """House of pig to exec shellcode with setcontext.
 
         You should fill tcache_perthread_struct[0x400] with '__free_hook - 0x1c0' addr.
@@ -231,7 +231,7 @@ class IO_str_jumps(IO_Jumps):
     pass
 
 
-def payload_replace(payload:(str, bytes), rpdict:dict=None, filler="\x00"):
+def payload_replace(payload: str or bytes, rpdict:dict=None, filler="\x00"):
     assert isinstance(payload, (str, bytes, int)), "wrong payload!"
     assert context.bits in (32, 64), "wrong context.bits!"
     assert len(filler) == 1, "wrong filler!"

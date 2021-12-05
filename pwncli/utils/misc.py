@@ -347,7 +347,7 @@ def one_gadget_binary(binary_path:str, more=False) -> int:
 
 
 #--------------------------------usefule function------------------------------
-def u16_ex(data:(str, bytes)):
+def u16_ex(data: str or bytes):
     assert isinstance(data, (str, bytes)), "wrong data type!"
     length = len(data)
     assert length <= 2, "len(data) > 2!"
@@ -357,7 +357,7 @@ def u16_ex(data:(str, bytes)):
     return unpack(data, 16)
 
 
-def u32_ex(data:(str, bytes)):
+def u32_ex(data: str or bytes):
     assert isinstance(data, (str, bytes)), "wrong data type!"
     length = len(data)
     assert length <= 4, "len(data) > 4!"
@@ -367,7 +367,7 @@ def u32_ex(data:(str, bytes)):
     return unpack(data, 32)
     
 
-def u64_ex(data:(str, bytes)):
+def u64_ex(data: str or bytes):
     length = len(data)
     assert length <= 8, "len(data) > 8!"
     assert isinstance(data, (str, bytes)), "wrong data type!"
