@@ -61,6 +61,7 @@ def do_setproxy(ctx, proxy_mode):
             v = socks_type[v]
         pstr += '{}: {}  '.format(k, v)
     ctx.vlog("remote-command --> Set 'proxy': {}".format(pstr))
+    ctx.gift['proxy'] = proxy_data
 
     if proxy_mode == "default":
         context.proxy = proxy_data
@@ -121,6 +122,8 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
     
     # set proxy
     s = do_setproxy(ctx, proxy_mode)
+    ctx.gift['ip'] = ip
+    ctx.gift['port'] = port
     if s is None:
         ctx.gift['io'] = remote(ip, port, timeout=ctx.gift['context_timeout'])
     else:
