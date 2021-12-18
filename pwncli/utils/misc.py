@@ -309,7 +309,7 @@ def ldd_get_libc_path(filepath:str) -> str:
     return rp
 
 
-def one_gadget(so_path:str, more=False) -> int:
+def one_gadget(so_path:str, more=False):
     """Get all one_gadget by exec one_gadget.
 
     Args:
@@ -440,18 +440,18 @@ def recv_libc_addr(p, *, bits=64, offset=0) -> int:
         return u64_ex(m[-6:]) - offset
 
 
-def get_flag_when_get_shell(p, use_cat:bool=True, contain_str:str="flag{"):
+def get_flag_when_get_shell(p, use_cat:bool=True, start_str:str="flag{"):
     """Get flag while get a shell
 
     Args:
         p (tube): Instance of tube in pwntools
         use_cat (bool, optional): Use cat /flag or not. Defaults to True.
-        contain_str (str, optional): String contained in flag. Defaults to "flag{".
+        start_str (str, optional): String starts with in flag. Defaults to "flag{".
     """
     if use_cat:
         p.sendline("cat /flag")
-    s = p.recvline_contains(contain_str)
-    if contain_str.encode('utf-8') in s:
+    s = p.recvline_regex(start_str+".*}")
+    if start_str.encode('utf-8') in s:
         log2_ex_highlight("{}".format(s))
     else:
         errlog_ex_highlight("Cannot get flag")

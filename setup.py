@@ -8,7 +8,7 @@ setup(
     author_email="ch22166@163.com",
     packages=find_packages(),
     include_package_data=True,
-    install_requires=["click", "pwntools", "ropper"],
+    install_requires=["click", "pwntools", "ropper", "lief"],
     entry_points="""
         [console_scripts]
         pwncli=pwncli.cli:cli
