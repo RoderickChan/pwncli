@@ -450,7 +450,7 @@ def get_flag_when_get_shell(p, use_cat:bool=True, start_str:str="flag{"):
     """
     if use_cat:
         p.sendline("cat /flag")
-    s = p.recvline_regex(start_str+".*}")
+    s = p.recvregex(start_str+".*}")
     if start_str.encode('utf-8') in s:
         log2_ex_highlight("{}".format(s))
     else:
