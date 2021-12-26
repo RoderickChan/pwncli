@@ -14,6 +14,7 @@ import sys
 import os
 from pwncli.cli import pass_environ
 from pwn import which
+from pwncli.utils.config import try_get_config_data_by_key
 
 
 def get_arch_info_from_file(filepath):
@@ -43,8 +44,15 @@ def cli(ctx, filename, libc_version, back_up, filter_string):
     """
     ctx.verbose = 2
     
-    # default libs-dirname
-    libc_dirname = os.path.expanduser("~/glibc-all-in-one/libs")
+    # libs-dirname
+    libc_dirname = try_get_config_data_by_key(ctx.config_data, "patchelf", "libs_dir")
+    if not libc_dirname:
+        libc_dirname = "~/glibc-all-in-one/libs"
+    
+    if libc_dirname.startswith("~"):
+        libc_dirname = os.path.expanduser(libc_dirname)
+    else:
+        libc_dirname = os.path.abspath(libc_dirname)
     
     # check libc_dirname
     if not os.path.isdir(libc_dirname):
@@ -56,8 +64,7 @@ def cli(ctx, filename, libc_version, back_up, filter_string):
     
     # check patchelf
     if not which('patchelf'):
-        ctx.verrlog("patchelf-command --> Cannot find 'patchelf', please install it first!")
-        ctx.abort()
+        ctx.abort("patchelf-command --> Cannot find 'patchelf', please install it first!")
         
     filename = os.path.abspath(filename)
     archinfo = get_arch_info_from_file(filename)
@@ -71,16 +78,14 @@ def cli(ctx, filename, libc_version, back_up, filter_string):
 
     subdirs = list(filter(_filter_dir, os.listdir(libc_dirname)))
     if not subdirs or len(subdirs) == 0:
-        ctx.verrlog("patchelf-command --> Do not find the matched dirctories in {}, with libc_version: {}, filter-string:{}!".format(libc_dirname, libc_version, filter_string))
-        ctx.abort()
+        ctx.abort("patchelf-command --> Do not find the matched dirctories in {}, with libc_version: {}, filter-string:{}!".format(libc_dirname, libc_version, filter_string))
 
     subdirs.sort()
     
     has_versions = [x[:4] for x in subdirs]
     
     if not has_versions or len(has_versions) == 0 or libc_version not in has_versions:
-        ctx.verrlog("patchelf-command --> Do not have the libc version of {}, only have {}!".format(libc_version, has_versions))
-        ctx.abort()
+        ctx.abort("patchelf-command --> Do not have the libc version of {}, only have {}!".format(libc_version, has_versions))
 
     # backup first
     if back_up:

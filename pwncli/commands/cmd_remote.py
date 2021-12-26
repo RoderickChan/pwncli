@@ -103,7 +103,7 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
             ctx.gift['libc'] = ELF(rp, checksec=False)
             ctx.gift['libc'].address = 0
         else:
-            ctx.vlog2('debug-command --> ldd cannot find the libc.so.6 or libc-2.xx.so')
+            ctx.vlog2('remote-command --> ldd cannot find the libc.so.6 or libc-2.xx.so')
     else:
         ctx.vlog2("remote-command --> Filename is None, so maybe you need to set context manually.")
     
@@ -162,6 +162,7 @@ def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, no_log)
     if verbose:
         ctx.vlog("remote-command --> Open 'verbose' mode")
 
+    ctx.vlog("remote-command --> Get 'no-log': {}".format(no_log))
     ctx.gift['remote'] = True
 
     # set ip from config data

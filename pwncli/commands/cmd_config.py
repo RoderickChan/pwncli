@@ -11,7 +11,7 @@
 
 import click
 import sys
-from pwncli.cli import pass_environ, AliasedGroup, _PWNCLI_DIR_NAME
+from pwncli.cli import pass_environ, AliasedGroup
 from pwncli.utils.config import  *
 
 
@@ -40,7 +40,7 @@ def list_config(ctx, listdata, section_name):
             show_config_data_all(ctx.config_data)
         elif listdata == 'example':
             ctx.vlog("config-command --> Show example config data")
-            show_config_data_file(os.path.join(_PWNCLI_DIR_NAME, "example/config_data.conf"))
+            show_config_data_file(os.path.join(ctx.pwncli_path, "conf/config_data.conf"))
         elif listdata == 'section':
              print("sections:", ctx.config_data.sections())
         else:

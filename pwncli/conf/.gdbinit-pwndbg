@@ -1,0 +1,36 @@
+source ~/pwndbg/gdbinit.py
+source ~/Pwngdb/pwngdb.py
+source ~/Pwngdb/angelheap/gdbinit.py
+
+
+set telescope-skip-repeating-val off
+
+
+handle SIGALRM nostop print
+
+
+# set follow-fork-mode parent
+
+
+set detach-on-fork off
+
+
+# directory /usr/src/glibc/glibc-2.27/stdio-common
+# directory /usr/src/glibc/glibc-2.27/malloc
+
+
+define sbase
+telescope $rebase($arg0) $arg1
+end
+
+
+define bbase
+b *$rebase($arg0)
+end
+
+define hook-run
+python
+import angelheap
+angelheap.init_angelheap()
+end
+end

@@ -10,31 +10,119 @@
 
 
 import click
-import subprocess
-from pwn import context, process, which, ELF, sleep
+from pwn import context, which, ELF
 from pwnlib.gdb import attach
 import os
 import sys
+import string
+import tempfile
 from pwncli.cli import pass_environ, _set_filename
-from pwncli.utils.config import try_get_config_data_by_key
 from pwncli.utils.misc import ldd_get_libc_path
 
+_NO_TERMINAL = 0
+_USE_TMUX = 1
+_USE_OTHER_TERMINALS = 2
 
-def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
+
+def _in_tmux():
+    return bool('TMUX' in os.environ and which('tmux'))
+
+def _in_wsl():
+    if os.path.exists('/proc/sys/kernel/osrelease'):
+        with open('/proc/sys/kernel/osrelease', 'rb') as f:
+            is_in_wsl = b'icrosoft' in f.read()
+        if is_in_wsl and which('wsl.exe'):
+            return True
+    return False
+
+def _get_gdb_plugin_info():
+    with open(os.path.expanduser("~/.gdbinit"), "r", encoding="utf-8") as f:
+        for line in f:
+            if line.strip().startswith("source"):
+                if "pwndbg" in line:
+                    return "pwndbg"
+                elif "gef" in line:
+                    return "gef"
+                elif "peda" in line:
+                    return "peda"
+    return None
+
+
+def _set_gdb_type(ctx, gdb_type):
+    if gdb_type == 'auto':
+        return None
+    dirname = os.path.join(ctx.pwncli_path, "conf")
+
+    if gdb_type == "pwndbg":
+        gdbfile = ".gdbinit-pwndbg"
+    elif gdb_type == "gef":
+        gdbfile = ".gdbinit-gef"
+    else:
+        gdbfile = ".gdbinit-peda"
+
+    fullpath = os.path.join(dirname, gdbfile)
+    targpath = os.path.expanduser("~/.gdbinit")
+    oldcontent = None
+    with open(targpath, "r", encoding='utf-8') as f:
+        oldcontent = f.read()
+    with open(targpath, "w", encoding='utf-8') as f:
+        with open(fullpath, "r", encoding='utf-8') as f2:
+            f.write(f2.read())
+    return oldcontent, targpath
+
+
+def _parse_env(ctx, env: str):
+    length = len(env)
+    # little check
+    if (("=" not in env) and (':' not in env)) or (length < 3):
+        ctx.abort(msg="debug-command --> Env is invalid, check your env input.")
+    
+    # use two points
+    res=  {}
+    first, second = 0, 1
+    key, val = None, None
+    while second < length:
+        if env[second] in ('=', ':'):
+            key = env[first: second].strip().upper() # 大写
+            first = second + 1
+            second += 2
+        elif env[second] in (',', ';') or (key and second == length - 1):
+            if second == length - 1 and (env[second] not in (';', ',')):
+                second += 1
+            print(f"first: {first}, second: {second}")
+            var = env[first: second].strip()
+            if key == "PRE":
+                key = "LD_PRELOAD"
+            res[key] = var
+            key, var = None, None
+            first = second + 1
+            second += 2
+        else:
+            second += 1
+
+    if res:
+        ctx.vlog('debug-command --> Set env: {}'.format(res))
+    else:
+        ctx.vlog2("debug-command --> No valid env exists.")
+    return res
+
+    
+
+
+def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file, gdb_script):
     terminal = None
-    dirname = os.path.dirname(os.path.abspath(ctx.gift['filename']))
-
-    if flag & 1: # use tmux
+    dirname = os.path.dirname(ctx.gift['filename'])
+    
+    if flag & _USE_TMUX: # use tmux
         terminal = ['tmux', 'splitw', '-h']
-    elif (flag & 2) and which('cmd.exe'): # use cmd.exe to launch wt.exe bash.ex ...
+    elif (flag & _USE_OTHER_TERMINALS) and which('cmd.exe'): # use cmd.exe to launch wt.exe bash.ex ...
         if is_file:
             gdbcmd = " {}\"".format("-x " + gdb_script)
         else:
             ex_script = ''
             for line in script.rstrip("\nc\n").split('\n'):
-                if line is None or line == '':
-                    continue
-                ex_script += "-ex '{}' ".format(line)
+                if line:
+                    ex_script += "-ex '{}' ".format(line)
 
             gdbcmd = " {}\"".format(ex_script)
         cmd = "cmd.exe /c start {} -c " + "\"cd {};gdb -q attach {}".format(dirname, p.proc.pid) + gdbcmd
@@ -61,7 +149,7 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
             distro_name = 'Ubuntu-{}'.format(ubu_name)
             ubuntu_exe_name = 'ubuntu{}.exe'.format(ubu_name.replace('.', ""))
             ctx.vlog2("debug-command --> Try to find wsl distro, name '{}'".format(distro_name))
-
+            
             if attach_mode == 'wsl-u' and which(ubuntu_exe_name):
                 cmd_use = cmd.format(ubuntu_exe_name)
                 ctx.vlog('debug-command --> Exec os.system({})'.format(cmd_use))
@@ -72,29 +160,42 @@ def _set_terminal(ctx, p, flag, attach_mode, script, is_file, gdb_script):
             elif attach_mode == 'wsl-wt' and which('wt.exe'):
                 terminal = ['cmd.exe', '/c', 'start', 'wt.exe', '-d', '\\\\wsl$\\{}{}'.format(distro_name, dirname.replace('/', '\\')),
                             'wsl.exe', '-d', distro_name, 'bash', '-c']
-
+            else:
+                ctx.vlog2('debug-command --> Wsl mode cannot launch a window, check whether the .exe in PATH.')
+    gdb_type_res = None
     if terminal:
         context.terminal = terminal
         ctx.vlog("debug-command --> Set terminal: '{}'".format(' '.join(terminal)))
+        gdb_type_res = _set_gdb_type(ctx, gdb_type)
         gdb_pid, gdb_obj = attach(target=p, gdbscript=script, api=True)
         ctx.gift['gdb_pid'] = gdb_pid
         ctx.gift['gdb_obj'] = gdb_obj
             
     else:
-        if ctx.use_gdb:
+        if use_gdb:
             ctx.vlog2("debug-command --> No tmux, no wsl, but use the pwntools' default terminal to use gdb because of 'use-gdb' enabled.")
             gdb_pid, gdb_obj = attach(target=p, gdbscript=script, api=True)
             ctx.gift['gdb_pid'] = gdb_pid
             ctx.gift['gdb_obj'] = gdb_obj
-            return
-        ctx.vlog2("debug-command --> Terminal not set, no tmux, no wsl")
+        else:
+            ctx.vlog2("debug-command --> Terminal not set, no tmux or wsl would be used.")
+    
+    # recover
+    if gdb_type_res:
+        with open(gdb_type_res[1], "w", encoding="utf-8") as f:
+            f.write(gdb_type_res[0])
 
 
-def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script):
+def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, attach_mode, use_gdb, gdb_type, gdb_breakpoint, gdb_script):
     # set filename
     if not ctx.gift.get('filename', None):
         _set_filename(ctx, filename, msg="debug-command --> Set 'filename': {}".format(filename))
-    
+        
+    # filename is required
+    if not ctx.gift.get('filename', None):
+        ctx.abort("debug-command --> No 'filename'!")
+    filename = ctx.gift['filename']
+
     # set argv
     if argv is not None:
         argv = argv.strip().split()
@@ -103,25 +204,21 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
     
     # detect attach_mode
     if attach_mode.startswith('wsl'):
-        wsl = True
+        use_wsl = True
 
     # check
-    t_flag = 0
+    t_flag = _NO_TERMINAL
     # check tmux
-    if tmux and (not bool('TMUX' in os.environ and which('tmux'))):
-        ctx.abort(msg="debug-command 'tmux' --> Not in tmux")
-    if tmux:
-        t_flag = 1
-        wsl = None
+    if use_tmux:
+        if not _in_tmux():
+            ctx.abort(msg="debug-command 'tmux' --> Not in tmux")
+        t_flag = _USE_TMUX
+        use_wsl = False
     # check wsl
-    if wsl:
-        is_wsl = False
-        if os.path.exists('/proc/sys/kernel/osrelease'):
-            with open('/proc/sys/kernel/osrelease', 'rb') as f:
-                is_wsl = b'icrosoft' in f.read()
-        if (not is_wsl) or (not which('wsl.exe')):
+    if use_wsl:
+        if not  _in_wsl():
             ctx.abort(msg="debug-command 'wsl' --> Not in wsl")
-        t_flag = 2
+        t_flag = _USE_OTHER_TERMINALS
 
     # process gdb-scripts
     is_file = False
@@ -133,55 +230,79 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
             script = gdb_script.strip().replace(';', '\n') + '\n'
     if gdb_breakpoint and len(gdb_breakpoint) > 0:
         for gb in gdb_breakpoint:
-            if gb.startswith('0x') or gb.startswith('$rebase('):
+            if gb.startswith('0x') or gb.isdecimal() or all(c in string.hexdigits for c in gb):
                 script += 'b *{}\n'.format(gb)
+            elif gb.startswith(('$rebase(', '$_base(')):
+                fi = gb.index('(')
+                bi = gb.index(')')
+                script += "b *###({})\n".format(gb[fi+1: bi])
+            elif gb.startswith('base+'):
+                script += "b *###({})\n".format(gb[5:])
+            elif gb.startswith('b+'):
+                script += "b *###({})\n".format(gb[2:])
             else:
                 script += 'b {}\n'.format(gb)
     script += 'c\n'
+    gdb_type_change_flag = 0
+    if gdb_type == "auto":
+        gdb_type = _get_gdb_plugin_info()
+        gdb_type_change_flag = 1
+    
+    if gdb_type == 'pwndbg':
+        script = script.replace("###", "$rebase")
+    elif gdb_type == "gef":
+        script = script.replace("###(", "($_base()+")
+    else:
+        if "###" in script:
+            ctx.abort(msg="debug-command 'gdb breakpoint' --> Cannot set base bp in peda or original gdb.")
 
-    # process special condition ---> qemu-gdbremote
-    if qemu_gdbremote:
-        if not bool('TMUX' in os.environ and which('tmux')):
-            ctx.abort("debug-command 'qemu_gdbremote' -->  Not in tmux")
-        if ':' in qemu_gdbremote:
-            ip, port = qemu_gdbremote.strip().split(';')
-            port = int(port)
-        else:
-            ip = 'localhost'
-            port = int(qemu_gdbremote)
-        tmux_path = which('tmux')
-        gdb_path = which('gdb')
-        gdbx = '{} -q -ex "target remote {}:{}"'.format(gdb_path, ip, port)
-        if is_file:
-            gdbx += ' -x {}'.format(gdb_script)
-
-        os.system(' '.join([tmux_path, 'splitw', '-h', gdbx]))
-        return
+    if gdb_type_change_flag:
+        gdb_type = 'auto'
 
     # if gdb_script is file, then open it
     if is_file:
-        script = open(gdb_script, 'r', encoding='utf-8')
+        if script:
+            with open("/tmp/pwncli_gdb_debug_file", 'w', encoding='utf-8') as f:
+                f.write(script +"\n")
+                with open(gdb_script, "r", encoding='utf-8') as f2:
+                    f.write(f2.read() + "\n")
+            gdb_script = "/tmp/pwncli_gdb_debug_file"
+        script = open(gdb_script, "r", encoding="utf-8")
+    
+    if env:
+        env = _parse_env(ctx, env)
+        if not env:
+            env = None
 
-    # check filename now
-    if not ctx.gift.get('filename', None):
-        ctx.abort("debug-command --> No 'filename'!")
-    filename = ctx.gift['filename']
     # set binary
     context.binary = filename
-    ctx.gift['io'] = context.binary.process(argv, timeout=ctx.gift['context_timeout'])
+    ctx.gift['io'] = context.binary.process(argv, timeout=ctx.gift['context_timeout'], env=env)
     ctx.gift['elf'] = ELF(filename, checksec=False)
-
-    rp = ldd_get_libc_path(filename)
-    if rp is not None:
+    ctx.vlog('debug-command --> Set process({}, argv={}, env={})'.format(filename, argv, env))
+    
+    if env and "LD_PRELOAD" in env:
+        rp = env["LD_PRELOAD"]
+    else:
+        rp = ldd_get_libc_path(filename)
+    if not rp:
         ctx.gift['libc'] = ELF(rp, checksec=False)
         ctx.gift['libc'].address = 0
     else:
         ctx.vlog2('debug-command --> ldd cannot find the libc.so.6 or libc-2.xx.so')
-    ctx.vlog('debug-command --> Set process({}, argv={})'.format(filename, argv))
-
+    
+    # set gdb-type
+    if t_flag == _NO_TERMINAL and gdb_type != "auto":
+        if _in_tmux():
+            t_flag = _USE_TMUX
+        elif _in_wsl():
+            t_flag = _USE_OTHER_TERMINALS
+        else:
+            use_gdb = True
+            ctx.vlog2("debug-command --> set 'gdb_type' but not in tmux or in wsl, so set 'use_gdb' True.")
+    
     # set attach-mode 'auto'
     if attach_mode == 'auto':
-        if tmux or (('TMUX' in os.environ and which('tmux')) and (not wsl)):
+        if t_flag == _USE_TMUX or (_in_tmux() and t_flag != _USE_OTHER_TERMINALS):
             attach_mode = 'tmux'
         elif which("wt.exe"):
             attach_mode = 'wsl-wt'
@@ -191,9 +312,9 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
             attach_mode = 'wsl-u'
         else:
             attach_mode = 'wsl-b' # don't know whether bash.exe is correct 
-
+    
     # set terminal
-    _set_terminal(ctx, ctx.gift['io'], t_flag, attach_mode, script, is_file, gdb_script)
+    _set_terminal(ctx, ctx.gift['io'], t_flag, attach_mode, use_gdb, gdb_type, script, is_file, gdb_script)
 
     # from cli, keep interactive
     if ctx.fromcli: 
@@ -203,21 +324,23 @@ def _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote
 @click.command(name='debug', short_help="Debug the pwn file locally.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.option('--argv', type=str, default=None, required=False, show_default=True, help="Argv for process.")
+@click.option("-e", "--env", type=str, default=None, required=False, help="The env setting for process, such as LD_PRELOAD setting, split using ',' or ';', assign using '=' or ';'.")
 @click.option('-v', '--verbose', count=True, help="Show more info or not.")
 @click.option('-nl', '--no-log', is_flag=True, show_default=True, help="Disable context.log or not.")
 @click.option('-t', '--tmux', is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
 @click.option('-w', '--wsl', is_flag=True, show_default=True, help="Use wsl to pop up windows for gdb-debug or not.")
 @click.option('-m', '--attach-mode', type=click.Choice(['auto', 'tmux', 'wsl-b', 'wsl-u', 'wsl-o', 'wsl-wt']), nargs=1, default='auto', show_default=True, help="Gdb attach mode, wsl: bash.exe | wsl: ubuntu1234.exe | wsl: open-wsl.exe | wsl: wt.exe wsl.exe")
-@click.option('-qg', '--qemu-gdbremote', type=str, default=None, show_default=True, help="Only used for qemu, who opens the gdb listening port. Only tmux supported.Format: ip:port or only port for localhost.")
+@click.option('-u', '--use-gdb', is_flag=True, show_default=True, help="Use gdb possibly.")
+@click.option('-g', '--gdb-type', type=click.Choice(['auto', 'pwndbg', 'gef', 'peda']), nargs=1, default='auto', help="Select a gdb plugin.")
 @click.option('-gb', '--gdb-breakpoint', default=[], type=str, multiple=True, show_default=True, help="Set gdb breakpoints while gdb-debug is used, it should be a hex address or '\$rebase' addr or a function name. Multiple breakpoints are supported.")
 @click.option('-gs', '--gdb-script', default=None, type=str, show_default=True, help="Set gdb commands like '-ex' or '-x' while gdb-debug is used, the content will be passed to gdb and use ';' to split lines. Besides eval-commands, file path is supported.")
 @pass_environ
-def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script, no_log):
+def cli(ctx, verbose, filename, argv, env, tmux, wsl, attach_mode, use_gdb, gdb_type, gdb_breakpoint, gdb_script, no_log):
     """FILENAME: The ELF filename.
 
     \b
     Debug in tmux:
-        python3 exp.py debug ./pwn -t -gb malloc -gb 0x400789
+        python3 exp.py debug ./pwn --tmux -gdb-breakpoint malloc -gb 0x400789
     """
     ctx.vlog("Welcome to use pwncli-debug command~")
     if not ctx.verbose:
@@ -228,10 +351,12 @@ def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gd
     # log verbose info
     ctx.vlog("debug-command --> Get 'filename': {}".format(filename))
     ctx.vlog("debug-command --> Get 'argv': {}".format(argv))
+    ctx.vlog("debug-command --> Get 'no-log': {}".format(no_log))
     ctx.vlog("debug-command --> Get 'tmux': {}".format(tmux))
     ctx.vlog("debug-command --> Get 'wsl': {}".format(wsl))
     ctx.vlog("debug-command --> Get 'attach_mode': {}".format(attach_mode))
-    ctx.vlog("debug-command --> Get 'qemu_gdbport': {}".format(qemu_gdbremote))
+    ctx.vlog("debug-command --> Get 'use_gdb': {}".format(use_gdb))
+    ctx.vlog("debug-command --> Get 'gdb_type': {}".format(gdb_type))
     ctx.vlog("debug-command --> Get 'gdb_breakpoint': {}".format(gdb_breakpoint))
     ctx.vlog("debug-command --> Get 'gdb_script': {}".format(gdb_script))
 
@@ -242,7 +367,7 @@ def cli(ctx, verbose, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gd
     ctx.vlog("debug-command --> Set 'context.log_level': {}".format(ll))
 
     # set value
-    _check_set_value(ctx, filename, argv, tmux, wsl, attach_mode, qemu_gdbremote, gdb_breakpoint, gdb_script)
+    _check_set_value(ctx, filename, argv, env, tmux, wsl, attach_mode, use_gdb, gdb_type, gdb_breakpoint, gdb_script)
 
 
     

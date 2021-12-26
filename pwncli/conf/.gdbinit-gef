@@ -1,0 +1,24 @@
+source ~/gef/gef.py
+source ~/Pwngdb/pwngdb.py
+source ~/Pwngdb/angelheap/gdbinit.py
+
+handle SIGALRM nostop print
+
+# set follow-fork-mode parent
+
+set detach-on-fork off
+
+define sbase
+telescope $_base()+$arg0 $arg1
+end
+
+define bbase
+b *($_base()+$arg0)
+end
+
+define hook-run
+python
+import angelheap
+angelheap.init_angelheap()
+end
+end

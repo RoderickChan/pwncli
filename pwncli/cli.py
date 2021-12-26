@@ -105,6 +105,9 @@ class Environment:
         self.treasure = _treasure
         self.config_data = None
         pass
+    
+    def get(self, item):
+        return self.gift.get(item, None)
 
     def abort(self, msg=None, *args):
         if not msg:
@@ -170,12 +173,11 @@ def _set_filename(ctx, filename, msg=None):
 
 @click.command(cls=CommandsAliasedGroup, context_settings=_CONTEXT_SETTINGS)
 @click.option('-f', '--filename', type=str, default=None, show_default=True, help="Elf file path to pwn.")
-@click.option('-g', '--use-gdb', is_flag=True, show_default=True, help="Always use gdb to debug.")
 @click.option('-ns', '--no-stop', is_flag=True, show_default=True, help="Use the 'stop' function or not. Only for debug-command using python script.")
 @click.option('-v', '--verbose', count=True, help="Show more info or not.")
 @click.version_option('1.0', "-V", "--version", prog_name='pwncli', message="%(prog)s: version %(version)s\nauthor: roderick chan\ngithub: https://github.com/RoderickChan/pwncli")
 @pass_environ
-def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
+def cli(ctx, filename, no_stop, verbose): # ctx: command property
     """pwncli tools for pwner!
 
     \b
@@ -189,11 +191,8 @@ def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
             ./yourownscript -v subcommand args
     """
     ctx.verbose = verbose
-    ctx.use_gdb = use_gdb
     ctx.fromcli = sys.argv[0].endswith('/pwncli') # Use this tool from cli or python script
-    if use_gdb:
-        ctx.vlog("cli --> Set 'use-gdb' flag")
-
+    ctx.pwncli_path = _PWNCLI_DIR_NAME
     if verbose:
         ctx.vlog("cli --> Open 'verbose' mode")
 
@@ -218,7 +217,7 @@ def cli(ctx, filename, use_gdb, no_stop, verbose): # ctx: command property
     ctx.gift['context_timeout'] = to if to else 10 # set default timeout
 
     ll = try_get_config_data_by_key(ctx.config_data, 'context', 'log_level')
-    ctx.gift['context_log_level'] = ll if ll else 'debug' # set default timeout
+    ctx.gift['context_log_level'] = ll if ll else 'debug' # set default log_level
 
 
     # init debug/remote flag

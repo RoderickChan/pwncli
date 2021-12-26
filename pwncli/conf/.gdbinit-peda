@@ -1,0 +1,19 @@
+source ~/peda/peda.py
+source ~/Pwngdb/pwngdb.py
+source ~/Pwngdb/angelheap/gdbinit.py
+
+
+handle SIGALRM nostop print
+
+
+# set follow-fork-mode parent
+
+
+set detach-on-fork off
+
+define hook-run
+python
+import angelheap
+angelheap.init_angelheap()
+end
+end
