@@ -284,7 +284,8 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, attach_mode, u
         rp = env["LD_PRELOAD"]
     else:
         rp = ldd_get_libc_path(filename)
-    if not rp:
+
+    if rp:
         ctx.gift['libc'] = ELF(rp, checksec=False)
         ctx.gift['libc'].address = 0
     else:
