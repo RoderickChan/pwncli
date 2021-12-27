@@ -431,7 +431,7 @@ def recv_libc_addr(io, *, bits=64, offset=0) -> int:
     """
     assert bits == 32 or bits == 64
     contains = b"\x7f" if bits == 64 else b"\xf7"
-    m = p.recvuntil(contains, timeout=5)
+    m = io.recvuntil(contains)
     if contains not in m:
         raise RuntimeError("Cannot get libc addr")
     if bits == 32:
@@ -449,8 +449,8 @@ def get_flag_when_get_shell(io, use_cat:bool=True, start_str:str="flag{"):
         start_str (str, optional): String starts with in flag. Defaults to "flag{".
     """
     if use_cat:
-        p.sendline("cat /flag")
-    s = p.recvregex(start_str+".*}", timeout=5)
+        io.sendline("cat /flag")
+    s = io.recvregex(start_str+".*}")
     if start_str.encode('utf-8') in s:
         log2_ex_highlight("{}".format(s))
     else:
