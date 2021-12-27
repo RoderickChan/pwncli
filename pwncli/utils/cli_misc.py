@@ -2,7 +2,7 @@
 import os
 import time
 from pwncli.cli import _treasure, gift
-from pwncli.utils.misc import get_callframe_info, log2_ex, errlog_exit,one_gadget_binary, get_segment_base_addr_by_proc_maps
+from pwncli.utils.misc import get_callframe_info, log2_ex, errlog_exit, one_gadget_binary, get_segment_base_addr_by_proc_maps, recv_libc_addr, get_flag_when_get_shell
 
 __all__ = [
     "stop",
@@ -15,7 +15,9 @@ __all__ = [
     "send_signal2current_gdbprocess",
     "execute_cmd_in_current_gdb",
     "set_current_pie_breakpoints",
-    "tele_current_pie_content"
+    "tele_current_pie_content",
+    "recv_current_libc_addr",
+    "get_current_flag_when_get_shell"
     ]
 
 def stop(enable=True):
@@ -139,3 +141,22 @@ def set_current_pie_breakpoints(offset:int):
 def tele_current_pie_content(offset:int, number=10):
     """Telescope current content by offset when binary's PIE enabled. Only support for 'pwndbg'."""
     tele_pie_content(gift["gdb_obj"], offset, number)
+
+
+
+#-----------------other------------------------
+
+def recv_current_libc_addr(offset:int=0):
+    if not gift.get("elf", None):
+        errlog_exit("Can not get current libc addr because of no elf.")
+    if not gift.get('io', None):
+        errlog_exit("Can not get current libc addr because of no io.")
+    
+    recv_libc_addr(gift['io'], bits=gift['elf'].bits, offset=offset)
+
+
+def get_current_flag_when_get_shell(use_cat=True, start_str="flag{"):
+    if not gift.get('io', None):
+        errlog_exit("Can not get current libc addr because of no io.")
+    get_flag_when_get_shell(gift['io'], use_cat, start_str)
+        

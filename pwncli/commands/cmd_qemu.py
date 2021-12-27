@@ -1,5 +1,8 @@
 import click
 import sys
+import os
+import subprocess
+from pwn import which
 from pwncli.cli import pass_environ
 
 

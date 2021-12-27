@@ -415,7 +415,7 @@ def p64_float(num:float, endian="little"):
         raise RuntimeError("Wrong endian!")
     
 
-def recv_libc_addr(p, *, bits=64, offset=0) -> int:
+def recv_libc_addr(io, *, bits=64, offset=0) -> int:
     """Calcuate libc-base addr while recv '\x7f' in amd64 or '\xf7' in i386.
 
     Args:
@@ -431,7 +431,7 @@ def recv_libc_addr(p, *, bits=64, offset=0) -> int:
     """
     assert bits == 32 or bits == 64
     contains = b"\x7f" if bits == 64 else b"\xf7"
-    m = p.recvuntil(contains, timeout=3)
+    m = p.recvuntil(contains, timeout=5)
     if contains not in m:
         raise RuntimeError("Cannot get libc addr")
     if bits == 32:
@@ -440,7 +440,7 @@ def recv_libc_addr(p, *, bits=64, offset=0) -> int:
         return u64_ex(m[-6:]) - offset
 
 
-def get_flag_when_get_shell(p, use_cat:bool=True, start_str:str="flag{"):
+def get_flag_when_get_shell(io, use_cat:bool=True, start_str:str="flag{"):
     """Get flag while get a shell
 
     Args:
@@ -450,7 +450,7 @@ def get_flag_when_get_shell(p, use_cat:bool=True, start_str:str="flag{"):
     """
     if use_cat:
         p.sendline("cat /flag")
-    s = p.recvregex(start_str+".*}")
+    s = p.recvregex(start_str+".*}", timeout=5)
     if start_str.encode('utf-8') in s:
         log2_ex_highlight("{}".format(s))
     else:
