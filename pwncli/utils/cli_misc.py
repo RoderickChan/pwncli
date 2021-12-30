@@ -152,7 +152,7 @@ def recv_current_libc_addr(offset:int=0):
     if not gift.get('io', None):
         errlog_exit("Can not get current libc addr because of no io.")
     
-    recv_libc_addr(gift['io'], bits=gift['elf'].bits, offset=offset)
+    return recv_libc_addr(gift['io'], bits=gift['elf'].bits, offset=offset)
 
 
 def get_current_flag_when_get_shell(use_cat=True, start_str="flag{"):
