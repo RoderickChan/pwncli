@@ -125,7 +125,7 @@ def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file,
                     ex_script += "-ex '{}' ".format(line)
 
             gdbcmd = " {}\"".format(ex_script)
-        cmd = "cmd.exe /c start {} -c " + "\"cd {};gdb -q attach {}".format(dirname, p.proc.pid) + gdbcmd
+        cmd = "cmd.exe /c start {} -c " + "\"cd {} && gdb -q attach {}".format(dirname, p.proc.pid) + gdbcmd
 
         if attach_mode == 'wsl-b' and which('bash.exe'):
             ctx.vlog2("debug-command --> Tips: Something error will happen if bash.exe not represent the default distribution.")
@@ -155,6 +155,13 @@ def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file,
                 ctx.vlog('debug-command --> Exec os.system({})'.format(cmd_use))
                 os.system(cmd_use)
                 return # return
+            elif attach_mode == 'wsl-wts' and which("wt.exe"):
+                cmd_use = cmd.replace("cmd.exe /c start", "cmd.exe /c").\
+                    format("wt.exe -w 0 split-pane -v wsl.exe -d {} bash".format(distro_name))
+                ctx.vlog('debug-command --> Exec os.system({})'.format(cmd_use))
+                os.system(cmd_use)
+                return # return
+            
             elif attach_mode == 'wsl-o' and which('open-wsl.exe'):
                 terminal = ['open-wsl.exe', '-b', '-d {}'.format(distro_name),'-c']
             elif attach_mode == 'wsl-wt' and which('wt.exe'):
@@ -306,7 +313,11 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, attach_mode, u
         if t_flag == _USE_TMUX or (_in_tmux() and t_flag != _USE_OTHER_TERMINALS):
             attach_mode = 'tmux'
         elif which("wt.exe"):
-            attach_mode = 'wsl-wt'
+            from random import randint
+            if randint(0, 100) >= 50:
+                attach_mode = 'wsl-wt'
+            else:
+                attach_mode = 'wsl-wts'
         elif which('open-wsl.exe'):
             attach_mode = 'wsl-o'
         elif which('bash.exe') is None:
@@ -330,7 +341,7 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, attach_mode, u
 @click.option('-nl', '--no-log', is_flag=True, show_default=True, help="Disable context.log or not.")
 @click.option('-t', '--tmux', is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
 @click.option('-w', '--wsl', is_flag=True, show_default=True, help="Use wsl to pop up windows for gdb-debug or not.")
-@click.option('-m', '--attach-mode', type=click.Choice(['auto', 'tmux', 'wsl-b', 'wsl-u', 'wsl-o', 'wsl-wt']), nargs=1, default='auto', show_default=True, help="Gdb attach mode, wsl: bash.exe | wsl: ubuntu1234.exe | wsl: open-wsl.exe | wsl: wt.exe wsl.exe")
+@click.option('-m', '--attach-mode', type=click.Choice(['auto', 'tmux', 'wsl-b', 'wsl-u', 'wsl-o', 'wsl-wt', 'wsl-wts']), nargs=1, default='auto', show_default=True, help="Gdb attach mode, wsl: bash.exe | wsl: ubuntu1234.exe | wsl: open-wsl.exe | wsl: wt.exe wsl.exe")
 @click.option('-u', '--use-gdb', is_flag=True, show_default=True, help="Use gdb possibly.")
 @click.option('-g', '--gdb-type', type=click.Choice(['auto', 'pwndbg', 'gef', 'peda']), nargs=1, default='auto', help="Select a gdb plugin.")
 @click.option('-gb', '--gdb-breakpoint', default=[], type=str, multiple=True, show_default=True, help="Set gdb breakpoints while gdb-debug is used, it should be a hex address or '\$rebase' addr or a function name. Multiple breakpoints are supported.")
