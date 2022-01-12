@@ -170,27 +170,31 @@ def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file,
             else:
                 ctx.vlog2('debug-command --> Wsl mode cannot launch a window, check whether the .exe in PATH.')
     gdb_type_res = None
-    if terminal:
-        context.terminal = terminal
-        ctx.vlog("debug-command --> Set terminal: '{}'".format(' '.join(terminal)))
-        gdb_type_res = _set_gdb_type(ctx, gdb_type)
-        gdb_pid, gdb_obj = attach(target=p, gdbscript=script, api=True)
-        ctx.gift['gdb_pid'] = gdb_pid
-        ctx.gift['gdb_obj'] = gdb_obj
-            
-    else:
-        if use_gdb:
-            ctx.vlog2("debug-command --> No tmux, no wsl, but use the pwntools' default terminal to use gdb because of 'use-gdb' enabled.")
+    try:
+        if terminal:
+            context.terminal = terminal
+            ctx.vlog("debug-command --> Set terminal: '{}'".format(' '.join(terminal)))
+            gdb_type_res = _set_gdb_type(ctx, gdb_type)
             gdb_pid, gdb_obj = attach(target=p, gdbscript=script, api=True)
             ctx.gift['gdb_pid'] = gdb_pid
             ctx.gift['gdb_obj'] = gdb_obj
+                
         else:
-            ctx.vlog2("debug-command --> Terminal not set, no tmux or wsl would be used.")
-    
-    # recover
-    if gdb_type_res:
-        with open(gdb_type_res[1], "w", encoding="utf-8") as f:
-            f.write(gdb_type_res[0])
+            if use_gdb:
+                ctx.vlog2("debug-command --> No tmux, no wsl, but use the pwntools' default terminal to use gdb because of 'use-gdb' enabled.")
+                gdb_pid, gdb_obj = attach(target=p, gdbscript=script, api=True)
+                ctx.gift['gdb_pid'] = gdb_pid
+                ctx.gift['gdb_obj'] = gdb_obj
+            else:
+                ctx.vlog2("debug-command --> Terminal not set, no tmux or wsl would be used.")
+    except:
+        ctx.verrlog("debug-command --> Catch gdb error.")
+    finally:
+        # recover gdbinit file
+        if gdb_type_res:
+            ctx.vlog("debug-command --> Recover gdbinit file.")
+            with open(gdb_type_res[1], "w", encoding="utf-8") as f:
+                f.write(gdb_type_res[0])
 
 
 def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, attach_mode, use_gdb, gdb_type, gdb_breakpoint, gdb_script):
