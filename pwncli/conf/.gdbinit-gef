@@ -2,23 +2,69 @@ source ~/gef/gef.py
 source ~/Pwngdb/pwngdb.py
 source ~/Pwngdb/angelheap/gdbinit.py
 
+# don't stop the process when catch alarm signal
 handle SIGALRM nostop print
 
 # set follow-fork-mode parent
 
 set detach-on-fork off
 
+# show content of address using offset when PIE is enabled
 define sbase
-telescope $_base()+$arg0 $arg1
+    if $argc == 1
+        telescope $_base()+$arg0 10
+    end
+
+    if $argc == 2
+        telescope $_base()+$arg0 $arg1
+    end
 end
 
+# set breakpoints using offset when PIE is enabled
 define bbase
-b *($_base()+$arg0)
+    b *($_base()+$arg0)
 end
 
-define hook-run
-python
-import angelheap
-angelheap.init_angelheap()
+define dq
+    if $argc == 1
+        x /8gx $arg0
+    end
+    if $argc == 2
+        x /$arg1gx $arg0
+    end
 end
+
+define dd
+    if $argc == 1
+        x /16wx $arg0
+    end
+    if $argc == 2
+        x /$arg1wx $arg0
+    end
+end
+
+define dw
+    if $argc == 1
+        x /32hx $arg0
+    end
+    if $argc == 2
+        x /$arg1hx $arg0
+    end
+end
+
+define db
+    if $argc == 1
+        x /64bx $arg0
+    end
+    if $argc == 2
+        x /$arg1bx $arg0
+    end
+end
+
+# enable Pwngdb from https://github.com/scwuaptx/Pwngdb
+define hook-run
+    python
+        import angelheap
+        angelheap.init_angelheap()
+    end
 end

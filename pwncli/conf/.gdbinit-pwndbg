@@ -2,35 +2,76 @@ source ~/pwndbg/gdbinit.py
 source ~/Pwngdb/pwngdb.py
 source ~/Pwngdb/angelheap/gdbinit.py
 
-
+# don't skip repeat value when use telescope
 set telescope-skip-repeating-val off
 
-
+# don't stop the process when catch alarm signal
 handle SIGALRM nostop print
 
-
 # set follow-fork-mode parent
-
-
+# don't detach when fork is called 
 set detach-on-fork off
 
-
+# set sourcecode directory
 # directory /usr/src/glibc/glibc-2.27/stdio-common
 # directory /usr/src/glibc/glibc-2.27/malloc
 
-
+# show content of address using offset when PIE is enabled
 define sbase
-telescope $rebase($arg0) $arg1
+    if $argc == 1
+        telescope $rebase($arg0) 10
+    end
+
+    if $argc == 2
+        telescope $rebase($arg0) $arg1
+    end
 end
 
-
+# set breakpoints using offset when PIE is enabled
 define bbase
-b *$rebase($arg0)
+    b *$rebase($arg0)
 end
 
-define hook-run
-python
-import angelheap
-angelheap.init_angelheap()
+define dq
+    if $argc == 1
+        x /8gx $arg0
+    end
+    if $argc == 2
+        x /$arg1gx $arg0
+    end
 end
+
+define dd
+    if $argc == 1
+        x /16wx $arg0
+    end
+    if $argc == 2
+        x /$arg1wx $arg0
+    end
+end
+
+define dw
+    if $argc == 1
+        x /32hx $arg0
+    end
+    if $argc == 2
+        x /$arg1hx $arg0
+    end
+end
+
+define db
+    if $argc == 1
+        x /64bx $arg0
+    end
+    if $argc == 2
+        x /$arg1bx $arg0
+    end
+end
+
+# enable Pwngdb from https://github.com/scwuaptx/Pwngdb
+define hook-run
+    python
+        import angelheap
+        angelheap.init_angelheap()
+    end
 end
