@@ -140,9 +140,9 @@ _proxy_mode_list = ['undefined', 'notset', 'default', 'primitive']
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.argument("target", required=False, nargs=1, default=None, type=str)
 @click.option('-v', '--verbose', count=True, help="Show more info or not.")
-@click.option('-nl', '--no-log', is_flag=True, show_default=True, help="Disable context.log or not.")
-@click.option('-up', '--use-proxy', is_flag=True, show_default=True, help="Use proxy or not.")
-@click.option('-m', '--proxy-mode', type=click.Choice(_proxy_mode_list), show_default=True, default='undefined', help="Set proxy mode. undefined: read proxy data from config data(do not set this type in your file); notset: not use proxy; default: pwntools context proxy; primitive: pure socks connection proxy.")
+@click.option('-n', '-nl', '--no-log', is_flag=True, show_default=True, help="Disable context.log or not.")
+@click.option('-P', '-up', '--use-proxy', is_flag=True, show_default=True, help="Use proxy or not.")
+@click.option('-m', '-pm', '--proxy-mode', type=click.Choice(_proxy_mode_list), show_default=True, default='undefined', help="Set proxy mode. undefined: read proxy data from config data(do not set this type in your file); notset: not use proxy; default: pwntools context proxy; primitive: pure socks connection proxy.")
 @click.option('-i', '--ip', default=None, show_default=True, type=str, nargs=1, help='The remote ip addr.')
 @click.option('-p', '--port', default=None, show_default=True, type=int, nargs=1, help='The remote port.')
 @pass_environ

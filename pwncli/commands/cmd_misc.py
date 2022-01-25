@@ -10,8 +10,8 @@ def cli(ctx):
 
 @cli.command(name="gadget", short_help="Get all gadgets using ropper and ROPgadget, and then store them in files.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
-@click.option('-a', '--all-gadgets', is_flag=True, show_default=True, help="Get all gadgets and don't remove duplicates.")
-@click.option('-d', '--directory', type=str, default=".", required=False, help="The directory to save files.")
+@click.option('-a', '--all', '--all-gadgets', is_flag=True, show_default=True, help="Get all gadgets and don't remove duplicates.")
+@click.option('-d', '--dir', '--directory', type=str, default=".", required=False, help="The directory to save files.")
 @pass_environ
 def get_gadgets(ctx, filename, all_gadgets, directory):
     _set_filename(ctx, filename)
