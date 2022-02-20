@@ -129,7 +129,7 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
     else:
         s.connect((ip, port))
         ctx.gift['io'] = remote.fromsocket(s)
-
+    ctx._log("connect {} port {} success!".format(ip, port))
     if ctx.fromcli:
         ctx.gift['io'].interactive()
 

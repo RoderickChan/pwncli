@@ -37,7 +37,45 @@ import functools
 import subprocess
 import struct
 from pwn import unpack, pack
+import click
 
+__all__ = [
+    "int16",
+    "int8",
+    "int2",
+    "int16_ex",
+    "int16_ex",
+    "int8_ex",
+    "int2_ex",
+    "get_callframe_info",
+    "log_ex",
+    "log_ex_highlight",
+    "log2_ex",
+    "log2_ex_highlight",
+    "errlog_ex",
+    "errlog_ex_highlight",
+    "log_address",
+    "log_address_ex",
+    "log_libc_base_addr",
+    "log_heap_base_addr",
+    "log_code_base_addr",
+    "ldd_get_libc_path",
+    "one_gadget",
+    "one_gadget_binary",
+    "u16_ex",
+    "u32_ex",
+    "u64_ex",
+    "p8_ex",
+    "p16_ex",
+    "p32_ex",
+    "p64_ex",
+    "p32_float",
+    "p64_float",
+    "recv_libc_addr",
+    "get_flag_when_get_shell",
+    "get_flag_by_recv",
+    "get_segment_base_addr_by_proc_maps"
+]
 
 int16 = functools.partial(int, base=16)
 int8 = functools.partial(int, base=8)
@@ -70,165 +108,46 @@ def get_callframe_info(depth:int=2):
     return module_name, func_name, lineno
 
 
-# print str with color
-class FontColor:
-    BLACK = 30
-    RED = 31
-    GREEN = 32
-    YELLOW = 33
-    BLUE = 34
-    AMARANTH = 35
-    CYAN = 36
-    WHITE = 37
-
-
-class BackgroundColor:
-    NOCOLOR = -1
-    BLACK = 40
-    RED = 41
-    GREEN = 42
-    YELLOW = 43
-    BLUE = 44
-    AMARANTH = 45
-    CYAN = 46
-    WHITE = 47
-
-
-class TerminalMode:
-    DEFAULT = 0
-    HIGHLIGHT = 1
-    UNDERLINE = 4
-    TWINKLE = 5
-    ANTI_WHITE = 7
-    INVISIBLE = 8
-
-
-def __check(font_color: int, background_color: int, terminal_mode: int) -> bool:
-    b1 = (font_color >= FontColor.BLACK and font_color <= FontColor.WHITE)
-    b2 = (background_color >= BackgroundColor.BLACK and background_color <= BackgroundColor.WHITE) or background_color == BackgroundColor.NOCOLOR
-    b3 = (terminal_mode >= TerminalMode.DEFAULT and terminal_mode <= TerminalMode.INVISIBLE and terminal_mode != 2 and terminal_mode != 3 and terminal_mode != 6)
-    return (b1 and b2 and b3)
-
-
-def get_str_with_color(print_str: str, *,
-                       font_color: int = FontColor.WHITE,
-                       background_color: int = BackgroundColor.NOCOLOR,
-                       terminal_mode: int = TerminalMode.DEFAULT) -> str:
-    """
-    Decorate a string with color
-
-    Args:
-        print_str (str): The str you want to modify.
-        font_color (int, optional): Font color. Defaults to FontColor.WHITE.
-        background_color (int, optional): Background color. Defaults to BackgroundColor.NOCOLOR.
-        terminal_mode (int, optional): terminal mode. Defaults to TerminalMode.DEFAULT.
-
-    Returns:
-        str: A string with elaborate decoration.
-    """
-    check = __check(font_color, background_color, terminal_mode)
-    if not check:
-        print('\033[1;31;47mWARNING: Failure to set color!\033[0m')
-        return print_str
-    if background_color == BackgroundColor.NOCOLOR:
-        background_color = ''
-    else:
-        background_color = ';' + str(background_color)
-    res_str = '\033[{};{}{}m{}\033[0m'.format(terminal_mode, font_color, background_color, print_str)
-    return res_str
-
-
-def print_color(print_str: str, *,
-                font_color: int = FontColor.WHITE,
-                background_color: int = BackgroundColor.NOCOLOR,
-                terminal_mode: int = TerminalMode.DEFAULT):
-    """print a string with color
-
-    Args:
-        print_str (str): The str you want to modify.
-        font_color (int, optional): Font color. Defaults to FontColor.WHITE.
-        background_color (int, optional): Background color. Defaults to BackgroundColor.NOCOLOR.
-        terminal_mode (int, optional): terminal mode. Defaults to TerminalMode.DEFAULT.
-
-    """
-    print(get_str_with_color(print_str, font_color=font_color, background_color=background_color,
-                             terminal_mode=terminal_mode))
-
-
-# r-g-b str
-rstr = functools.partial(get_str_with_color, 
-                    font_color=FontColor.RED, 
-                    background_color=BackgroundColor.NOCOLOR, 
-                    terminal_mode=TerminalMode.DEFAULT)
-
-gstr = functools.partial(get_str_with_color, 
-                    font_color=FontColor.GREEN, 
-                    background_color=BackgroundColor.NOCOLOR, 
-                    terminal_mode=TerminalMode.DEFAULT)
-
-bstr = functools.partial(get_str_with_color, 
-                    font_color=FontColor.BLUE, 
-                    background_color=BackgroundColor.NOCOLOR, 
-                    terminal_mode=TerminalMode.DEFAULT) 
-
-
-# r-g-b print
-rprint = functools.partial(print_color, 
-                    font_color=FontColor.RED, 
-                    background_color=BackgroundColor.NOCOLOR, 
-                    terminal_mode=TerminalMode.DEFAULT)
-
-gprint = functools.partial(print_color, 
-                    font_color=FontColor.GREEN, 
-                    background_color=BackgroundColor.NOCOLOR, 
-                    terminal_mode=TerminalMode.DEFAULT)
-
-bprint = functools.partial(print_color, 
-                    font_color=FontColor.BLUE, 
-                    background_color=BackgroundColor.NOCOLOR, 
-                    terminal_mode=TerminalMode.DEFAULT)
-
-
 def log_ex(msg, *args):
     """Logs a message to stdout."""
     if args:
         msg %= args
-    gprint("[*] INFO: {}".format(msg))
+    click.echo("[*] {}  {}".format(click.style("INFO", fg="green"), msg))
 
 
 def log_ex_highlight(msg, *args):
     """Logs a message to stdout."""
     if args:
         msg %= args
-    print_color("[*] INFO: {}".format(msg), font_color=FontColor.GREEN, background_color=BackgroundColor.WHITE)
+    click.echo("[*] {}  {}".format(click.style("INFO", fg="green", bg="white"), msg))
 
 
 def log2_ex(msg, *args):
     """Logs an important message to stdout."""
     if args:
         msg %= args
-    bprint("[#] IMPORTANT INFO: {}".format(msg))
+    click.echo("[#] {}  {}".format(click.style("IMPORTANT INFO", fg="blue"), msg))
 
 
 def log2_ex_highlight(msg, *args):
     """Logs a message to stdout."""
     if args:
         msg %= args
-    print_color("[#] IMPORTANT INFO: {}".format(msg), font_color=FontColor.BLUE, background_color=BackgroundColor.WHITE)
+    click.echo("[#] {}  {}".format(click.style("IMPORTANT INFO", fg="blue", bg="white"), msg))
 
 
 def errlog_ex(msg, *args):
     """Logs a message to stderr."""
     if args:
         msg %= args
-    rprint("[!] ERROR: {}".format(msg))
+    click.echo("[!] {}  {}".format(click.style("ERROR", fg="red"), msg))
 
 
 def errlog_ex_highlight(msg, *args):
     """Logs a message to stdout."""
     if args:
         msg %= args
-    print_color("[!] ERROR: {}".format(msg), font_color=FontColor.RED, background_color=BackgroundColor.WHITE)
+    click.echo("[!] {}  {}".format(click.style("ERROR", fg="red", bg="white"), msg))
 
 
 def errlog_exit(msg, *args):
@@ -440,7 +359,7 @@ def recv_libc_addr(io, *, bits=64, offset=0) -> int:
         return u64_ex(m[-6:]) - offset
 
 
-def get_flag_when_get_shell(io, use_cat:bool=True, start_str:str="flag{"):
+def get_flag_when_get_shell(io, use_cat:bool=True, start_str:str="flag{", timeout=10):
     """Get flag while get a shell
 
     Args:
@@ -450,11 +369,14 @@ def get_flag_when_get_shell(io, use_cat:bool=True, start_str:str="flag{"):
     """
     if use_cat:
         io.sendline("cat /flag")
-    s = io.recvregex(start_str+".*}")
+    s = io.recvregex(start_str+".*}", timeout=timeout)
     if start_str.encode('utf-8') in s:
         log2_ex_highlight("{}".format(s))
     else:
         errlog_ex_highlight("Cannot get flag")
+
+def get_flag_by_recv(io, flag_reg: str="flag{", timeout=10):
+    get_flag_when_get_shell(io,use_cat=False, start_str=flag_reg, timeout=timeout)
 
 
 def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:

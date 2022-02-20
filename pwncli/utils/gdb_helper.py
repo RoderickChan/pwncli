@@ -48,7 +48,7 @@ def tele_pie_content(gdb_obj, offset:int, number=10):
     """Telescope content by offset when binary's PIE enabled. Only support for 'pwndbg'."""
     execute_cmd_in_gdb(gdb_obj, "telescope $rebase({}) {}".format(offset, number))
 
-
+# TODO
 def define_struct_in_gdb(gdb_obj, struct_name: str, struct_content: str):
     raise PwncliTodoException()
     fd, _ = tempfile.mkstemp()

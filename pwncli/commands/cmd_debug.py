@@ -199,7 +199,7 @@ def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file,
 
 
 def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, attach_mode, 
-                use_gdb, gdb_type, gdb_breakpoint, gdb_script, pause_before_main, hook_file):
+                use_gdb, gdb_type, gdb_breakpoint, gdb_script, pause_before_main, hook_file, hook_function):
     # set filename
     if not ctx.gift.get('filename', None):
         _set_filename(ctx, filename, msg="debug-command --> Set 'filename': {}".format(filename))
@@ -287,10 +287,10 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, attach_mode,
         if not env:
             env = None
 
-    if pause_before_main or hook_file:
+    if pause_before_main or hook_file or len(hook_function) > 0:
         if which("gcc"):
             file_content = ""
-            if hook_file and os.path.isfile(hook_file):
+            if hook_file and os.path.exists(hook_file):
                 with open(hook_file, "r", encoding="utf-8") as hook_f:
                     file_content += hook_f.read()
             if pause_before_main:
@@ -303,6 +303,13 @@ void pause_before_main()
     getchar();
 }
                 """
+            for __func in hook_function:
+                file_content += """
+int {}()
+{
+    return 1;
+}
+                """.format(__func)
             _, tmp_path = tempfile.mkstemp(suffix=".c", text=True)
             with open(tmp_path, "w", encoding="utf-8") as tem_f:
                 tem_f.write(file_content)
@@ -380,20 +387,24 @@ void pause_before_main()
 @click.command(name='debug', short_help="Debug the pwn file locally.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.option('--argv', type=str, default=None, required=False, show_default=True, help="Argv for process.")
-@click.option("-e", '--set-env', "--env", type=str, default=None, required=False, help="The env setting for process, such as LD_PRELOAD setting, split using ',' or ';', assign using '=' or ';'.")
-@click.option('-p', '--pause', '--pause-before-main', is_flag=True, show_default=True, help="Pause before main is called or not, which is helpful for gdb attach.")
-@click.option('-H', '-hf','--hook-file', type=str,  default=None, required=False, help="Specify a hook file, where you write some functions to hook.")
-@click.option('-t', '--use-tmux', '--tmux', is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
-@click.option('-w', '--use-wsl', '--wsl', is_flag=True, show_default=True, help="Use wsl to pop up windows for gdb-debug or not.")
-@click.option('-m', '-am', '--attach-mode', type=click.Choice(['auto', 'tmux', 'wsl-b', 'wsl-u', 'wsl-o', 'wsl-wt', 'wsl-wts']), nargs=1, default='auto', show_default=True, help="Gdb attach mode, wsl: bash.exe | wsl: ubuntu1234.exe | wsl: open-wsl.exe | wsl: wt.exe wsl.exe")
-@click.option('-u', '-ug', '--use-gdb', is_flag=True, show_default=True, help="Use gdb possibly.")
-@click.option('-g', '-gt','--gdb-type', type=click.Choice(['auto', 'pwndbg', 'gef', 'peda']), nargs=1, default='auto', help="Select a gdb plugin.")
-@click.option('-b', '-gb', '--gdb-breakpoint', default=[], type=str, multiple=True, show_default=True, help="Set gdb breakpoints while gdb-debug is used, it should be a hex address or '\$rebase' addr or a function name. Multiple breakpoints are supported.")
-@click.option('-s', '-gs', '--gdb-script', default=None, type=str, show_default=True, help="Set gdb commands like '-ex' or '-x' while gdb-debug is used, the content will be passed to gdb and use ';' to split lines. Besides eval-commands, file path is supported.")
-@click.option('-n', '-nl', '--no-log', is_flag=True, show_default=True, help="Disable context.log or not.")
+@click.option("-e", '--set-env', "--env", "env", type=str, default=None, required=False, help="The env setting for process, such as LD_PRELOAD setting, split using ',' or ';', assign using '=' or ';'.")
+@click.option('-p', '--pause', '--pause-before-main', "pause_before_main", is_flag=True, show_default=True, help="Pause before main is called or not, which is helpful for gdb attach.")
+@click.option('-f', '-hf','--hook-file', "hook_file", type=str,  default=None, required=False, help="Specify a hook file, where you write some functions to hook.")
+@click.option('-H', '-HF', '--hook-function', "hook_function", default=[], type=str, multiple=True, show_default=True, help="The function you want to hook would be out of work.")
+@click.option('-t', '--use-tmux', '--tmux', "tmux", is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
+@click.option('-w', '--use-wsl', '--wsl', "wsl", is_flag=True, show_default=True, help="Use wsl to pop up windows for gdb-debug or not.")
+@click.option('-m', '-am', '--attach-mode', "attach_mode", type=click.Choice(['auto', 'tmux', 'wsl-b', 'wsl-u', 'wsl-o', 'wsl-wt', 'wsl-wts']), nargs=1, default='auto', show_default=True, help="Gdb attach mode, wsl: bash.exe | wsl: ubuntu1234.exe | wsl: open-wsl.exe | wsl: wt.exe wsl.exe")
+@click.option('-u', '-ug', '--use-gdb', "use_gdb", is_flag=True, show_default=True, help="Use gdb possibly.")
+@click.option('-g', '-gt','--gdb-type', "gdb_type", type=click.Choice(['auto', 'pwndbg', 'gef', 'peda']), nargs=1, default='auto', help="Select a gdb plugin.")
+@click.option('-b', '-gb', '--gdb-breakpoint', "gdb_breakpoint", default=[], type=str, multiple=True, show_default=True, help="Set gdb breakpoints while gdb-debug is used, it should be a hex address or '\$rebase' addr or a function name. Multiple breakpoints are supported.")
+@click.option('-s', '-gs', '--gdb-script', "gdb_script", default=None, type=str, show_default=True, help="Set gdb commands like '-ex' or '-x' while gdb-debug is used, the content will be passed to gdb and use ';' to split lines. Besides eval-commands, file path is supported.")
+@click.option('-n', '-nl', '--no-log', "no_log", is_flag=True, show_default=True, help="Disable context.log or not.")
+@click.option('-P', '-ns', '--no-stop', "no_stop", is_flag=True, show_default=True, help="Use the 'stop' function or not. Only for python script mode.")
 @click.option('-v', '--verbose', count=True, help="Show more info or not.")
 @pass_environ
-def cli(ctx, verbose, filename, argv, env, tmux, wsl, attach_mode, use_gdb, gdb_type, gdb_breakpoint, gdb_script, no_log, pause_before_main, hook_file):
+def cli(ctx, verbose, filename, argv, env, 
+        tmux, wsl, attach_mode, use_gdb, gdb_type, gdb_breakpoint, gdb_script, 
+        no_log, no_stop, pause_before_main, hook_file, hook_function):
     """FILENAME: The ELF filename.
 
     \b
@@ -412,7 +423,9 @@ def cli(ctx, verbose, filename, argv, env, tmux, wsl, attach_mode, use_gdb, gdb_
     ctx.vlog("debug-command --> Get 'env': {}".format(env))
     ctx.vlog("debug-command --> Get 'pause_before_main': {}".format(pause_before_main))
     ctx.vlog("debug-command --> Get 'hook_file': {}".format(hook_file))
+    ctx.vlog("debug-command --> Get 'hook_function': {}".format(hook_function))
     ctx.vlog("debug-command --> Get 'no-log': {}".format(no_log))
+    ctx.vlog("debug-command --> Get 'no-stop': {}".format(no_stop))
     ctx.vlog("debug-command --> Get 'tmux': {}".format(tmux))
     ctx.vlog("debug-command --> Get 'wsl': {}".format(wsl))
     ctx.vlog("debug-command --> Get 'attach_mode': {}".format(attach_mode))
@@ -422,6 +435,7 @@ def cli(ctx, verbose, filename, argv, env, tmux, wsl, attach_mode, use_gdb, gdb_
     ctx.vlog("debug-command --> Get 'gdb_script': {}".format(gdb_script))
 
     ctx.gift['debug'] = True
+    ctx.gift['no_stop'] = no_stop
 
     ll = 'error' if no_log else ctx.gift['context_log_level']
     context.update(log_level=ll)
@@ -429,7 +443,7 @@ def cli(ctx, verbose, filename, argv, env, tmux, wsl, attach_mode, use_gdb, gdb_
 
     # set value
     _check_set_value(ctx, filename, argv, env, tmux, wsl, attach_mode, 
-                use_gdb, gdb_type, gdb_breakpoint, gdb_script, pause_before_main, hook_file)
+                use_gdb, gdb_type, gdb_breakpoint, gdb_script, pause_before_main, hook_file, hook_function)
 
 
     

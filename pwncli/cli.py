@@ -12,6 +12,7 @@ import os
 import sys
 from collections import OrderedDict
 from pwncli.utils.config import read_ini, try_get_config_data_by_key
+from pwncli.utils.misc import log_ex, log2_ex, errlog_ex
 
 __all__ = ['gift', 'cli_script']
 
@@ -22,10 +23,6 @@ class _Inner_Dict(OrderedDict):
 gift = _Inner_Dict() # public property
 _CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 _PWNCLI_DIR_NAME = os.path.dirname(os.path.abspath(__file__))
-
-_treasure  = OrderedDict() # internal property
-_init_all_subcommands = True # init all commands flag
-
 
 class AliasedGroup(click.Group):
     def get_command(self, ctx, cmd_name):
@@ -54,8 +51,7 @@ class CommandsAliasedGroup(click.Group):
         if len(self._all_commands) == 0:
             raise click.Abort("No command!")
         self._all_commands.sort()
-        if _init_all_subcommands:
-            self._used_commands = self._all_commands
+        self._used_commands = self._all_commands
         
 
     def add_command(self, name:str=None):
@@ -99,12 +95,13 @@ class CommandsAliasedGroup(click.Group):
         
 
 class Environment:
-    global gift, _treasure
+    global gift
     def __init__(self):
         self.gift = gift
-        self.treasure = _treasure
         self.config_data = None
-        pass
+        self._log = log_ex
+        self._log2 = log2_ex
+        self._errlog = errlog_ex
     
     def get(self, item):
         return self.gift.get(item, None)
@@ -116,27 +113,6 @@ class Environment:
             msg %= args
         click.secho("[---] Abort: {}".format(msg), fg='black', bg='red', err=1)
         raise click.Abort()
-
-    @staticmethod
-    def _log(msg, *args):
-        """Logs a message to stdout."""
-        if args:
-            msg %= args
-        click.secho("[***] INFO: {}".format(msg), fg='green')
-
-    @staticmethod
-    def _log2(msg, *args):
-        """Logs an important message to stdout."""
-        if args:
-            msg %= args
-        click.secho("[###] IMPORTANT INFO: {}".format(msg), fg='blue')
-
-    @staticmethod
-    def _errlog(msg, *args):
-        """Logs a message to stderr."""
-        if args:
-            msg %= args
-        click.secho("[!!!] ERROR: {}".format(msg), fg='red', err=1)
 
     def vlog(self, msg, *args):
         """Logs a message to stdout only if verbose is enabled."""
@@ -173,11 +149,10 @@ def _set_filename(ctx, filename, msg=None):
 
 @click.command(cls=CommandsAliasedGroup, context_settings=_CONTEXT_SETTINGS)
 @click.option('-f', '--filename', type=str, default=None, show_default=True, help="Elf file path to pwn.")
-@click.option('-ns', '--no-stop', is_flag=True, show_default=True, help="Use the 'stop' function or not. Only for debug-command using python script.")
 @click.option('-v', '--verbose', count=True, help="Show more info or not.")
 @click.version_option('1.0', "-V", "--version", prog_name='pwncli', message="%(prog)s: version %(version)s\nauthor: roderick chan\ngithub: https://github.com/RoderickChan/pwncli")
 @pass_environ
-def cli(ctx, filename, no_stop, verbose): # ctx: command property
+def cli(ctx, filename, verbose): # ctx: command property
     """pwncli tools for pwner!
 
     \b
@@ -191,7 +166,7 @@ def cli(ctx, filename, no_stop, verbose): # ctx: command property
             ./yourownscript -v subcommand args
     """
     ctx.verbose = verbose
-    ctx.fromcli = sys.argv[0].endswith('/pwncli') # Use this tool from cli or python script
+    ctx.fromcli = sys.argv[0].endswith(('/pwncli', '\\pwncli')) # Use this tool from cli or python script
     ctx.pwncli_path = _PWNCLI_DIR_NAME
     if verbose:
         ctx.vlog("cli --> Open 'verbose' mode")
@@ -200,9 +175,8 @@ def cli(ctx, filename, no_stop, verbose): # ctx: command property
         ctx.vlog("cli --> Use 'pwncli' from command line")
     else:
         ctx.vlog("cli --> Use 'pwncli' from python script. Please run 'cli_script()' to enable cli.")
-        ctx.treasure['no_stop'] = no_stop
         ctx.vlog("cli --> Set 'stop_function' status: {}".format("closed" if no_stop else "open"))
-
+        ctx.gift['no_stop'] = False
     _set_filename(ctx, filename)
 
     # init config file

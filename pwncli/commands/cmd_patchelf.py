@@ -32,8 +32,8 @@ def get_arch_info_from_file(filepath):
 @click.command(name='patchelf', short_help="Patchelf executable file using glibc-all-in-one.")
 @click.argument('filename', type=str, required=True, nargs=1)
 @click.argument("libc-version", required=True, nargs=1, type=str)
-@click.option('-b', '--back', '--back-up', is_flag=True, help="Backup target file or not.")
-@click.option('-f', '--filter', '--filter-string',default=[], type=str, multiple=True, help="Add filter condition.")
+@click.option('-b', '--back', '--back-up', "back_up", is_flag=True, help="Backup target file or not.")
+@click.option('-f', '--filter', '--filter-string', "filter_string", default=[], type=str, multiple=True, help="Add filter condition.")
 @pass_environ
 def cli(ctx, filename, libc_version, back_up, filter_string):
     """FILENAME: ELF executable filename.\n

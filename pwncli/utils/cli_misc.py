@@ -1,8 +1,10 @@
 
 import os
 import time
-from pwncli.cli import _treasure, gift
-from pwncli.utils.misc import get_callframe_info, log2_ex, errlog_exit, one_gadget_binary, get_segment_base_addr_by_proc_maps, recv_libc_addr, get_flag_when_get_shell
+from pwncli.cli import gift
+from pwncli.utils.misc import get_callframe_info, log2_ex, errlog_exit, \
+    one_gadget_binary, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
+    get_flag_when_get_shell
 
 __all__ = [
     "stop",
@@ -29,7 +31,7 @@ def stop(enable=True):
     if not enable:
         return
 
-    if _treasure.get('no_stop', None):
+    if gift.get('no_stop', None):
         return
 
     func_name = ''
