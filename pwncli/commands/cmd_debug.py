@@ -333,21 +333,21 @@ int {}()
     ctx.gift['elf'] = ELF(filename, checksec=False)
     ctx.vlog('debug-command --> Set process({}, argv={}, env={})'.format(filename, argv, env))
     
+    rp = None
     if env and "LD_PRELOAD" in env:
-        rp = None
         for rp_ in env["LD_PRELOAD"].split(";"):
             if "libc" in rp_:
                 rp = rp_
                 break
 
-    else:
+    if not rp:
         rp = ldd_get_libc_path(filename)
 
     if rp:
         ctx.gift['libc'] = ELF(rp, checksec=False)
         ctx.gift['libc'].address = 0
     else:
-        ctx.vlog2('debug-command --> ldd cannot find the libc.so.6 or libc-2.xx.so')
+        ctx.vlog2('debug-command --> ldd cannot find the libc.so.6 or libc-2.xx.so, and rename your libc file to "libc.so.6" if you add it to LD_PRELOAD')
     
     # set gdb-type
     if t_flag == _NO_TERMINAL and gdb_type != "auto":

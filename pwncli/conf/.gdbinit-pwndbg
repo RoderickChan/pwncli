@@ -5,6 +5,9 @@ source ~/Pwngdb/angelheap/gdbinit.py
 # don't skip repeat value when use telescope
 set telescope-skip-repeating-val off
 
+# show LR in aarch64
+set show-retaddr-reg on
+
 # don't stop the process when catch alarm signal
 handle SIGALRM nostop print
 

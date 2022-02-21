@@ -47,3 +47,24 @@ def get_gadgets(ctx, filename, all_gadgets, directory):
         cmd += " > {}".format(os.path.join(directory, "ropgadget_gadgets"))
         ctx.vlog("gadget-command ---> Exec cmd: {}".format(cmd))
         os.system(cmd)
+
+
+@cli.command(name="setgdb", short_help="Copy gdbinit files from and set gdb-scripts for current user.")
+@click.option('-g', '--generate-script', "generate_script", is_flag=True, show_default=True, help="Generate the scripts of gdb-gef/gdb-pwndbg/gdb-peda in /usr/local/bin or not.")
+@click.confirmation_option(prompt="Copy gdbinit files from pwncli/conf/.gdbinit-* to user directory?", expose_value=False)
+@pass_environ
+def copy_gdbinit(ctx, generate_script):
+    if ctx.platform != "linux":
+        ctx.abort("setgdb-command ---> This command can only be used in linux.")
+    if generate_script and os.getuid() != 0:
+        ctx.abort("setgdb-command ---> Use `sudo' to run this command if you want to generate gdb-launching scripts.")
+    
+    cmd = "cp {} {}".format(os.path.join(ctx.pwncli_path, "conf/.gdbinit-*"), "~/")
+    ctx.vlog("setgdb-command ---> Exec cmd: {}".format(cmd))
+    os.system(cmd)
+
+    if generate_script:
+        for name in ("pwndbg", "gef", "peda"):
+            with open("/usr/local/bin/gdb-{}".format(name), "wt", encoding="utf-8", errors="ignore") as file:
+                file.write("#!/bin/sh\ncp ~/.gdbinit-{} ~/.gdbinit\nexec gdb \"$@\"\n".format(name))
+                ctx.vlog("setgdb-command ---> Generate /usr/local/bin/gdb-{} success.".format(name))

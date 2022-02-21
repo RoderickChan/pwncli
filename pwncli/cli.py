@@ -168,6 +168,7 @@ def cli(ctx, filename, verbose): # ctx: command property
     ctx.verbose = verbose
     ctx.fromcli = sys.argv[0].endswith(('/pwncli', '\\pwncli')) # Use this tool from cli or python script
     ctx.pwncli_path = _PWNCLI_DIR_NAME
+    ctx.platform = sys.platform
     if verbose:
         ctx.vlog("cli --> Open 'verbose' mode")
 
