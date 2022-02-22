@@ -65,6 +65,8 @@ def copy_gdbinit(ctx, generate_script):
 
     if generate_script:
         for name in ("pwndbg", "gef", "peda"):
-            with open("/usr/local/bin/gdb-{}".format(name), "wt", encoding="utf-8", errors="ignore") as file:
+            _cur_path = "/usr/local/bin/gdb-{}".format(name)
+            with open(_cur_path, "wt", encoding="utf-8", errors="ignore") as file:
                 file.write("#!/bin/sh\ncp ~/.gdbinit-{} ~/.gdbinit\nexec gdb \"$@\"\n".format(name))
-                ctx.vlog("setgdb-command ---> Generate /usr/local/bin/gdb-{} success.".format(name))
+                ctx.vlog("setgdb-command ---> Generate {} success.".format(_cur_path))
+            os.system("chmod 755 {}".format(_cur_path))
