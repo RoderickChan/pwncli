@@ -307,7 +307,7 @@ void pause_before_main()
                 file_content += """
 int {}()
 {
-    return 1;
+    return 0;
 }
                 """.format(__func)
             _, tmp_path = tempfile.mkstemp(suffix=".c", text=True)
@@ -364,11 +364,7 @@ int {}()
         if t_flag == _USE_TMUX or (_in_tmux() and t_flag != _USE_OTHER_TERMINALS):
             attach_mode = 'tmux'
         elif which("wt.exe"):
-            from random import randint
-            if randint(0, 100) >= 50:
-                attach_mode = 'wsl-wt'
-            else:
-                attach_mode = 'wsl-wts'
+            attach_mode = 'wsl-wt'
         elif which('open-wsl.exe'):
             attach_mode = 'wsl-o'
         elif which('bash.exe') is None:
@@ -387,13 +383,13 @@ int {}()
 @click.command(name='debug', short_help="Debug the pwn file locally.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.option('--argv', type=str, default=None, required=False, show_default=True, help="Argv for process.")
-@click.option("-e", '--set-env', "--env", "env", type=str, default=None, required=False, help="The env setting for process, such as LD_PRELOAD setting, split using ',' or ';', assign using '=' or ';'.")
+@click.option("-e", '--set-env', "--env", "env", type=str, default=None, required=False, help="The env setting for process, such as LD_PRELOAD setting, split using ',' or ';', assign using '=' or ':'.")
 @click.option('-p', '--pause', '--pause-before-main', "pause_before_main", is_flag=True, show_default=True, help="Pause before main is called or not, which is helpful for gdb attach.")
-@click.option('-f', '-hf','--hook-file', "hook_file", type=str,  default=None, required=False, help="Specify a hook file, where you write some functions to hook.")
-@click.option('-H', '-HF', '--hook-function', "hook_function", default=[], type=str, multiple=True, show_default=True, help="The function you want to hook would be out of work.")
+@click.option('-f', '-hf','--hook-file', "hook_file", type=str,  default=None, required=False, help="Specify a hook.c file, where you write some functions to hook.")
+@click.option('-H', '-HF', '--hook-function', "hook_function", default=[], type=str, multiple=True, show_default=True, help="The functions you want to hook would be out of work.")
 @click.option('-t', '--use-tmux', '--tmux', "tmux", is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
 @click.option('-w', '--use-wsl', '--wsl', "wsl", is_flag=True, show_default=True, help="Use wsl to pop up windows for gdb-debug or not.")
-@click.option('-m', '-am', '--attach-mode', "attach_mode", type=click.Choice(['auto', 'tmux', 'wsl-b', 'wsl-u', 'wsl-o', 'wsl-wt', 'wsl-wts']), nargs=1, default='auto', show_default=True, help="Gdb attach mode, wsl: bash.exe | wsl: ubuntu1234.exe | wsl: open-wsl.exe | wsl: wt.exe wsl.exe")
+@click.option('-m', '-am', '--attach-mode', "attach_mode", type=click.Choice(['auto', 'tmux', 'wsl-b', 'wsl-u', 'wsl-o', 'wsl-wt', 'wsl-wts']), nargs=1, default='auto', show_default=True, help="Gdb attach mode, wsl: bash.exe | wsl: ubuntu1x04.exe | wsl: open-wsl.exe | wsl: wt.exe wsl.exe")
 @click.option('-u', '-ug', '--use-gdb', "use_gdb", is_flag=True, show_default=True, help="Use gdb possibly.")
 @click.option('-g', '-gt','--gdb-type', "gdb_type", type=click.Choice(['auto', 'pwndbg', 'gef', 'peda']), nargs=1, default='auto', help="Select a gdb plugin.")
 @click.option('-b', '-gb', '--gdb-breakpoint', "gdb_breakpoint", default=[], type=str, multiple=True, show_default=True, help="Set gdb breakpoints while gdb-debug is used, it should be a hex address or '\$rebase' addr or a function name. Multiple breakpoints are supported.")
@@ -409,7 +405,7 @@ def cli(ctx, verbose, filename, argv, env,
 
     \b
     Debug in tmux:
-        python3 exp.py debug ./pwn --tmux -gdb-breakpoint malloc -gb 0x400789
+        python3 exp.py debug ./pwn --tmux --gdb-breakpoint malloc -gb 0x400789
     """
     ctx.vlog("Welcome to use pwncli-debug command~")
     if not ctx.verbose:

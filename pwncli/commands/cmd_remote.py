@@ -139,12 +139,12 @@ _proxy_mode_list = ['undefined', 'notset', 'default', 'primitive']
 @click.command(name='remote', short_help="Pwn remote host.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.argument("target", required=False, nargs=1, default=None, type=str)
-@click.option('-v', '--verbose', count=True, help="Show more info or not.")
-@click.option('-n', '-nl', '--no-log', is_flag=True, show_default=True, help="Disable context.log or not.")
-@click.option('-P', '-up', '--use-proxy', is_flag=True, show_default=True, help="Use proxy or not.")
-@click.option('-m', '-pm', '--proxy-mode', type=click.Choice(_proxy_mode_list), show_default=True, default='undefined', help="Set proxy mode. undefined: read proxy data from config data(do not set this type in your file); notset: not use proxy; default: pwntools context proxy; primitive: pure socks connection proxy.")
 @click.option('-i', '--ip', default=None, show_default=True, type=str, nargs=1, help='The remote ip addr.')
 @click.option('-p', '--port', default=None, show_default=True, type=int, nargs=1, help='The remote port.')
+@click.option('-P', '-up', '--use-proxy', is_flag=True, show_default=True, help="Use proxy or not.")
+@click.option('-m', '-pm', '--proxy-mode', type=click.Choice(_proxy_mode_list), show_default=True, default='undefined', help="Set proxy mode. undefined: read proxy data from config data(do not set this type in your file); notset: not use proxy; default: pwntools context proxy; primitive: pure socks connection proxy.")
+@click.option('-n', '-nl', '--no-log', is_flag=True, show_default=True, help="Disable context.log or not.")
+@click.option('-v', '--verbose', count=True, help="Show more info or not.")
 @pass_environ
 def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, no_log):
     """FILENAME: ELF filename.\n
@@ -153,7 +153,7 @@ def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, no_log)
     \b
     For remote target:
         pwncli -v remote ./pwn 127.0.0.1:23333 -up --proxy-mode default
-    Or to Specify the ip and port:
+    Or to specify the ip and port:
         pwncli -v remote -i 127.0.0.1 -p 23333
     """
     ctx.vlog("Welcome to use pwncli-remote command~")

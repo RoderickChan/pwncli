@@ -15,5 +15,4 @@ def cli(ctx, verbose):
         ctx.verbose = verbose
     if verbose:
         ctx.vlog("debug-qemu --> Open 'verbose' mode")
-    # TODO
-    pass
+    raise NotImplementedError("TODO")
