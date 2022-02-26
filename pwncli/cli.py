@@ -150,7 +150,7 @@ def _set_filename(ctx, filename, msg=None):
 @click.command(cls=CommandsAliasedGroup, context_settings=_CONTEXT_SETTINGS)
 @click.option('-f', '--filename', type=str, default=None, show_default=True, help="Elf file path to pwn.")
 @click.option('-v', '--verbose', count=True, help="Show more info or not.")
-@click.version_option('1.0', "-V", "--version", prog_name='pwncli', message="%(prog)s: version %(version)s\nauthor: roderick chan\ngithub: https://github.com/RoderickChan/pwncli")
+@click.version_option('1.1', "-V", "--version", prog_name='pwncli', message="%(prog)s: version %(version)s\nauthor: roderick chan\ngithub: https://github.com/RoderickChan/pwncli")
 @pass_environ
 def cli(ctx, filename, verbose): # ctx: command property
     """pwncli tools for pwner!
