@@ -299,16 +299,17 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, attach_mode,
 void pause_before_main(void) __attribute__((constructor));
 
 void pause_before_main()
-{
+{{
     getchar();
-}
+}}
                 """
             for __func in hook_function:
+                print(__func)
                 file_content += """
 int {}()
-{
+{{
     return 0;
-}
+}}
                 """.format(__func)
             _, tmp_path = tempfile.mkstemp(suffix=".c", text=True)
             with open(tmp_path, "w", encoding="utf-8") as tem_f:

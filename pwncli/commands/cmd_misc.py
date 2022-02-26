@@ -56,10 +56,10 @@ def get_gadgets(ctx, filename, all_gadgets, directory):
 def copy_gdbinit(ctx, generate_script):
     if ctx.platform != "linux":
         ctx.abort("setgdb-command ---> This command can only be used in linux.")
-    if generate_script and os.getuid() != 0:
-        ctx.abort("setgdb-command ---> Use `sudo' to run this command if you want to generate gdb-launching scripts.")
+    if generate_script and (os.getuid() != 0 or (os.getuid() == 0 and os.getenv("HOME").startswith("/root"))):
+        ctx.abort("setgdb-command ---> Use `sudo' to run this command and make sure you are not root if you want to generate gdb-launching scripts.")
     
-    cmd = "cp {} {}".format(os.path.join(ctx.pwncli_path, "conf/.gdbinit-*"), "~/")
+    cmd = "cp {} {}".format(os.path.join(ctx.pwncli_path, "conf/.gdbinit-*"), os.getenv("HOME"))
     ctx.vlog("setgdb-command ---> Exec cmd: {}".format(cmd))
     os.system(cmd)
 
