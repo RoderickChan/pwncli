@@ -19,7 +19,8 @@ __all__ = [
     "set_current_pie_breakpoints",
     "tele_current_pie_content",
     "recv_current_libc_addr",
-    "get_current_flag_when_get_shell"
+    "get_current_flag_when_get_shell",
+    "s", "sl", "sa", "sla", "ru", "rl"
     ]
 
 def stop(enable=True):
@@ -161,4 +162,54 @@ def get_current_flag_when_get_shell(use_cat=True, start_str="flag{"):
     if not gift.get('io', None):
         errlog_exit("Can not get current libc addr because of no io.")
     get_flag_when_get_shell(gift['io'], use_cat, start_str)
-        
+
+
+#-----------------------------io------------------------
+def s(data):
+    """send"""
+    io = gift.get("io", None)
+    if io:
+        io.send(data)
+
+def sl(data):
+    """sendline"""
+    io = gift.get("io", None)
+    if io:
+        io.sendline(data)
+
+def sa(delim, data):
+    """sendafter"""
+    io = gift.get("io", None)
+    if io:
+        io.sendafter(delim, data)
+
+def sla(delim, data):
+    """sendlineafter"""
+    io = gift.get("io", None)
+    if io:
+        io.sendlineafter(delim, data)
+
+def ru(delim) -> bytes:
+    """recvuntil"""
+    io = gift.get("io", None)
+    if io:
+        return io.recvuntil(delim)
+
+def rl() -> bytes:
+    """recvline"""
+    io = gift.get("io", None)
+    if io:
+        return io.recvline()
+
+
+def rv() -> bytes:
+    """recv"""
+    io = gift.get("io", None)
+    if io:
+        return io.recv()
+
+def rvn(n) -> bytes:
+    """recv"""
+    io = gift.get("io", None)
+    if io:
+        return io.recvn(n)

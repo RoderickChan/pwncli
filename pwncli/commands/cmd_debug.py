@@ -23,6 +23,7 @@ from pwncli.utils.misc import ldd_get_libc_path
 _NO_TERMINAL = 0
 _USE_TMUX = 1
 _USE_OTHER_TERMINALS = 2
+_USE_GNOME_TERMINAL = 4
 
 
 def _in_tmux():
@@ -37,7 +38,8 @@ def _in_wsl():
     return False
 
 def _get_gdb_plugin_info():
-    with open(os.path.expanduser("~/.gdbinit"), "r", encoding="utf-8") as f:
+    with open(os.path.expanduser("~/.gdbinit"), "a+", encoding="utf-8") as f:
+        f.seek(0, 0)
         for line in f:
             if line.strip().startswith("source"):
                 if "pwndbg" in line:
@@ -116,6 +118,8 @@ def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file,
     
     if flag & _USE_TMUX: # use tmux
         terminal = ['tmux', 'splitw', '-h']
+    elif flag & _USE_GNOME_TERMINAL:
+        terminal = ["gnome-terminal", "--", "sh", "-c"]
     elif (flag & _USE_OTHER_TERMINALS) and which('cmd.exe'): # use cmd.exe to launch wt.exe bash.ex ...
         if is_file:
             gdbcmd = " {}\"".format("-x " + gdb_script)
@@ -194,11 +198,11 @@ def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file,
         # recover gdbinit file
         if gdb_type_res:
             ctx.vlog("debug-command --> Recover gdbinit file.")
-            with open(gdb_type_res[1], "w", encoding="utf-8") as f:
+            with open(gdb_type_res[1], "wt", encoding="utf-8", errors="ignore") as f:
                 f.write(gdb_type_res[0])
 
 
-def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, attach_mode, 
+def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, attach_mode, 
                 use_gdb, gdb_type, gdb_breakpoint, gdb_script, pause_before_main, hook_file, hook_function):
     # set filename
     if not ctx.gift.get('filename', None):
@@ -226,12 +230,15 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, attach_mode,
         if not _in_tmux():
             ctx.abort(msg="debug-command 'tmux' --> Not in tmux")
         t_flag = _USE_TMUX
-        use_wsl = False
     # check wsl
-    if use_wsl:
+    elif use_wsl:
         if not  _in_wsl():
             ctx.abort(msg="debug-command 'wsl' --> Not in wsl")
         t_flag = _USE_OTHER_TERMINALS
+    elif use_gnome:
+        if not which("gnome-terminal"):
+            ctx.abort(msg="debug-command 'gnome' --> No gnome-terminal")
+        t_flag = _USE_GNOME_TERMINAL
 
     # process gdb-scripts
     is_file = False
@@ -390,9 +397,10 @@ int {}()
 @click.option('-H', '-HF', '--hook-function', "hook_function", default=[], type=str, multiple=True, show_default=True, help="The functions you want to hook would be out of work.")
 @click.option('-t', '--use-tmux', '--tmux', "tmux", is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
 @click.option('-w', '--use-wsl', '--wsl', "wsl", is_flag=True, show_default=True, help="Use wsl to pop up windows for gdb-debug or not.")
+@click.option('-g', '--use-gnome', '--gnome', "gnome", is_flag=True, show_default=True, help="Use gnome terminal to pop up windows for gdb-debug or not.")
 @click.option('-m', '-am', '--attach-mode', "attach_mode", type=click.Choice(['auto', 'tmux', 'wsl-b', 'wsl-u', 'wsl-o', 'wsl-wt', 'wsl-wts']), nargs=1, default='auto', show_default=True, help="Gdb attach mode, wsl: bash.exe | wsl: ubuntu1x04.exe | wsl: open-wsl.exe | wsl: wt.exe wsl.exe")
 @click.option('-u', '-ug', '--use-gdb', "use_gdb", is_flag=True, show_default=True, help="Use gdb possibly.")
-@click.option('-g', '-gt','--gdb-type', "gdb_type", type=click.Choice(['auto', 'pwndbg', 'gef', 'peda']), nargs=1, default='auto', help="Select a gdb plugin.")
+@click.option('-G', '-gt','--gdb-type', "gdb_type", type=click.Choice(['auto', 'pwndbg', 'gef', 'peda']), nargs=1, default='auto', help="Select a gdb plugin.")
 @click.option('-b', '-gb', '--gdb-breakpoint', "gdb_breakpoint", default=[], type=str, multiple=True, show_default=True, help="Set gdb breakpoints while gdb-debug is used, it should be a hex address or '\$rebase' addr or a function name. Multiple breakpoints are supported.")
 @click.option('-s', '-gs', '--gdb-script', "gdb_script", default=None, type=str, show_default=True, help="Set gdb commands like '-ex' or '-x' while gdb-debug is used, the content will be passed to gdb and use ';' to split lines. Besides eval-commands, file path is supported.")
 @click.option('-n', '-nl', '--no-log', "no_log", is_flag=True, show_default=True, help="Disable context.log or not.")
@@ -400,7 +408,7 @@ int {}()
 @click.option('-v', '--verbose', count=True, help="Show more info or not.")
 @pass_environ
 def cli(ctx, verbose, filename, argv, env, 
-        tmux, wsl, attach_mode, use_gdb, gdb_type, gdb_breakpoint, gdb_script, 
+        tmux, wsl, gnome, attach_mode, use_gdb, gdb_type, gdb_breakpoint, gdb_script, 
         no_log, no_stop, pause_before_main, hook_file, hook_function):
     """FILENAME: The ELF filename.
 
@@ -425,6 +433,7 @@ def cli(ctx, verbose, filename, argv, env,
     ctx.vlog("debug-command --> Get 'no-stop': {}".format(no_stop))
     ctx.vlog("debug-command --> Get 'tmux': {}".format(tmux))
     ctx.vlog("debug-command --> Get 'wsl': {}".format(wsl))
+    ctx.vlog("debug-command --> Get 'gnome': {}".format(gnome))
     ctx.vlog("debug-command --> Get 'attach_mode': {}".format(attach_mode))
     ctx.vlog("debug-command --> Get 'use_gdb': {}".format(use_gdb))
     ctx.vlog("debug-command --> Get 'gdb_type': {}".format(gdb_type))
@@ -439,7 +448,7 @@ def cli(ctx, verbose, filename, argv, env,
     ctx.vlog("debug-command --> Set 'context.log_level': {}".format(ll))
 
     # set value
-    _check_set_value(ctx, filename, argv, env, tmux, wsl, attach_mode, 
+    _check_set_value(ctx, filename, argv, env, tmux, wsl, gnome, attach_mode, 
                 use_gdb, gdb_type, gdb_breakpoint, gdb_script, pause_before_main, hook_file, hook_function)
 
 
