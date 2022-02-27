@@ -577,113 +577,113 @@ pwntools
 
 ### pwncli 示例
 
-![image-20220226232019621](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226232019621.png)
+![image-20220226232019621](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226232019621.png)
 
 ### debug 示例
 
 `pwncli -vv debug ./test`：
 
-![image-20220226232116090](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226232116090.png)
+![image-20220226232116090](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226232116090.png)
 
 `pwncli -vv debug ./test -t`：
 
-![image-20220226232356871](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226232356871.png)
+![image-20220226232356871](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226232356871.png)
 
 
 
 `pwncli de ./test -t -b main`：
 
-![image-20220226232710687](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226232710687.png)
+![image-20220226232710687](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226232710687.png)
 
 这个时候没有断住：
 
 `pwncli de ./test -p -t -b main`：
 
-![image-20220226232858593](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226232858593.png)
+![image-20220226232858593](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226232858593.png)
 
-![image-20220226232946892](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226232946892.png)
+![image-20220226232946892](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226232946892.png)
 
 
 
 `pwncli de ./test -H puts`：
 
-![image-20220226233434698](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226233434698.png)
+![image-20220226233434698](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226233434698.png)
 
 `pwncli de ./test -t -s "vmmap;b main"`：
 
-![image-20220226233628316](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226233628316.png)
+![image-20220226233628316](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226233628316.png)
 
 
 
 `pwncli de ./test -w`：
 
-![image-20220226233900484](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226233900484.png)
+![image-20220226233900484](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226233900484.png)
 
 
 
 `pwncli de ./test -w -m wsl-u`：
 
-![image-20220226234010903](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226234010903.png)
+![image-20220226234010903](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226234010903.png)
 
 
 
 `pwncli de ./test -w -m wsl-wts`：
 
-![image-20220226234057770](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226234057770.png)
+![image-20220226234057770](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226234057770.png)
 
 
 
 `pwncli de ./test -t -g pwndbg`：
 
-![image-20220226234152877](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226234152877.png)
+![image-20220226234152877](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226234152877.png)
 
 
 
 `pwncli de ./test -u`:
 
-![image-20220226234307876](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226234307876.png)
+![image-20220226234307876](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226234307876.png)
 
 ### remote 示例
 
 `pwncli re ./test 127.0.0.1:10001`：
 
-![image-20220226235042604](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226235042604.png)
+![image-20220226235042604](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226235042604.png)
 
 
 
 `pwncli -vv re ./test -i 127.0.0.1 -p 10001`：
 
-![image-20220226235158851](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226235158851.png)
+![image-20220226235158851](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226235158851.png)
 
 
 
 `pwncli -vv re 127.0.0.1:10001`：
 
-![image-20220226235248653](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226235248653.png)
+![image-20220226235248653](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226235248653.png)
 
 ### config 示例
 
 `pwncli config list example`：
 
-![image-20220226235423624](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226235423624.png)
+![image-20220226235423624](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226235423624.png)
 
 ### misc 示例
 
 `pwncli misc gadget ./test`：
 
-![image-20220226235602674](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226235602674.png)
+![image-20220226235602674](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226235602674.png)
 
 
 
 `sudo pwncli misc setgdb -g`：
 
-![image-20220226235738869](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226235738869.png)
+![image-20220226235738869](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226235738869.png)
 
 ### patchelf 示例
 
 `pwncli patchelf ./test -b 2.31`：
 
-![image-20220226235851991](https://lynne-markdown.oss-cn-hangzhou.aliyuncs.com/img/image-20220226235851991.png)
+![image-20220226235851991](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226235851991.png)
 
 ### qemu 示例
 
