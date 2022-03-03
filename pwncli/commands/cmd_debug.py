@@ -212,6 +212,7 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
     if not ctx.gift.get('filename', None):
         ctx.abort("debug-command --> No 'filename'!")
     filename = ctx.gift['filename']
+    context.binary = filename
 
     # set argv
     if argv is not None:
@@ -322,6 +323,8 @@ int {}()
             with open(tmp_path, "w", encoding="utf-8") as tem_f:
                 tem_f.write(file_content)
             cmd = "gcc -g -fPIC -shared {} -o {}.so".format(tmp_path, tmp_path)
+            if context.bits == 32:
+                cmd += " -m32"
             ctx.vlog("debug-command 'pause_before_main/hook_file' --> Execute cmd '{}'.".format(cmd))
             atexit.register(lambda x: os.unlink(x) or os.unlink("{}.so".format(x)), tmp_path)
             if not os.system(cmd):
@@ -336,7 +339,7 @@ int {}()
             ctx.verrlog(msg="debug-command 'pause_before_main' --> Cannot find gcc in PATH.")
 
     # set binary
-    context.binary = filename
+    
     ctx.gift['io'] = context.binary.process(argv, timeout=ctx.gift['context_timeout'], env=env)
     ctx.gift['elf'] = ELF(filename, checksec=False)
     ctx.vlog('debug-command --> Set process({}, argv={}, env={})'.format(filename, argv, env))

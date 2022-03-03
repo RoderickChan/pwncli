@@ -20,7 +20,8 @@ __all__ = [
     "tele_current_pie_content",
     "recv_current_libc_addr",
     "get_current_flag_when_get_shell",
-    "s", "sl", "sa", "sla", "ru", "rl"
+    "s", "sl", "sa", "sla", "ru", "rl","rs",
+    "rls", "rlc", "rv", "rvn", "ia"
     ]
 
 def stop(enable=True):
@@ -201,6 +202,24 @@ def rl() -> bytes:
     if io:
         return io.recvline()
 
+def rs(n) -> list:
+    """recvlines"""
+    io = gift.get("io", None)
+    if io:
+        return io.recvlines(n)
+
+def rls(delims) -> bytes:
+    """recvline_startswith"""
+    io = gift.get("io", None)
+    if io:
+        return io.recvline_startswith(delims)
+
+def rlc(delims) -> bytes:
+    """recvline_contains"""
+    io = gift.get("io", None)
+    if io:
+        return io.recvline_contains(delims)
+
 
 def rv() -> bytes:
     """recv"""
@@ -209,7 +228,13 @@ def rv() -> bytes:
         return io.recv()
 
 def rvn(n) -> bytes:
-    """recv"""
+    """recvn"""
     io = gift.get("io", None)
     if io:
         return io.recvn(n)
+
+def ia():
+    """interactive"""
+    io = gift.get("io", None)
+    if io:
+        io.interactive()
