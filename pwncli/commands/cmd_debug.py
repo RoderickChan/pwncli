@@ -37,6 +37,11 @@ def _in_wsl():
             return True
     return False
 
+def __recover(f, c):
+    # print("call recover")
+    with open(f, "wb") as f2:
+        f2.write(c)
+
 def _get_gdb_plugin_info():
     with open(os.path.expanduser("~/.gdbinit"), "a+", encoding="utf-8") as f:
         f.seek(0, 0)
@@ -51,10 +56,10 @@ def _get_gdb_plugin_info():
     return None
 
 
-def _set_gdb_type(ctx, gdb_type):
+def _set_gdb_type(pwncli_path, gdb_type):
     if gdb_type == 'auto':
         return None
-    dirname = os.path.join(ctx.pwncli_path, "conf")
+    dirname = os.path.join(pwncli_path, "conf")
 
     if gdb_type == "pwndbg":
         gdbfile = ".gdbinit-pwndbg"
@@ -65,11 +70,11 @@ def _set_gdb_type(ctx, gdb_type):
 
     fullpath = os.path.join(dirname, gdbfile)
     targpath = os.path.expanduser("~/.gdbinit")
-    oldcontent = None
-    with open(targpath, "r", encoding='utf-8') as f:
+    oldcontent = b""
+    with open(targpath, "rb") as f:
         oldcontent = f.read()
-    with open(targpath, "w", encoding='utf-8') as f:
-        with open(fullpath, "r", encoding='utf-8') as f2:
+    with open(targpath, "wb") as f:
+        with open(fullpath, "rb") as f2:
             f.write(f2.read())
     return oldcontent, targpath
 
@@ -179,7 +184,7 @@ def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file,
         if terminal:
             context.terminal = terminal
             ctx.vlog("debug-command --> Set terminal: '{}'".format(' '.join(terminal)))
-            gdb_type_res = _set_gdb_type(ctx, gdb_type)
+            gdb_type_res = _set_gdb_type(ctx.pwncli_path, gdb_type)
             gdb_pid, gdb_obj = attach(target=p, gdbscript=script, api=True)
             ctx.gift['gdb_pid'] = gdb_pid
             ctx.gift['gdb_obj'] = gdb_obj
@@ -198,8 +203,7 @@ def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file,
         # recover gdbinit file
         if gdb_type_res:
             ctx.vlog("debug-command --> Recover gdbinit file.")
-            with open(gdb_type_res[1], "wt", encoding="utf-8", errors="ignore") as f:
-                f.write(gdb_type_res[0])
+            __recover(gdb_type_res[1], gdb_type_res[0])
 
 
 def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, attach_mode, 
@@ -213,6 +217,7 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
         ctx.abort("debug-command --> No 'filename'!")
     filename = ctx.gift['filename']
     context.binary = filename
+    ctx.gift['elf'] = ELF(filename, checksec=False)
 
     # set argv
     if argv is not None:
@@ -341,7 +346,6 @@ int {}()
     # set binary
     
     ctx.gift['io'] = context.binary.process(argv, timeout=ctx.gift['context_timeout'], env=env)
-    ctx.gift['elf'] = ELF(filename, checksec=False)
     ctx.vlog('debug-command --> Set process({}, argv={}, env={})'.format(filename, argv, env))
     
     rp = None

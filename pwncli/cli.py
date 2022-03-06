@@ -18,7 +18,12 @@ __all__ = ['gift', 'cli_script']
 
 class _Inner_Dict(OrderedDict):
     def __getattr__(self, name):
+        if name not in self.keys():
+            return None
         return self[name]
+    
+    def __setattr__(self, name, value):
+        self[name] = value
 
 gift = _Inner_Dict() # public property
 _CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
