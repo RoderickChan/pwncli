@@ -21,7 +21,7 @@ __all__ = [
     "recv_current_libc_addr",
     "get_current_flag_when_get_shell",
     "s", "sl", "sa", "sla", "ru", "rl","rs",
-    "rls", "rlc", "rv", "rvn", "ia"
+    "rls", "rlc", "ra", "rr", "r", "rn", "ia"
     ]
 
 def stop(enable=True):
@@ -220,14 +220,25 @@ def rlc(delims) -> bytes:
     if io:
         return io.recvline_contains(delims)
 
+def ra(timeout=5) -> bytes:
+    """recvall"""
+    io = gift.get("io", None)
+    if io:
+        return io.recvall(timeout)
 
-def rv() -> bytes:
+def rr(regex) -> bytes:
+    """recvregex"""
+    io = gift.get("io", None)
+    if io:
+        return io.recvregex(regex)
+
+def r() -> bytes:
     """recv"""
     io = gift.get("io", None)
     if io:
         return io.recv()
 
-def rvn(n) -> bytes:
+def rn(n) -> bytes:
     """recvn"""
     io = gift.get("io", None)
     if io:
