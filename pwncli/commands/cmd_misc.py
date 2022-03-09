@@ -12,8 +12,9 @@ def cli(ctx):
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.option('-a', '--all', '--all-gadgets', "all_gadgets", is_flag=True, show_default=True, help="Get all gadgets and don't remove duplicates.")
 @click.option('-d', '--dir', '--directory', "directory", type=str, default=".", required=False, help="The directory to save files.")
+@click.option('-n', '--depth', '--count', "depth", type=int, default=-1, required=False, help="The depth of the gadgets.")
 @pass_environ
-def get_gadgets(ctx, filename, all_gadgets, directory):
+def get_gadgets(ctx, filename, all_gadgets, directory, depth):
     _set_filename(ctx, filename)
     
     if not ctx.get('filename'):
@@ -36,6 +37,8 @@ def get_gadgets(ctx, filename, all_gadgets, directory):
         cmd = "ropper -f {} --nocolor".format(filename)
         if all_gadgets:
             cmd += " --all"
+        if depth > 0:
+            cmd += " --inst-count {}".format(depth)
         cmd += " > {}".format(os.path.join(directory, "ropper_gadgets"))
         ctx.vlog("gadget-command ---> Exec cmd: {}".format(cmd))
         os.system(cmd)
@@ -44,6 +47,8 @@ def get_gadgets(ctx, filename, all_gadgets, directory):
         cmd = "ROPgadget --binary {}".format(filename)
         if all_gadgets:
             cmd += " --all"
+        if depth > 0:
+            cmd += " --depth {}".format(depth)
         cmd += " > {}".format(os.path.join(directory, "ropgadget_gadgets"))
         ctx.vlog("gadget-command ---> Exec cmd: {}".format(cmd))
         os.system(cmd)
@@ -70,3 +75,7 @@ def copy_gdbinit(ctx, generate_script):
                 file.write("#!/bin/sh\ncp ~/.gdbinit-{} ~/.gdbinit\nexec gdb \"$@\"\n".format(name))
                 ctx.vlog("setgdb-command ---> Generate {} success.".format(_cur_path))
             os.system("chmod 755 {}".format(_cur_path))
+
+
+
+# add distance command

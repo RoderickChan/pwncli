@@ -8,6 +8,7 @@ from pwncli.utils.misc import get_callframe_info, log2_ex, errlog_exit, \
 
 __all__ = [
     "stop",
+    "S",
     "get_current_one_gadget",
     "get_current_codebase_addr",
     "get_current_libcbase_addr",
@@ -57,6 +58,7 @@ def stop(enable=True):
     log2_ex(msg)
     input(" Press any key to continue......")
 
+S = stop
 
 #----------------------------useful function-------------------------
 def get_current_one_gadget(libc_base=0, more=False):
