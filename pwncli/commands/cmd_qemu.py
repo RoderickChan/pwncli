@@ -1,14 +1,19 @@
-import click
-import sys
 import os
-import subprocess
+import re
 import shlex
+import subprocess
+import sys
+import tempfile
+
+import click
+from pwn import ELF, atexit, context, process, remote, which
+from pwncli.cli import _Inner_Dict, _set_filename, pass_environ
 from pwncli.utils.config import try_get_config_data_by_key
-from pwn import context, which, ELF, process, remote, atexit
-from pwncli.cli import pass_environ, _Inner_Dict, _set_filename
+
 
 def _in_tmux():
     return bool('TMUX' in os.environ and which('tmux'))
+
 
 def _in_wsl():
     if os.path.exists('/proc/sys/kernel/osrelease'):
@@ -41,6 +46,7 @@ def _set_gdb_type(pwncli_path, gdb_type):
             f.write(f2.read())
     return oldcontent, targpath
 
+
 _arch_usr_map = {
     "arm": ("qemu-arm", "/usr/arm-linux-gnueabi"),
     "armhf": ("qemu-arm", "/usr/arm-linux-gnueabihf"),
@@ -52,6 +58,7 @@ _arch_usr_map = {
     "mipsn32el": ("qemu-mipsn32el", "/usr/mips64el-linux-gnuabin32"),
     "mipsel": ("qemu-mipsel", "/usr/mipsel-linux-gnu")
 }
+
 
 def __recover(f, c):
     with open(f, "wb") as f2:
@@ -81,7 +88,54 @@ def __parse_gdb_examine(ctx, args):
             ctx.abort("qemu-command --> Invalid gdb_script, please check.")
     return gdb_examine
 
-def __debug_mode(ctx, args:_Inner_Dict):
+
+def __exec_bash_cmd(dirname, cmd):
+    with tempfile.NamedTemporaryFile("wt") as f:
+        f.write(cmd)
+        f.flush()
+        os.system("cd {} && /bin/sh {}".format(dirname, f.name))
+
+
+def __process_launch_script(ctx, args):
+    # check
+    scriptpath = args.launch_script
+    dirname = os.path.dirname(scriptpath)
+    if not os.path.exists(scriptpath) or not os.path.isfile(scriptpath):
+        ctx.abort("qemu-command --> Invalid launch_script: {}".format(scriptpath))
+
+    init_cmd = ""
+    fini_cmd = "#!/bin/sh\n"
+    qemu_cmd = ""
+    with open(scriptpath, "rt", encoding="utf-8", errors="ignore") as file:
+        data = file.read()
+        data = data.replace("\r\n", "\n").replace("\\\n", " ").splitlines()
+    if not data:
+        ctx.abort("qemu-command --> No invalid content in launch_script.")
+
+    for statement in data:
+        statement = statement.strip()
+        if not statement:
+            continue
+        if qemu_cmd:
+            fini_cmd += statement + "\n"
+            continue
+        if not statement.startswith("qemu-system"):
+            init_cmd += statement + "\n"
+        else:
+            qemu_cmd = statement
+
+    if not qemu_cmd:
+        ctx.abort(
+            "qemu-command --> No qemu-system command, please check your launch script.")
+
+    if init_cmd:
+        __exec_bash_cmd(dirname, init_cmd)
+    if fini_cmd:
+        atexit.register(__exec_bash_cmd, dirname, fini_cmd)
+    return qemu_cmd
+
+
+def __debug_mode(ctx, args: _Inner_Dict):
     if args.tmux or args.wsl or args.gnome:
         args['use_gdb'] = True
         if not which("gdb-multiarch"):
@@ -89,9 +143,26 @@ def __debug_mode(ctx, args:_Inner_Dict):
 
     # if launch_script is specified
     if args.launch_script:
-        # TODO
-        process_args = []
-        args.port = 1234 # ????
+        # args.port = 1234 # default
+        cmd = __process_launch_script(ctx, args)
+        ctx.vlog2("qemu-command --> Get qemu cmd: {}".format(cmd))
+        process_args = shlex.split(cmd)
+        if not args.ip:
+            args.ip = "127.0.0.1"
+            ctx.vlog2(
+                "qemu-command --> Set default gdb listen ip {}.".format(args.ip))
+        if "-s" in process_args:
+            args.port = 1234
+            ctx.vlog2(
+                "qemu-command --> Set default gdb listen port {}.".format(args.port))
+        elif re.search("-gdb\s+tcp::(\d+)", cmd):
+            match = re.search("-gdb\s+tcp::(\d+)", cmd)
+            args.port = match.groups()[0]
+            ctx.vlog2(
+                "qemu-command --> Set gdb listen port {}.".format(args.port))
+        elif args.use_gdb:
+            ctx.abort("qemu-command --> No gdb port to connect.")
+
     else:
         process_args = []
         # get file arch info
@@ -99,75 +170,82 @@ def __debug_mode(ctx, args:_Inner_Dict):
         process_args.append(_arch_usr_map[arch][0])
         if not context.binary.statically_linked and b"armhf" in context.binary.linker:
             arch = "armhf"
-        
+
         if args.static:
             process_args[0] += "-static"
-        # 
+        #
         if args.use_gdb:
             process_args.append("-g")
             if not args.ip:
                 args.ip = "127.0.0.1"
-                ctx.vlog("qemu-command --> Set default gdb listen ip {}.".format(args.ip))
+                ctx.vlog2(
+                    "qemu-command --> Set default gdb listen ip {}.".format(args.ip))
             if not args.port:
                 args.port = 1234
-                ctx.vlog("qemu-command --> Set default gdb listen port {}.".format(args.port))
+                ctx.vlog2(
+                    "qemu-command --> Set default gdb listen port {}.".format(args.port))
             process_args.append(str(args.port))
 
         process_args.append("-L")
         if not args.lib:
             args.lib = _arch_usr_map[arch][1]
-            ctx.vlog("qemu-command --> Set default lib path: {}.".format(args.lib))
+            ctx.vlog2(
+                "qemu-command --> Set default lib path: {}.".format(args.lib))
+        if not os.path.isdir(args.lib):
+            ctx.abort(
+                "qemu-command --> Args lib error, path {} not exists.".format(args.lib))
         process_args.append(args.lib)
-    
+
     # set process
     process_args.append(args.filename)
     ctx.gift['io'] = process(process_args)
-    
+
     if not args.use_gdb:
         return
-    
+
     gdbs = _set_gdb_type(ctx.pwncli_path, args.gdb_type)
     if gdbs:
         atexit.register(__recover, gdbs[1], gdbs[0])
-    
+
     if args.tmux and not _in_tmux():
         ctx.abort("qemu-command --> Not in tmux")
-    
+
     if args.wsl and not _in_wsl():
         ctx.abort("qemu-command --> Not in wsl")
-    
+
     if args.gnome and not which("gnome-terminal"):
         ctx.abort("qemu-command --> No gnome-terminal")
 
     if args.tmux:
-        cmd = "tmux splitw -h" 
+        cmd = "tmux splitw -h"
     elif args.wsl:
         cmd = "cmd.exe /c start wt.exe wsl.exe bash -c"
     elif args.gnome:
         cmd = "gnome-terminal -- sh -c"
-    
-    # parse gdbsecipt and breakpoints 
+
+    # parse gdbsecipt and breakpoints
     gdb_examine = __parse_gdb_examine(ctx, args)
-    cmd += " \"gdb-multiarch {} -ex 'target remote {}:{}' {}\"".format(args.filename, args.ip, args.port, gdb_examine)
+    cmd += " \"gdb-multiarch {} -ex 'target remote {}:{}' {}\"".format(
+        args.filename, args.ip, args.port, gdb_examine)
 
     # os.system(cmd)
     ctx.vlog("qemu-command --> Exec cmd: {}".format(cmd))
     cur_p = subprocess.Popen(shlex.split(cmd))
     atexit.register(func=lambda x: x.kill(), x=cur_p)
-    
 
-def __remote_mode(ctx, args:_Inner_Dict):
+
+def __remote_mode(ctx, args: _Inner_Dict):
     if not args.ip:
         ip = try_get_config_data_by_key(ctx.config_data, "remote", "ip")
         if not ip:
             ctx.abort("qemu-command --> Please set ip from cli or config file.")
         args.ip = ip
-    
+
     ctx.gift['io'] = remote(args.ip, args.port)
     ctx._log("connect {} port {} success!".format(args.ip, args.port))
 
 
-def __process_args(ctx, args:_Inner_Dict):
+def __process_args(ctx, args: _Inner_Dict):
     # parse
     if not ctx.gift.filename:
         _set_filename(ctx, args['filename'])
@@ -175,7 +253,8 @@ def __process_args(ctx, args:_Inner_Dict):
         if ":" not in args['target']:
             ctx.abort("qemu-command --> Target wrong, format is ip:port")
         if args.ip or args.port:
-            ctx.abort("qemu-command --> Cannot specify ip and port again when target is not None.")
+            ctx.abort(
+                "qemu-command --> Cannot specify ip and port again when target is not None.")
         ip, port = args['target'].strip().split(":")
         args.ip = ip
         args.port = int(port)
@@ -184,18 +263,21 @@ def __process_args(ctx, args:_Inner_Dict):
 
     if args.ip and args.port and not args.debug_mode:
         args.remote_mode = True
-        ctx.vlog("qemu-command --> Open remote mode because the ip and port are all specified.")
-    
+        ctx.vlog(
+            "qemu-command --> Open remote mode because the ip and port are all specified.")
+
     if args.debug_mode:
         if args.remote_mode:
-            cxt.abort("qemu-command --> Cannot open both debug mode and remote mode.")
-    
+            cxt.abort(
+                "qemu-command --> Cannot open both debug mode and remote mode.")
+
     if args.remote_mode and not args.filename:
-        ctx.vlog2("qemu-command --> You need to set context manually otherwise some bugs would occur when you use flat or packing.")
-    
+        ctx.vlog2(
+            "qemu-command --> You need to set context manually otherwise some bugs would occur when you use flat or packing.")
+
     if not args.remote_mode and not args.filename:
         ctx.abort("qemu-command --> Please set filename.")
-    
+
     if args.filename:
         args.filename = ctx.gift['filename']
         context.binary = args.filename
@@ -207,12 +289,11 @@ def __process_args(ctx, args:_Inner_Dict):
     else:
         __debug_mode(ctx, args)
         ctx.gift['debug'] = True
-        
+
     # from cli, keep interactive
-    if ctx.fromcli: 
+    if ctx.fromcli:
         ctx.gift['io'].interactive()
-    
-    
+
 
 @click.command(name='qemu', short_help="Use qemu to debug pwn, for kernel pwn or arm/mips arch.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
@@ -223,11 +304,11 @@ def __process_args(ctx, args:_Inner_Dict):
 @click.option('-p', '--port', default=None, show_default=True, type=int, nargs=1, help='The remote port or gdb listen port when debug.')
 @click.option('-L', '--lib', "lib", default=None, type=str, show_default=True, help="The lib path for current file.")
 @click.option('-S', '--static', "static", is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
-@click.option('-l', '-ls', '--launch-script', "launch_script", default=None, type=str, show_default=True, help="The script for lauching the qemu, used for qemu-system mode and the command is long.")
+@click.option('-l', '-ls', '--launch-script', "launch_script", default=None, type=str, show_default=True, help="The script to launch the qemu, only used for qemu-system mode and the script must be shell script.")
 @click.option('-t', '--use-tmux', '--tmux', "tmux", is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
 @click.option('-w', '--use-wsl', '--wsl', "wsl", is_flag=True, show_default=True, help="Use wsl to pop up windows for gdb-debug or not.")
 @click.option('-g', '--use-gnome', '--gnome', "gnome", is_flag=True, show_default=True, help="Use gnome terminal to pop up windows for gdb-debug or not.")
-@click.option('-G', '-gt','--gdb-type', "gdb_type", type=click.Choice(['auto', 'pwndbg', 'gef', 'peda']), nargs=1, default='auto', help="Select a gdb plugin.")
+@click.option('-G', '-gt', '--gdb-type', "gdb_type", type=click.Choice(['auto', 'pwndbg', 'gef', 'peda']), nargs=1, default='auto', help="Select a gdb plugin.")
 @click.option('-b', '-gb', '--gdb-breakpoint', "gdb_breakpoint", default=[], type=str, multiple=True, show_default=True, help="Set gdb breakpoints while gdb-debug is used, it should be a hex address or a function name. Multiple breakpoints are supported.")
 @click.option('-s', '-gs', '--gdb-script', "gdb_script", default=None, type=str, show_default=True, help="Set gdb commands like '-ex' or '-x' while gdb-debug is used, the content will be passed to gdb and use ';' to split lines. Besides eval-commands, file path is supported.")
 @click.option('-n', '-nl', '--no-log', "no_log", is_flag=True, show_default=True, help="Disable context.log or not.")
@@ -270,5 +351,5 @@ def cli(ctx, filename, target, debug_mode, remote_mode, ip, port, lib, static, l
 
     for k, v in args.items():
         ctx.vlog("qemu-command --> Get '{}': {}".format(k, v))
-    
+
     __process_args(ctx, args)
