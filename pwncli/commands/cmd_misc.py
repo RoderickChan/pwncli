@@ -174,7 +174,11 @@ for s in {}:
         gdb.execute("pt /o {{}}".format(s))
         print("\\n"+"-"*60+"\\n")
     except:
-        gdb.execute('get-offset "{{}}"'.format(s))
+        try:
+            gdb.execute('get-offset "{{}}"'.format(s))
+        except:
+            pass
+        pass
 """.format(repr(name))
         tf.write(content)
         tf.flush()
