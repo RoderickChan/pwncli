@@ -316,6 +316,21 @@ def __process_args(ctx, args: _Inner_Dict):
 @click.option('-v', '--verbose', count=True, show_default=True, help="Show more info or not.")
 @pass_environ
 def cli(ctx, filename, target, debug_mode, remote_mode, ip, port, lib, static, launch_script, tmux, wsl, gnome, gdb_type, gdb_breakpoint, gdb_script, no_log, no_stop, verbose):
+    """
+    FILENAME: The binary file name.
+    
+    TARGET:  remote_ip:remote_port.
+
+    \b
+    Debug mode is default setting, debug with qemu:
+        pwncli qemu ./pwn -S --tmux
+        pwncli qemu ./pwn -L ./libs --tmux
+    Specify qemu gdb listen port: 
+        pwncli qemu ./pwn -L ./libs -S -p 1235
+    Attack remote:
+        pwncli qemu ./pwn 127.0.0.1:10001
+        pwncli qemu ./pwn -r -i 127.0.0.1 -p 10001
+    """
     ctx.vlog("Welcome to use pwncli-qemu command~")
     if not ctx.verbose:
         ctx.verbose = verbose

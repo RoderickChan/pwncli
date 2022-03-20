@@ -19,6 +19,14 @@ def cli(ctx):
 @click.option('-n', '--depth', '--count', "depth", type=int, default=-1, required=False, help="The depth of the gadgets.")
 @pass_environ
 def get_gadgets(ctx, filename, all_gadgets, directory, depth):
+    """
+    FILENAME: The binary file name.
+    
+    \b
+    pwncli misc gadget ./pwn -d ./gadgets -a -n 20
+    
+    pwncli m g ./pwn -n 10
+    """
     _set_filename(ctx, filename)
 
     if not ctx.get('filename'):
@@ -65,6 +73,12 @@ def get_gadgets(ctx, filename, all_gadgets, directory, depth):
 @click.confirmation_option(prompt="Copy gdbinit files from pwncli/conf/.gdbinit-* to user directory?", expose_value=False)
 @pass_environ
 def copy_gdbinit(ctx, generate_script):
+    """
+    \b
+    pwncli misc setgdb 
+
+    sudo pwncli misc setgdb -g
+    """
     if ctx.platform != "linux":
         ctx.abort("setgdb-command ---> This command can only be used in linux.")
     if generate_script and (os.getuid() != 0 or (os.getuid() == 0 and os.getenv("HOME").startswith("/root"))):
@@ -97,6 +111,14 @@ def copy_gdbinit(ctx, generate_script):
 @click.option('-n', '--name',  "name", default=[], type=str, multiple=True, show_default=True, help="The name of struct you want to show.")
 @pass_environ
 def export_struct_info(ctx, filename, save_all, directory, name):
+    """
+    FILENAME: The binary file name.
+    
+    \b
+    pwncli misc dstruct ./vmlinux -n cred -n tty_struct
+    
+    pwncli m d ./vmlinux -s
+    """
     _set_filename(ctx, filename)
     if not ctx.get('filename'):
         ctx.abort(
@@ -124,7 +146,7 @@ def export_struct_info(ctx, filename, save_all, directory, name):
             if line.startswith("struct "):
                 struct_name.append(line)
 
-    name = ["struct " + n.strip() for n in name]
+    name = ["struct " + n.strip() if not n.strip().startswith("struct") else n.strip() for n in name]
     for n in name:
         if n not in struct_name:
             ctx.abort(
