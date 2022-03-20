@@ -260,9 +260,17 @@ def ia():
 
 class CurrentGadgets:
     __internal_libcbox: RopperBox = None
-    elf = None
-    libc = None
-    arch = None
+    __elf = None
+    __libc = None
+    __arch = None
+    __find_in_elf = True
+    __find_in_libc = False
+
+    @staticmethod
+    def set_find_area(find_in_elf, find_in_libc):
+        CurrentGadgets.__find_in_elf = find_in_elf
+        CurrentGadgets.__find_in_libc = find_in_libc
+
     @staticmethod
     def _initial_ropperbox():
         """Get gadget from current elf and libc"""
@@ -271,8 +279,8 @@ class CurrentGadgets:
 
         elf = gift.get('elf')
         libc = gift.get('libc')
-        CurrentGadgets.elf = elf
-        CurrentGadgets.libc = libc
+        CurrentGadgets.__elf = elf
+        CurrentGadgets.__libc = libc
         __arch_mapping = {
             "i386": RopperArchType.x86,
             "amd64": RopperArchType.x86_64,
@@ -282,17 +290,21 @@ class CurrentGadgets:
 
         if not elf and not libc:
             errlog_exit("Cannot find gadget, no elf and no libc now.")
+
+        if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
+            errlog_exit("Have closed both elf finder and libc finder.")
+
         CurrentGadgets.__internal_libcbox = RopperBox()
 
-        if elf:
+        if elf and CurrentGadgets.__find_in_elf:
             if elf.arch not in __arch_mapping:
                 errlog_exit("Unsupported arch.")
-            CurrentGadgets.arch = elf.arch
+            CurrentGadgets.__arch = elf.arch
             CurrentGadgets.__internal_libcbox.add_file("elf", elf.path, __arch_mapping[elf.arch])
-        if libc:
+        if libc and CurrentGadgets.__find_in_libc:
             if libc.arch not in __arch_mapping:
                 errlog_exit("Unsupported arch.")
-            CurrentGadgets.arch = libc.arch
+            CurrentGadgets.__arch = libc.arch
             CurrentGadgets.__internal_libcbox.add_file("libc", libc.path, __arch_mapping[elf.arch])
 
     @staticmethod
@@ -301,13 +313,13 @@ class CurrentGadgets:
         func = getattr(CurrentGadgets.__internal_libcbox, func_name)
         try:
             res = func('elf')
-            if CurrentGadgets.elf.pie:
-                res += CurrentGadgets.elf.address
+            if CurrentGadgets.__elf.pie:
+                res += CurrentGadgets.__elf.address
             return res
         except:
             res = func('libc')
-            if CurrentGadgets.libc.pie:
-                res += CurrentGadgets.libc.address
+            if CurrentGadgets.__libc.pie:
+                res += CurrentGadgets.__libc.address
             return res
 
     @staticmethod
@@ -325,33 +337,33 @@ class CurrentGadgets:
             errlog_exit("Unsupported find_type, only: asm / opcode / string.")
         try:
             res = func(find ,'elf', get_list)
-            if CurrentGadgets.elf.pie:
+            if CurrentGadgets.__elf.pie:
                 if get_list:
-                    return [i + CurrentGadgets.elf.address for i in res]
+                    return [i + CurrentGadgets.__elf.address for i in res]
                 else:
-                    return CurrentGadgets.elf.address + res
+                    return CurrentGadgets.__elf.address + res
         except:
             res = func(find ,'libc', get_list)
-            if CurrentGadgets.libc.pie:
+            if CurrentGadgets.__libc.pie:
                 if get_list:
-                    return [i + CurrentGadgets.libc.address for i in res]
+                    return [i + CurrentGadgets.__libc.address for i in res]
                 else:
-                    return CurrentGadgets.libc.address + res 
+                    return CurrentGadgets.__libc.address + res 
 
     @staticmethod
     def syscall() -> int:
         """syscall"""
-        if CurrentGadgets.arch == "i386":
+        if CurrentGadgets.__arch == "i386":
             return CurrentGadgets._internal_find('get_int80')
-        elif CurrentGadgets.arch == "amd64":
+        elif CurrentGadgets.__arch == "amd64":
             return CurrentGadgets._internal_find('get_syscall')
 
     @staticmethod
     def syscall_ret() -> int:
         """syscall; ret"""
-        if CurrentGadgets.arch == "i386":
+        if CurrentGadgets.__arch == "i386":
             return CurrentGadgets._internal_find('get_int80_ret')
-        elif CurrentGadgets.arch == "amd64":
+        elif CurrentGadgets.__arch == "amd64":
             return CurrentGadgets._internal_find('get_syscall_ret')
 
     @staticmethod
@@ -427,7 +439,7 @@ class CurrentGadgets:
     @staticmethod
     def execve_chain(bin_sh_addr=None) -> bytes:
         CurrentGadgets._initial_ropperbox()
-        if CurrentGadgets.arch == "i386":
+        if CurrentGadgets.__arch == "i386":
             layout = [
                 CurrentGadgets.pop_rbx_ret(),
                 bin_sh_addr or CurrentGadgets.bin_sh(),
@@ -439,7 +451,7 @@ class CurrentGadgets:
                 0xb,
                 CurrentGadgets.syscall()
             ]
-        elif CurrentGadgets.arch == "amd64":
+        elif CurrentGadgets.__arch == "amd64":
             layout = [
                 CurrentGadgets.pop_rdi_ret(),
                 bin_sh_addr or CurrentGadgets.bin_sh(),
@@ -452,14 +464,14 @@ class CurrentGadgets:
                 CurrentGadgets.syscall()
             ]
         else:
-            errlog_exit("Unsupported arch: {}".format(CurrentGadgets.arch))
+            errlog_exit("Unsupported arch: {}".format(CurrentGadgets.__arch))
         
         return flat(layout)
 
     @staticmethod
     def mprotect_chain(va, length=0x1000, prog=7) -> bytes:
         CurrentGadgets._initial_ropperbox()
-        if CurrentGadgets.arch == "i386":
+        if CurrentGadgets.__arch == "i386":
             layout = [
                 CurrentGadgets.pop_rbx_ret(),
                 va,
@@ -471,7 +483,7 @@ class CurrentGadgets:
                 125,
                 CurrentGadgets.syscall()
             ]
-        elif CurrentGadgets.arch == "amd64":
+        elif CurrentGadgets.__arch == "amd64":
             layout = [
                 CurrentGadgets.pop_rdi_ret(),
                 va,
@@ -484,6 +496,6 @@ class CurrentGadgets:
                 CurrentGadgets.syscall()
             ]
         else:
-            errlog_exit("Unsupported arch: {}".format(CurrentGadgets.arch))
+            errlog_exit("Unsupported arch: {}".format(CurrentGadgets.__arch))
         
         return flat(layout)
