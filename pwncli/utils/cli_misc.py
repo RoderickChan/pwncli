@@ -5,6 +5,8 @@ from pwncli.cli import gift
 from pwncli.utils.misc import get_callframe_info, log2_ex, errlog_exit, \
     one_gadget_binary, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
     get_flag_when_get_shell
+from pwn import flat, asm
+from .ropperbox import RopperBox, RopperArchType
 
 __all__ = [
     "stop",
@@ -22,7 +24,8 @@ __all__ = [
     "recv_current_libc_addr",
     "get_current_flag_when_get_shell",
     "s", "sl", "sa", "sla", "ru", "rl","rs",
-    "rls", "rlc", "ra", "rr", "r", "rn", "ia"
+    "rls", "rlc", "ra", "rr", "r", "rn", "ia",
+    "CurrentGadgets"
     ]
 
 def stop(enable=True):
@@ -251,3 +254,236 @@ def ia():
     io = gift.get("io", None)
     if io:
         io.interactive()
+
+
+# ----------------------------------gadget----------------
+
+class CurrentGadgets:
+    __internal_libcbox: RopperBox = None
+    elf = None
+    libc = None
+    arch = None
+    @staticmethod
+    def _initial_ropperbox():
+        """Get gadget from current elf and libc"""
+        if CurrentGadgets.__internal_libcbox:
+            return
+
+        elf = gift.get('elf')
+        libc = gift.get('libc')
+        CurrentGadgets.elf = elf
+        CurrentGadgets.libc = libc
+        __arch_mapping = {
+            "i386": RopperArchType.x86,
+            "amd64": RopperArchType.x86_64,
+            "arm": RopperArchType.arm,
+            "aarch64": RopperArchType.arm64
+        }
+
+        if not elf and not libc:
+            errlog_exit("Cannot find gadget, no elf and no libc now.")
+        CurrentGadgets.__internal_libcbox = RopperBox()
+
+        if elf:
+            if elf.arch not in __arch_mapping:
+                errlog_exit("Unsupported arch.")
+            CurrentGadgets.arch = elf.arch
+            CurrentGadgets.__internal_libcbox.add_file("elf", elf.path, __arch_mapping[elf.arch])
+        if libc:
+            if libc.arch not in __arch_mapping:
+                errlog_exit("Unsupported arch.")
+            CurrentGadgets.arch = libc.arch
+            CurrentGadgets.__internal_libcbox.add_file("libc", libc.path, __arch_mapping[elf.arch])
+
+    @staticmethod
+    def _internal_find(func_name):
+        CurrentGadgets._initial_ropperbox()
+        func = getattr(CurrentGadgets.__internal_libcbox, func_name)
+        try:
+            res = func('elf')
+            if CurrentGadgets.elf.pie:
+                res += CurrentGadgets.elf.address
+            return res
+        except:
+            res = func('libc')
+            if CurrentGadgets.libc.pie:
+                res += CurrentGadgets.libc.address
+            return res
+
+    @staticmethod
+    def find_gadget(find : str, find_type='asm', get_list=False) -> int:
+        """ type: asm / opcode / string """
+        CurrentGadgets._initial_ropperbox()
+        if find_type == "asm":
+            find = asm(find)
+            func = getattr(CurrentGadgets.__internal_libcbox, "search_opcode")
+        elif find_type == "opcode":
+            func = getattr(CurrentGadgets.__internal_libcbox, "search_opcode")
+        elif find_type == "string":
+            func = getattr(CurrentGadgets.__internal_libcbox, "search_string")
+        else:
+            errlog_exit("Unsupported find_type, only: asm / opcode / string.")
+        try:
+            res = func(find ,'elf', get_list)
+            if CurrentGadgets.elf.pie:
+                if get_list:
+                    return [i + CurrentGadgets.elf.address for i in res]
+                else:
+                    return CurrentGadgets.elf.address + res
+        except:
+            res = func(find ,'libc', get_list)
+            if CurrentGadgets.libc.pie:
+                if get_list:
+                    return [i + CurrentGadgets.libc.address for i in res]
+                else:
+                    return CurrentGadgets.libc.address + res 
+
+    @staticmethod
+    def syscall() -> int:
+        """syscall"""
+        if CurrentGadgets.arch == "i386":
+            return CurrentGadgets._internal_find('get_int80')
+        elif CurrentGadgets.arch == "amd64":
+            return CurrentGadgets._internal_find('get_syscall')
+
+    @staticmethod
+    def syscall_ret() -> int:
+        """syscall; ret"""
+        if CurrentGadgets.arch == "i386":
+            return CurrentGadgets._internal_find('get_int80_ret')
+        elif CurrentGadgets.arch == "amd64":
+            return CurrentGadgets._internal_find('get_syscall_ret')
+
+    @staticmethod
+    def ret() -> int:
+        """ret"""
+        return CurrentGadgets._internal_find('get_ret')
+
+    @staticmethod
+    def pop_rdi_ret() -> int:
+        """pop rdi; ret"""
+        return CurrentGadgets._internal_find('get_pop_rdi_ret')
+
+    @staticmethod
+    def pop_rsi_ret() -> int:
+        """pop rsi; ret"""
+        return CurrentGadgets._internal_find('get_pop_rsi_ret')
+    
+    @staticmethod
+    def pop_rdx_ret() -> int:
+        """pop rdx; ret"""
+        return CurrentGadgets._internal_find('get_pop_rdx_ret')
+
+    @staticmethod
+    def pop_rax_ret() -> int:
+        """pop rax; ret"""
+        return CurrentGadgets._internal_find('get_pop_rax_ret')
+
+    @staticmethod
+    def pop_rbx_ret() -> int:
+        """pop rbx; ret"""
+        return CurrentGadgets._internal_find('get_pop_rbx_ret')
+
+    @staticmethod
+    def pop_rcx_ret() -> int:
+        """pop rcx; ret"""
+        return CurrentGadgets._internal_find('get_pop_rcx_ret')
+
+    @staticmethod
+    def pop_rbp_ret() -> int:
+        """pop rbp; ret"""
+        return CurrentGadgets._internal_find('get_pop_rbp_ret')
+
+    @staticmethod
+    def pop_rsp_ret() -> int:
+        """pop rsp; ret"""
+        return CurrentGadgets._internal_find('get_pop_rsp_ret')
+
+    @staticmethod
+    def pop_rsi_r15_ret() -> int:
+        """pop rsp; ret"""
+        return CurrentGadgets._internal_find('get_pop_rsi_r15_ret')
+
+    @staticmethod
+    def magic_gadget() -> int:
+        """add dword ptr [rbp - 0x3d], ebx"""
+        return CurrentGadgets._internal_find('get_magic_gadget')
+
+    @staticmethod
+    def leave_ret() -> int:
+        """leave; ret"""
+        return CurrentGadgets._internal_find('get_leave_ret')
+
+    @staticmethod
+    def bin_sh() -> int:
+        """/bin/sh"""
+        return CurrentGadgets._internal_find('get_bin_sh')
+
+    @staticmethod
+    def sh() -> int:
+        """sh"""
+        return CurrentGadgets._internal_find('get_sh')
+
+    @staticmethod
+    def execve_chain(bin_sh_addr=None) -> bytes:
+        CurrentGadgets._initial_ropperbox()
+        if CurrentGadgets.arch == "i386":
+            layout = [
+                CurrentGadgets.pop_rbx_ret(),
+                bin_sh_addr or CurrentGadgets.bin_sh(),
+                CurrentGadgets.pop_rcx_ret(),
+                0,
+                CurrentGadgets.pop_rdx_ret(),
+                0,
+                CurrentGadgets.pop_rax_ret(),
+                0xb,
+                CurrentGadgets.syscall()
+            ]
+        elif CurrentGadgets.arch == "amd64":
+            layout = [
+                CurrentGadgets.pop_rdi_ret(),
+                bin_sh_addr or CurrentGadgets.bin_sh(),
+                CurrentGadgets.pop_rsi_ret(),
+                0,
+                CurrentGadgets.pop_rdx_ret(),
+                0,
+                CurrentGadgets.pop_rax_ret(),
+                0x3b,
+                CurrentGadgets.syscall()
+            ]
+        else:
+            errlog_exit("Unsupported arch: {}".format(CurrentGadgets.arch))
+        
+        return flat(layout)
+
+    @staticmethod
+    def mprotect_chain(va, length=0x1000, prog=7) -> bytes:
+        CurrentGadgets._initial_ropperbox()
+        if CurrentGadgets.arch == "i386":
+            layout = [
+                CurrentGadgets.pop_rbx_ret(),
+                va,
+                CurrentGadgets.pop_rcx_ret(),
+                length,
+                CurrentGadgets.pop_rdx_ret(),
+                prog,
+                CurrentGadgets.pop_rax_ret(),
+                125,
+                CurrentGadgets.syscall()
+            ]
+        elif CurrentGadgets.arch == "amd64":
+            layout = [
+                CurrentGadgets.pop_rdi_ret(),
+                va,
+                CurrentGadgets.pop_rsi_ret(),
+                length,
+                CurrentGadgets.pop_rdx_ret(),
+                prog,
+                CurrentGadgets.pop_rax_ret(),
+                10,
+                CurrentGadgets.syscall()
+            ]
+        else:
+            errlog_exit("Unsupported arch: {}".format(CurrentGadgets.arch))
+        
+        return flat(layout)

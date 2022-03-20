@@ -170,13 +170,47 @@ class RopperBox:
         except RopperError:
             return self.search_opcode("5ec3", name)
 
-
     def get_pop_rdx_ret(self, name: str=None) -> int:
         try:
             return self.search_gadget("pop rdx; ret;", name)
         except RopperError:
             return self.search_opcode("5ac3", name)
 
+    def get_pop_rax_ret(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("pop rax; ret;", name)
+        except RopperError:
+            return self.search_opcode("58c3", name)
+
+    def get_pop_rbx_ret(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("pop rbx; ret;", name)
+        except RopperError:
+            return self.search_opcode("5bc3", name)
+
+    def get_pop_rcx_ret(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("pop rcx; ret;", name)
+        except RopperError:
+            return self.search_opcode("59c3", name)
+    
+    def get_pop_rbp_ret(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("pop rbp; ret;", name)
+        except RopperError:
+            return self.search_opcode("5dc3", name)
+
+    def get_pop_rsp_ret(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("pop rsp; ret;", name)
+        except RopperError:
+            return self.search_opcode("5cc3", name)
+
+    def get_pop_rsi_r15_ret(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("pop rsi; pop r15; ret;", name)
+        except RopperError:
+             return self.search_opcode("5E415FC3", name)
 
     def get_ret(self, name: str=None) -> int:
         try:
@@ -197,4 +231,36 @@ class RopperBox:
             return self.search_gadget("syscall; ret;", name)
         except RopperError:
             return self.search_opcode("0f05c3", name)
+
+    def get_leave_ret(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("leave; ret;", name)
+        except RopperError:
+            return self.search_opcode("c9c3", name)
+
+    def get_magic_gadget(self, name: str=None) -> int:
+        """add dword ptr [rbp - 0x3d], ebx"""
+        return self.search_opcode("015dc3", name)
+
+    def get_bin_sh(self, name: str=None) -> int:
+        """/bin/sh"""
+        try:
+            return self.search_string("/bin/sh", name)
+        except:
+            return self.search_string("/bin//sh", name)
+
+    def get_sh(self, name: str=None) -> int:
+        """sh"""
+        return self.search_string("sh", name)
     
+    def get_int80(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("int 0x80;", name)
+        except RopperError:
+            return self.search_opcode("cd80", name)
+
+    def get_int80_ret(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("int 0x80; ret", name)
+        except RopperError:
+            return self.search_opcode("cd80c3", name)
