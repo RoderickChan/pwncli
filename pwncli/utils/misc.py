@@ -54,6 +54,8 @@ __all__ = [
     "log2_ex_highlight",
     "errlog_ex",
     "errlog_ex_highlight",
+    "errlog_exit",
+    "errlog_ex_highlight_exit",
     "log_address",
     "log_address_ex",
     "log_libc_base_addr",

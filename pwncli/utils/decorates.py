@@ -12,13 +12,14 @@
 import functools
 import time
 import os
+import signal
 from enum import Enum, unique
 from pwn import remote, process, ELF, tube
 from inspect import signature, _empty
 from pwncli.utils.exceptions import PwncliExit
 from typing import List
 from itertools import product
-from pwncli.utils.misc import log_ex, ldd_get_libc_path
+from pwncli.utils.misc import log_ex, ldd_get_libc_path, errlog_exit
 
 __all__  = [
     'smart_decorator', 
@@ -27,7 +28,8 @@ __all__  = [
     "sleep_call_after", 
     "sleep_call_all", 
     "local_enumerate_attack", 
-    "remote_enumerate_attack"
+    "remote_enumerate_attack",
+    "stopwatch"
     ]
 
 def smart_decorator(decorator):
@@ -36,13 +38,13 @@ def smart_decorator(decorator):
     Args:
         decorator (Callable): Callable object.
     """
-    def wrapper(func=None, *args, **kwargs):
+    def wrapper1(func=None, *args, **kwargs):
         if func is not None:
             return decorator(func=func, *args, **kwargs)
-        def wrapper(func):
+        def wrapper2(func):
             return decorator(func=func, *args, **kwargs)
-        return wrapper
-    return wrapper
+        return wrapper2
+    return wrapper1
 
 
 def time_count(func):
@@ -63,6 +65,30 @@ def time_count(func):
         return res
     return wrapper
 
+
+def stopwatch(seconds, callback=None):
+    """
+    seconds: seconds to raise TimeouError when timeout
+    callback: callback when timeout
+    """
+    def wrapper1(func):
+        @functools.wraps(func)
+        def wrapper2(*args, **kwargs):
+            def handler(n, f):
+                raise TimeoutError()
+            signal.signal(signal.SIGALRM, handler)
+            signal.alarm(seconds)
+            try:
+                res = func(*args, **kwargs)
+                signal.alarm(0)
+            except TimeoutError:
+                if callback:
+                    res = callback()
+                else:
+                    errlog_exit("Timeout!")
+            return res
+        return wrapper2
+    return wrapper1
 
 @unique
 class _SleepMode(Enum):

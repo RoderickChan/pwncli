@@ -121,6 +121,7 @@ def __process_launch_script(ctx, args):
             continue
         if not statement.startswith("qemu-system"):
             init_cmd += statement + "\n"
+            context.newline = "\r\n" # update newline for qemu-system
         else:
             qemu_cmd = statement
 

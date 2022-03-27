@@ -1,5 +1,7 @@
 import os
 import tempfile
+import subprocess
+import shlex
 
 import click
 from pwn import which
@@ -47,15 +49,17 @@ def get_gadgets(ctx, filename, all_gadgets, directory, depth):
             ropper_path, ropgadget_path = 1, 1
         else:
             exit(-2)
+    ps = []
     if ropper_path:
         cmd = "ropper -f {} --nocolor".format(filename)
         if all_gadgets:
             cmd += " --all"
         if depth > 0:
             cmd += " --inst-count {}".format(depth)
-        cmd += " > {}".format(os.path.join(directory, "ropper_gadgets"))
-        ctx.vlog("gadget-command ---> Exec cmd: {}".format(cmd))
-        os.system(cmd)
+        store_file = "{}".format(os.path.join(directory, "ropper_gadgets"))
+        ctx.vlog("gadget-command ---> Exec cmd: {} and store in {}".format(cmd, store_file))
+        p = subprocess.Popen(shlex.split(cmd), stdout=open(store_file, "wt", encoding='utf-8', errors='ignore'))
+        ps.append(p)
 
     if ropgadget_path:
         cmd = "ROPgadget --binary {}".format(filename)
@@ -63,9 +67,14 @@ def get_gadgets(ctx, filename, all_gadgets, directory, depth):
             cmd += " --all"
         if depth > 0:
             cmd += " --depth {}".format(depth)
-        cmd += " > {}".format(os.path.join(directory, "ropgadget_gadgets"))
-        ctx.vlog("gadget-command ---> Exec cmd: {}".format(cmd))
-        os.system(cmd)
+        store_file = "{}".format(os.path.join(directory, "ropgadget_gadgets"))
+        ctx.vlog("gadget-command ---> Exec cmd: {} and store in {}".format(cmd, store_file))
+        p = subprocess.Popen(shlex.split(cmd), stdout=open(store_file, "wt", encoding='utf-8', errors='ignore'))
+        ps.append(p)
+    
+    for p in ps:
+        p.wait()
+        
 
 
 @cli.command(name="setgdb", short_help="Copy gdbinit files from and set gdb-scripts for current user.")
