@@ -13,9 +13,6 @@ from pwn import FileStructure, error, context, pack, flat
 
 __all__ = [
     "IO_FILE_plus_struct",
-    "IO_Jumps",
-    "IO_file_jumps",
-    "IO_str_jumps",
     "payload_replace"
 ]
 
@@ -217,18 +214,6 @@ class IO_FILE_plus_struct(FileStructure):
             }
         })
         return payload
-
-
-# TODO
-class IO_Jumps:
-    def __init__(self, null=0):
-        pass
-
-class IO_file_jumps(IO_Jumps):
-    pass
-
-class IO_str_jumps(IO_Jumps):
-    pass
 
 
 def payload_replace(payload: str or bytes, rpdict:dict=None, filler="\x00"):

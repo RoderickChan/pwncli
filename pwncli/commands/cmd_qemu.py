@@ -19,7 +19,7 @@ def _in_wsl():
     if os.path.exists('/proc/sys/kernel/osrelease'):
         with open('/proc/sys/kernel/osrelease', 'rb') as f:
             is_in_wsl = b'icrosoft' in f.read()
-        if is_in_wsl and which('wsl.exe') and which("wt.exe"):
+        if is_in_wsl and which('wsl.exe') and which("cmd.exe"):
             return True
     return False
 
@@ -220,7 +220,8 @@ def __debug_mode(ctx, args: _Inner_Dict):
     if args.tmux:
         cmd = "tmux splitw -h"
     elif args.wsl:
-        cmd = "cmd.exe /c start wt.exe wsl.exe bash -c"
+        distro_name = os.getenv("WSL_DISTRO_NAME")
+        cmd = "cmd.exe /c start wsl.exe -d {} bash -c".format(distro_name)
     elif args.gnome:
         cmd = "gnome-terminal -- sh -c"
 

@@ -36,7 +36,7 @@ import re
 import functools
 import subprocess
 import struct
-from pwn import unpack, pack
+from pwn import unpack, pack, flat
 import click
 
 __all__ = [
@@ -47,6 +47,8 @@ __all__ = [
     "int16_ex",
     "int8_ex",
     "int2_ex",
+    "int_ex",
+    "flat_z",
     "get_callframe_info",
     "log_ex",
     "log_ex_highlight",
@@ -86,6 +88,12 @@ int2 = functools.partial(int, base=2)
 int16_ex = lambda x: int16(x.decode()) if isinstance(x, bytes) else int16(x)
 int8_ex = lambda x: int8(x.decode()) if isinstance(x, bytes) else int8(x)
 int2_ex = lambda x: int2(x.decode()) if isinstance(x, bytes) else int2(x)
+int_ex = lambda x: int(x.decode()) if isinstance(x, bytes) else int(x)
+
+
+flat_z = functools.partial(flat, filler=b"\x00")
+
+
 
 def get_callframe_info(depth:int=2):
     """Get stackframe info
@@ -179,7 +187,7 @@ def log_address_ex(variable:str, depth=2):
 
     Args:
         variable (str): The name.
-        depth (int, optional): Stack frame depth. Defaults to 2.
+        depth (int, optional): Stack frame depth. Default value is 2.
     """
     assert isinstance(variable, str), "Variable must be a string!"
     assert depth >= 2, "depth error!"
@@ -387,7 +395,7 @@ def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
 
     Args:
         pid (int): Pid of process.
-        filename (str, optional): Filename to get code base address. Defaults to None.
+        filename (str, optional): Filename to get code base address. Default is None.
 
     Returns:
         dict: All segment address. Key: str, Val: int.

@@ -259,7 +259,7 @@ def ia():
 # ----------------------------------gadget----------------
 
 class CurrentGadgets:
-    __internal_libcbox: RopperBox = None
+    __internal_libcbox = None
     __elf = None
     __libc = None
     __arch = None

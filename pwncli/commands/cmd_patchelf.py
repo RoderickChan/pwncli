@@ -44,9 +44,9 @@ def cli(ctx, filename, libc_version, back_up, filter_string):
 
     To execute:
 
-        patchelf --set-interpreter  ld-2.29.so ./pwn
+        patchelf --set-interpreter ./ld-2.29.so ./pwn
 
-        patchelf --replace-needed libc.so.6 libc-2.29.so ./pwn
+        patchelf --replace-needed libc.so.6 ./libc-2.29.so ./pwn
     """
     ctx.verbose = 2
     

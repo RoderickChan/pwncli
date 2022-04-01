@@ -10,7 +10,7 @@
 
 
 import click
-from pwn import context, which, ELF
+from pwn import context, which, ELF, pause
 from pwnlib.gdb import attach
 import os
 import sys
@@ -389,6 +389,9 @@ int {}()
     
     # set terminal
     _set_terminal(ctx, ctx.gift['io'], t_flag, attach_mode, use_gdb, gdb_type, script, is_file, gdb_script)
+
+    if pause_before_main:
+        pause() # avoid read from stdin
 
     # from cli, keep interactive
     if ctx.fromcli: 
