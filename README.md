@@ -50,7 +50,7 @@ pwncli
 
 建议在`ubuntu`系统上使用`pwncli`，特别的，如果你了解`WSL`并选择使用`WSL`解答`pwn`题，`pwncli + WSL`将是一个极佳的选择。`debug`子命令为`WSL`系统设计了许多实用的参数，并实现了一些有趣的功能。
 
-如果你选择使用`WSL`，那么，请尽量保证发行版的名字(distrbution name)为默认的`Ubuntu-16.04/Ubuntu-18.04/Ubuntu-20.04`。`debug`命令的某些选项与默认发行版名称联系紧密。  
+如果你选择使用`WSL`，那么，请尽量保证发行版的名字(distribution name)为默认的`Ubuntu-16.04/Ubuntu-18.04/Ubuntu-20.04`。`debug`命令的某些选项与默认发行版名称联系紧密。  
 
 `pwncli`的安装方式有两种，第一种是本地安装：
 
@@ -560,7 +560,91 @@ FILENAME	必须的		待patch的文件路径。
 
 ## qemu 子命令
 
-**TODO**
+该子命令方便使用`qemu`进行其他架构`arm/mips`文件的调试以及`kernel pwn`的调试。该命令的使用与`debug`子命令非常类似，很多选项与参数与`debug`子命令相同，使用方法也是一样的。在使用该子命令之前，请确保已安装了`qemu`和所需依赖库。
+
+输入`pwncli qemu -h`得到帮助信息：
+
+```
+Usage: pwncli qemu [OPTIONS] [FILENAME] [TARGET]
+
+  FILENAME: The binary file name.
+
+  TARGET:  remote_ip:remote_port.
+
+  Debug mode is default setting, debug with qemu:
+      pwncli qemu ./pwn -S --tmux
+      pwncli qemu ./pwn -L ./libs --tmux
+  Specify qemu gdb listen port: 
+      pwncli qemu ./pwn -L ./libs -S -p 1235
+  Attack remote:
+      pwncli qemu ./pwn 127.0.0.1:10001
+      pwncli qemu ./pwn -r -i 127.0.0.1 -p 10001
+
+Options:
+  -d, --debug, --debug-mode       Use debug mode or not, default is opened.
+  -r, --remote, --remote-mode     Use remote mode or not, default is debug
+                                  mode.  [default: False]
+  -i, --ip TEXT                   The remote ip addr or gdb listen ip when
+                                  debug.
+  -p, --port INTEGER              The remote port or gdb listen port when
+                                  debug.
+  -L, --lib TEXT                  The lib path for current file.
+  -S, --static                    Use tmux to gdb-debug or not.  [default:
+                                  False]
+  -l, -ls, --launch-script TEXT   The script to launch the qemu, only used for
+                                  qemu-system mode and the script must be
+                                  shell script.
+  -t, --use-tmux, --tmux          Use tmux to gdb-debug or not.  [default:
+                                  False]
+  -w, --use-wsl, --wsl            Use wsl to pop up windows for gdb-debug or
+                                  not.  [default: False]
+  -g, --use-gnome, --gnome        Use gnome terminal to pop up windows for
+                                  gdb-debug or not.  [default: False]
+  -G, -gt, --gdb-type [auto|pwndbg|gef|peda]
+                                  Select a gdb plugin.
+  -b, -gb, --gdb-breakpoint TEXT  Set gdb breakpoints while gdb-debug is used,
+                                  it should be a hex address or a function
+                                  name. Multiple breakpoints are supported.
+  -s, -gs, --gdb-script TEXT      Set gdb commands like '-ex' or '-x' while
+                                  gdb-debug is used, the content will be
+                                  passed to gdb and use ';' to split lines.
+                                  Besides eval-commands, file path is
+                                  supported.
+  -n, -nl, --no-log               Disable context.log or not.  [default:
+                                  False]
+  -P, -ns, --no-stop              Use the 'stop' function or not. Only for
+                                  python script mode.  [default: False]
+  -v, --verbose                   Show more info or not.  [default: 0]
+  -h, --help                      Show this message and exit.
+```
+
+**参数**：
+
+```
+FILENAME    可选的    调试的binary文件路径，kernel pwn可以是ko 
+TARGET      可选的    远程攻击时的ip和port，FILENAME和TARGET必须指定一个 
+```
+
+**选项**：
+
+```
+-d    可选的    flag选项，默认开启。该选项一般不需要显示指定。 
+-r    可选的    flag选项，默认关闭。可显示指定，表明此时为攻击远程。 
+-i    可选的    在remote mode下为靶机ip地址；在debug mode下为gdb的监听ip地址。 
+-p    可选的    在remote mde下为靶机端口；在debug mode下为gdb的监听端口。 
+-L    可选的    在qemu-user下的动态链接库目录，会传递给qemu，若未指定，则会到/usr目录下寻找 
+-S    可选的    flag选项，默认关闭。开启后将使用qemu-xxxx-static。 
+-l    可选的    qemu启动的脚本路径，方便kernel pwn调试。 
+-t    可选的    flag选项，默认关闭。开启后使用tmux开启gdb-multiarch调试。
+-w    可选的    flag选项，默认关闭。开启后使用wsl调试。 
+-g    可选的    flag选项，默认关闭。开启后使用gnome-terminal调试。 
+-G    可选的    显示指定本次调试使用的gdb插件，pwndbg/peda/gef。 
+-b    可选的    设置断点，与debug子命令的设置方式类似，但是不支持PIE类的断点。 
+-s    可选的    设置gdb的命令，与debug子命令的设置方式类似，支持语句或文件路径。 
+-n    可选的    flag选项，默认关闭。开启后将设置pwntools的日志级别为error。 
+-P    可选的    flag选项，默认关闭。开启后使stop函数失效。 
+
+```
 
 # 依赖库
 
@@ -698,7 +782,7 @@ pwntools
 
 工具的目的在于实用性，我觉得`pwncli`满足实用性要求，在调试`pwn`题时能节省大量的时间。
 
-如果你觉得`pwncli`好用，请介绍给周围的`pwner`。如果你还有任何疑问，请提交`issue`或联系我`ch22166@163.com`，我将非常乐意与你讨论交流。如果你有好的想法，或者发现新的`bug`，欢迎提交`puull requests`。
+如果你觉得`pwncli`好用，请介绍给周围的`pwner`。如果你还有任何疑问，请提交`issue`或联系我`ch22166@163.com`，我将非常乐意与你讨论交流。如果你有好的想法，或者发现新的`bug`，欢迎提交`pull requests`。
 
 
 
