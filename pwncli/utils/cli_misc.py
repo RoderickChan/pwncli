@@ -1,8 +1,9 @@
 
+from distutils.log import error
 import os
 import time
 from pwncli.cli import gift
-from pwncli.utils.misc import get_callframe_info, log2_ex, errlog_exit, \
+from pwncli.utils.misc import get_callframe_info, log2_ex, errlog_exit, log_code_base_addr, log_libc_base_addr, \
     one_gadget_binary, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
     get_flag_when_get_shell
 from pwn import flat, asm
@@ -23,8 +24,12 @@ __all__ = [
     "tele_current_pie_content",
     "recv_current_libc_addr",
     "get_current_flag_when_get_shell",
+    "set_current_libc_base", 
+    "set_current_libc_base_and_log",
+    "set_current_code_base",
+    "set_current_code_base_and_log",
     "s", "sl", "sa", "sla", "ru", "rl","rs",
-    "rls", "rlc", "ra", "rr", "r", "rn", "ia",
+    "rls", "rlc", "ra", "rr", "r", "rn", "ia", "ic",
     "CurrentGadgets"
     ]
 
@@ -170,6 +175,74 @@ def get_current_flag_when_get_shell(use_cat=True, start_str="flag{"):
     get_flag_when_get_shell(gift['io'], use_cat, start_str)
 
 
+def _innner_set_current_base(addr: int, offset: str or int, name: str) -> int:
+    if not gift[name]:
+        errlog_exit("No {} here.".format(name))
+    if gift[name].address != 0:
+        errlog_exit("The address of current {} is not 0.".format(name))
+    if isinstance(offset, str):
+        offset = gift[name].sym[offset]
+    
+    base_addr = addr - offset
+    gift[name].address = base_addr
+    return base_addr
+
+
+
+def set_current_libc_base(addr: int, offset: str or int) -> int:
+    """set_current_libc_base
+
+    Args:
+        addr (int): The address you get
+        offset (str or int): offset or func name in current libc
+
+    Returns:
+        int: libc base addr
+    """
+    return _innner_set_current_base(addr, offset, 'libc')
+
+
+def set_current_libc_base_and_log(addr: int, offset: int):
+    """set_current_libc_base and log
+
+    Args:
+        addr (int): The address you get
+        offset (str or int): offset or func name in current libc
+
+    Returns:
+        int: libc base addr
+    """
+    res = set_current_libc_base(addr, offset)
+    log_libc_base_addr(res)
+    return res
+
+def set_current_code_base(addr: int, offset: str or int) -> int:
+    """set_current_code_base
+
+    Args:
+        addr (int): The address you get
+        offset (str or int): offset or func name in current elf
+
+    Returns:
+        int: elf base addr
+    """
+    return _innner_set_current_base(addr, offset, 'elf')
+
+
+def set_current_code_base_and_log(addr: int, offset: int):
+    """set_current_code_base and log
+
+    Args:
+        addr (int): The address you get
+        offset (str or int): offset or func name in current elf
+
+    Returns:
+        int: elf base addr
+    """
+    res = set_current_code_base(addr, offset)
+    log_code_base_addr(res)
+    return res
+
 #-----------------------------io------------------------
 def s(data):
     """send"""
@@ -255,6 +328,11 @@ def ia():
     if io:
         io.interactive()
 
+def ic():
+    """close"""
+    io = gift.get("io", None)
+    if io:
+        io.close()
 
 # ----------------------------------gadget----------------
 

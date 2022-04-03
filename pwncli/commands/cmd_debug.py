@@ -33,7 +33,7 @@ def _in_wsl():
     if os.path.exists('/proc/sys/kernel/osrelease'):
         with open('/proc/sys/kernel/osrelease', 'rb') as f:
             is_in_wsl = b'icrosoft' in f.read()
-        if is_in_wsl and which('wsl.exe'):
+        if is_in_wsl and which('wsl.exe') and which("cmd.exe"):
             return True
     return False
 
@@ -140,6 +140,12 @@ def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file,
         if attach_mode == 'wsl-b' and which('bash.exe'):
             ctx.vlog2("debug-command --> Tips: Something error will happen if bash.exe not represent the default distribution.")
             cmd_use = cmd.format('bash.exe')
+            ctx.vlog('debug-command --> Exec os.system({})'.format(cmd_use))
+            os.system(cmd_use)
+            return
+        elif attach_mode == "wsl-w":
+            distro_name = os.getenv("WSL_DISTRO_NAME")
+            cmd_use = cmd.format("wsl.exe -d {} bash".format(distro_name))
             ctx.vlog('debug-command --> Exec os.system({})'.format(cmd_use))
             os.system(cmd_use)
             return
@@ -380,6 +386,8 @@ int {}()
             attach_mode = 'tmux'
         elif which("wt.exe"):
             attach_mode = 'wsl-wt'
+        elif which("wsl.exe"):
+            attach_mode = "wsl-w"
         elif which('open-wsl.exe'):
             attach_mode = 'wsl-o'
         elif which('bash.exe') is None:

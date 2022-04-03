@@ -17,7 +17,7 @@ from pwn import which
 from pwncli.utils.config import try_get_config_data_by_key
 
 
-def get_arch_info_from_file(filepath):
+def get_arch_info_from_file(ctx, filepath):
     from subprocess import check_output
     out = check_output(["file", filepath])
     if b"32-bit" in out:
@@ -73,7 +73,7 @@ def cli(ctx, filename, libc_version, back_up, filter_string):
         ctx.abort("patchelf-command --> Cannot find 'patchelf', please install it first!")
         
     filename = os.path.abspath(filename)
-    archinfo = get_arch_info_from_file(filename)
+    archinfo = get_arch_info_from_file(ctx, filename)
     def _filter_dir(_d):
         for _i in filter_string:
                 if _i not in _d:
