@@ -98,9 +98,18 @@ from pwncli import *
 cli_script() # 使用脚本模式必须显式调用这个函数
 
 # 你能够从gift里面取到很多东西
-io = gift['io'] # process或remote对象
-elf = gift["elf"] # ELF对象，ELF("./pwn")
+io   = gift['io'] # process或remote对象
+elf  = gift["elf"] # ELF对象，ELF("./pwn")
 libc = gift.libc # ELF对象， ELF("./libc.so.6")
+
+filename  = gift.filename # current filename
+is_debug  = gift.debug # is debug or not 
+is_remote = gift.remote # is remote or not
+gdb_pid   = gift.gdb_pid # gdb pid if debug
+
+if gift.remote:
+    libc = ELF("./libc.so.6)
+    gift['libc'] = libc
 
 # 这里写下攻击函数等
 # ......
