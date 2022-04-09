@@ -400,6 +400,7 @@ int {}()
 
     if pause_before_main:
         pause() # avoid read from stdin
+        ctx.gift.io.send("X")
 
     # from cli, keep interactive
     if ctx.fromcli: 
