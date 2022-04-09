@@ -1,5 +1,5 @@
 # pwncli 使用炫酷的命令行
-[EN](https://github.com/RoderickChan/pwncli/blob/main/README-EN.md) | [ZH](https://github.com/RoderickChan/pwncli/blob/main/README.md) | [API](https://github.com/RoderickChan/pwncli/blob/main/API-doc.md) 
+[EN](https://github.com/RoderickChan/pwncli/blob/main/README-EN.md) | [ZH](https://github.com/RoderickChan/pwncli/blob/main/README.md) | [API](https://github.com/RoderickChan/pwncli/blob/main/API-doc.md) | [VIDEO](https://www.youtube.com/watch?v=QFemxI3rnC8)
 
 `pwncli`是一款简单、易用的`pwn`题调试与攻击工具，能提高你在`CTF`比赛中调试`pwn`题脚本的速度与效率。
 
