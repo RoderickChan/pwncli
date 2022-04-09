@@ -1,0 +1,3 @@
+b vuln
+b read
+directory /usr/src/glibc/glibc-2.27/libio
