@@ -97,7 +97,7 @@ def _parse_env(ctx, env: str):
         elif env[second] in (',', ';') or (key and second == length - 1):
             if second == length - 1 and (env[second] not in (';', ',')):
                 second += 1
-            print(f"first: {first}, second: {second}")
+            # print(f"first: {first}, second: {second}")
             var = env[first: second].strip()
             if key == "PRE":
                 key = "LD_PRELOAD"
