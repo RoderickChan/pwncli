@@ -230,7 +230,7 @@ def ldd_get_libc_path(filepath:str) -> str:
     try:
         out = subprocess.check_output(["ldd", filepath], encoding='utf-8').split()
         for o in out:
-            if "/libc.so.6" in o or "/libc-2." in o:
+            if "/libc.so" in o or "/libc-2." in o:
                 rp = os.path.realpath(o)
                 break
     except:
@@ -238,17 +238,22 @@ def ldd_get_libc_path(filepath:str) -> str:
     return rp
 
 
-def one_gadget(so_path:str, more=False):
+def one_gadget(condition:str, more=False, buildid=False):
     """Get all one_gadget by exec one_gadget.
 
     Args:
-        so_path (str): Libc.so path.
+        condition (str): Libc.so path or buildid.
         more (bool, optional): Get more one_gadget or not. Defaults to False.
 
     Yields:
         int: Address of each one_gadget.
     """
-    cmd_list = ["one_gadget", so_path]
+    cmd_list = ["one_gadget"]
+    if buildid:
+        cmd_list.extend(["--build-id"])
+    
+    cmd_list.extend([condition])
+
     if more:
         cmd_list.append("-l")
         cmd_list.append("2")
@@ -260,7 +265,7 @@ def one_gadget(so_path:str, more=False):
                 res.append(int16(o.split()[0]))
         return res
     except:
-        errlog_exit("Cannot exec one_gadget, maybe you don't install one_gadget or filename is wrong!")
+        errlog_exit("Cannot exec one_gadget, maybe you don't install one_gadget or filename is wrong or buildid is wrong!")
 
 
 def one_gadget_binary(binary_path:str, more=False) -> int:

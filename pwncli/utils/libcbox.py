@@ -14,7 +14,7 @@ import json
 import threading
 import os
 from tempfile import TemporaryFile
-from pwncli.utils.misc import errlog_exit, log2_ex
+from .misc import errlog_exit, log2_ex, log_ex, one_gadget
 
 __all__ = ["LibcBox"]
 
@@ -151,12 +151,14 @@ class LibcBox:
         self._call_searcher = True
         
     
-    def dump(self, symbol_name:str) -> int:
+    def dump(self, symbol_name:str, show: bool=True) -> int:
         if not self._call_searcher:
             errlog_exit("Please call search before you dump!")
         if symbol_name in ('dup2', 'printf', 'puts', 'str_bin_sh', 'read', 'strcpy', 'system', 'write', '__libc_start_main_ret'):
             res = self._res['symbols'][symbol_name]
-            return int(res, base=16)
+            res = int(res, base=16)
+            log_ex("%s address ==> %s", symbol_name, hex(res))
+            return res
         else:
             if not self._symbols:
                 self._symbols = requests.get(self._res['symbols_url']).text
@@ -164,8 +166,18 @@ class LibcBox:
             for line in self._symbols.splitlines(False):
                 name, adr = line.split()
                 if name == symbol_name:
-                    return int(adr, base=16)
+                    res = int(adr, base=16)
+                    log_ex("%s address ==> %s", symbol_name, hex(res))
+                    return res
         
         errlog_exit("Cannot find symbol: {}".format(symbol_name))
 
+
+    def dump_one_gadget(self, libc_base: int, more: bool=False, show=True) -> list:
+        if not self._call_searcher:
+            errlog_exit("Please call search before you dump!")
+        res = [libc_base + x  for x in one_gadget(condition=self._res['buildid'], more=more, buildid=True)]
+        if show:
+            log_ex("one_gadget: %r", [hex(x) for x in res])
+        return res
 
