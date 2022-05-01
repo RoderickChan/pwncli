@@ -36,7 +36,7 @@ import re
 import functools
 import subprocess
 import struct
-from pwn import unpack, pack, flat
+from pwn import unpack, pack, flat, ELF
 import click
 
 __all__ = [
@@ -439,6 +439,13 @@ def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
         elif "vdso" in r:
             _d['vdso'] = start_addr
     return _d
+
+#-------------------------------private-------------------------------
+def _get_elf_arch_info(filename):
+    _e = ELF(filename, checksec=False)
+    arch = _e.arch
+    del _e
+    return arch
 
 
 if __name__ == "__main__":

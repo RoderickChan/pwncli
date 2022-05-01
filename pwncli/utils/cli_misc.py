@@ -361,9 +361,7 @@ class CurrentGadgets:
         CurrentGadgets.__libc = libc
         __arch_mapping = {
             "i386": RopperArchType.x86,
-            "amd64": RopperArchType.x86_64,
-            "arm": RopperArchType.arm,
-            "aarch64": RopperArchType.arm64
+            "amd64": RopperArchType.x86_64
         }
 
         if not elf and not libc:
@@ -376,7 +374,7 @@ class CurrentGadgets:
 
         if elf and CurrentGadgets.__find_in_elf:
             if elf.arch not in __arch_mapping:
-                errlog_exit("Unsupported arch.")
+                errlog_exit("Unsupported arch, only for i386 and amd64.")
             CurrentGadgets.__arch = elf.arch
             CurrentGadgets.__internal_libcbox.add_file("elf", elf.path, __arch_mapping[elf.arch])
         if libc and CurrentGadgets.__find_in_libc:

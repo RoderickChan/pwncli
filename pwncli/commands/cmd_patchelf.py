@@ -15,17 +15,14 @@ import os
 from pwncli.cli import pass_environ
 from pwn import which
 from pwncli.utils.config import try_get_config_data_by_key
-
+from pwncli.utils.misc import _get_elf_arch_info
 
 def get_arch_info_from_file(ctx, filepath):
-    from subprocess import check_output
-    out = check_output(["file", filepath])
-    if b"32-bit" in out:
-        return 'i386'
-    elif b"64-bit" in out:
-        return 'amd64'
+    arch = _get_elf_arch_info(filepath)
+    if arch in ("i386", "amd64"):
+        return arch
     else:
-        ctx.verrlog("patchelf-command --> Unsupported file, arch info:{}".format(out.decode()))
+        ctx.verrlog("patchelf-command --> Unsupported file, arch info:{}".format(arch))
         ctx.abort()
 
 

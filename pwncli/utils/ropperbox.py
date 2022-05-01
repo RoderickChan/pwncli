@@ -10,7 +10,7 @@
 
 from ropper import RopperService, RopperError, Gadget
 from enum import Enum, unique
-from pwncli.utils.misc import log_ex
+from pwncli.utils.misc import errlog_exit, log_ex, _get_elf_arch_info
 import os
 from typing import List, Union
 
@@ -40,6 +40,16 @@ class RopperArchType(Enum):
     ppc64 = 'PPC64'
     sparc64 = 'SPARC64'
 
+_inner_mapping = {
+    "i386": RopperArchType.x86,
+    "amd64": RopperArchType.x86_64,
+    "arm": RopperArchType.arm,
+    "aarch64": RopperArchType.arm64,
+    "mips": RopperArchType.mips,
+    "powerpc": RopperArchType.ppc,
+    "powerpc64": RopperArchType.ppc64,
+    "sparc64": RopperArchType.sparc64
+}
 
 class RopperBox:
     def __init__(self, *, badbytes: str='', show_all: bool=False, 
@@ -72,6 +82,12 @@ class RopperBox:
 
 
     def add_file(self, name:str, filepath:str, arch:RopperArchType):
+        if not arch:
+            arch = _get_elf_arch_info(filepath)
+            if arch not in _inner_mapping:
+                errlog_exit("cannot get arch info, please specify it.")
+            arch = _inner_mapping[arch]
+
         if not os.path.exists(filepath):
             raise RopperError("filepath error! %s doesn't exist!" % filepath)
         self._rs.addFile(name, open(filepath, 'rb').read(), arch.value, False)
