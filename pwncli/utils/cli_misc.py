@@ -1,9 +1,9 @@
 
-from distutils.log import error
 import os
+from threading import Lock
 import time
 from pwncli.cli import gift
-from pwncli.utils.misc import get_callframe_info, log2_ex, errlog_exit, log_code_base_addr, log_libc_base_addr, \
+from .misc import get_callframe_info, log2_ex, errlog_exit, log_code_base_addr, log_libc_base_addr, \
     one_gadget_binary, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
     get_flag_when_get_shell
 from pwn import flat, asm
@@ -189,7 +189,7 @@ def _innner_set_current_base(addr: int, offset: str or int, name: str) -> int:
 
 
 
-def set_current_libc_base(addr: int, offset: str or int) -> int:
+def set_current_libc_base(addr: int, offset: str or int = 0) -> int:
     """set_current_libc_base
 
     Args:
@@ -202,7 +202,7 @@ def set_current_libc_base(addr: int, offset: str or int) -> int:
     return _innner_set_current_base(addr, offset, 'libc')
 
 
-def set_current_libc_base_and_log(addr: int, offset: int):
+def set_current_libc_base_and_log(addr: int, offset: int or str=0):
     """set_current_libc_base and log
 
     Args:
@@ -216,7 +216,7 @@ def set_current_libc_base_and_log(addr: int, offset: int):
     log_libc_base_addr(res)
     return res
 
-def set_current_code_base(addr: int, offset: str or int) -> int:
+def set_current_code_base(addr: int, offset: str or int = 0) -> int:
     """set_current_code_base
 
     Args:
@@ -229,7 +229,7 @@ def set_current_code_base(addr: int, offset: str or int) -> int:
     return _innner_set_current_base(addr, offset, 'elf')
 
 
-def set_current_code_base_and_log(addr: int, offset: int):
+def set_current_code_base_and_log(addr: int, offset: int or str = 0):
     """set_current_code_base and log
 
     Args:
@@ -342,18 +342,25 @@ class CurrentGadgets:
     __libc = None
     __arch = None
     __find_in_elf = True
-    __find_in_libc = False
+    __find_in_libc = True
+    __loaded = False
+
+    _mutex = Lock()
 
     @staticmethod
-    def set_find_area(find_in_elf, find_in_libc):
+    def set_find_area(find_in_elf=True, find_in_libc=False):
         CurrentGadgets.__find_in_elf = find_in_elf
         CurrentGadgets.__find_in_libc = find_in_libc
 
     @staticmethod
-    def _initial_ropperbox():
+    def _initial_ropperbox() -> bool:
         """Get gadget from current elf and libc"""
-        if CurrentGadgets.__internal_libcbox:
-            return
+        if CurrentGadgets._mutex.acquire(blocking=True):
+            CurrentGadgets._mutex.locked()
+        
+        if CurrentGadgets.__loaded:
+            CurrentGadgets._mutex.release()
+            return True
 
         elf = gift.get('elf')
         libc = gift.get('libc')
@@ -365,27 +372,52 @@ class CurrentGadgets:
         }
 
         if not elf and not libc:
-            errlog_exit("Cannot find gadget, no elf and no libc now.")
+            log2_ex("Cannot find gadget, no elf and no libc now.")
+            CurrentGadgets._mutex.release()
+            return False
 
         if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
-            errlog_exit("Have closed both elf finder and libc finder.")
+            log2_ex("Have closed both elf finder and libc finder.")
+            CurrentGadgets._mutex.release()
+            return False
 
         CurrentGadgets.__internal_libcbox = RopperBox()
 
+        res = False
         if elf and CurrentGadgets.__find_in_elf:
             if elf.arch not in __arch_mapping:
-                errlog_exit("Unsupported arch, only for i386 and amd64.")
-            CurrentGadgets.__arch = elf.arch
-            CurrentGadgets.__internal_libcbox.add_file("elf", elf.path, __arch_mapping[elf.arch])
+                log2_ex("Unsupported arch, only for i386 and amd64.")
+            else:
+                CurrentGadgets.__arch = elf.arch
+                CurrentGadgets.__internal_libcbox.add_file("elf", elf.path, __arch_mapping[elf.arch])
+                res = True
         if libc and CurrentGadgets.__find_in_libc:
             if libc.arch not in __arch_mapping:
-                errlog_exit("Unsupported arch.")
-            CurrentGadgets.__arch = libc.arch
-            CurrentGadgets.__internal_libcbox.add_file("libc", libc.path, __arch_mapping[elf.arch])
+                log2_ex("Unsupported arch, only for i386 and amd64..")
+            else:
+                CurrentGadgets.__arch = libc.arch
+                CurrentGadgets.__internal_libcbox.add_file("libc", libc.path, __arch_mapping[elf.arch])
+                res = True
+        
+        CurrentGadgets.__loaded = res
+        CurrentGadgets._mutex.release()
+        return res
+
+    @staticmethod
+    def reset():
+        CurrentGadgets.__internal_libcbox = None
+        CurrentGadgets.__elf = None
+        CurrentGadgets.__libc = None
+        CurrentGadgets.__arch = None
+        CurrentGadgets.__find_in_elf = True
+        CurrentGadgets.__find_in_libc = True
+        CurrentGadgets.__loaded = False
+        CurrentGadgets._initial_ropperbox()
 
     @staticmethod
     def _internal_find(func_name):
-        CurrentGadgets._initial_ropperbox()
+        if not CurrentGadgets._initial_ropperbox(): 
+            return 0
         func = getattr(CurrentGadgets.__internal_libcbox, func_name)
         try:
             res = func('elf')
@@ -401,9 +433,10 @@ class CurrentGadgets:
     @staticmethod
     def find_gadget(find : str, find_type='asm', get_list=False) -> int:
         """ type: asm / opcode / string """
-        CurrentGadgets._initial_ropperbox()
+        if not CurrentGadgets._initial_ropperbox(): 
+            return 0
         if find_type == "asm":
-            find = asm(find)
+            find = asm(find).hex()
             func = getattr(CurrentGadgets.__internal_libcbox, "search_opcode")
         elif find_type == "opcode":
             func = getattr(CurrentGadgets.__internal_libcbox, "search_opcode")
@@ -495,6 +528,7 @@ class CurrentGadgets:
     @staticmethod
     def magic_gadget() -> int:
         """add dword ptr [rbp - 0x3d], ebx"""
+        assert CurrentGadgets.__arch == "amd64", "only for amd64"
         return CurrentGadgets._internal_find('get_magic_gadget')
 
     @staticmethod

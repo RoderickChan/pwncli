@@ -137,7 +137,7 @@ class LibcBox:
         return self
 
     
-    def search(self, *, download_symbols=False, download_so=False, download_deb=False, redownload=False, version_start="2.23"):
+    def search(self, *, download_symbols=False, download_so=False, download_deb=False, redownload=False, version_start="2.23", load_gadgets=False):
         if not self._data:
             errlog_exit("No condition! Please add condition first!")
         if version_start and not re.search("^\d\.\d\d$", version_start):
@@ -195,6 +195,8 @@ class LibcBox:
             log2_ex("Download {} success!".format(name))
 
         self._call_searcher = True
+        if load_gadgets:
+            threading.Thread(target=self.get_ropperbox, args=(False,), daemon=True).start()
         
     
     def dump(self, symbol_name:str, show: bool=True) -> int:

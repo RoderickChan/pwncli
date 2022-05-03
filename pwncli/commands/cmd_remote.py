@@ -9,11 +9,13 @@
 '''
 
 
+import threading
 import click
 import os
 from collections import OrderedDict
 from pwncli.cli import pass_environ, _set_filename
 from pwn import remote, ELF,context
+from pwncli.utils.cli_misc import CurrentGadgets
 from pwncli.utils.config import *
 from pwncli.utils.misc import ldd_get_libc_path
 
@@ -130,8 +132,11 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
         s.connect((ip, port))
         ctx.gift['io'] = remote.fromsocket(s)
     ctx._log("connect {} port {} success!".format(ip, port))
+
     if ctx.fromcli:
         ctx.gift['io'].interactive()
+    else:
+        threading.Thread(target=lambda :CurrentGadgets.reset(), daemon=True).start()
 
 
 _proxy_mode_list = ['undefined', 'notset', 'default', 'primitive']

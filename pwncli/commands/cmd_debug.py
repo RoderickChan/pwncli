@@ -9,6 +9,7 @@
 '''
 
 
+import threading
 import click
 from pwn import context, which, ELF, pause
 from pwnlib.gdb import attach
@@ -19,6 +20,7 @@ import tempfile
 import atexit
 from pwncli.cli import pass_environ, _set_filename
 from pwncli.utils.misc import ldd_get_libc_path
+from pwncli.utils.cli_misc import CurrentGadgets
 
 _NO_TERMINAL = 0
 _USE_TMUX = 1
@@ -405,6 +407,9 @@ int {}()
     # from cli, keep interactive
     if ctx.fromcli: 
         ctx.gift['io'].interactive()
+    else:
+        threading.Thread(target=lambda :CurrentGadgets.reset(), daemon=True).start()
+
 
 
 @click.command(name='debug', short_help="Debug the pwn file locally.")
