@@ -548,7 +548,9 @@ class CurrentGadgets:
 
     @staticmethod
     def execve_chain(bin_sh_addr=None) -> bytes:
-        CurrentGadgets._initial_ropperbox()
+        if not CurrentGadgets._initial_ropperbox():
+            return None
+        
         if CurrentGadgets.__arch == "i386":
             layout = [
                 CurrentGadgets.pop_rbx_ret(),
@@ -580,7 +582,9 @@ class CurrentGadgets:
 
     @staticmethod
     def mprotect_chain(va, length=0x1000, prog=7) -> bytes:
-        CurrentGadgets._initial_ropperbox()
+        if not CurrentGadgets._initial_ropperbox():
+            return None
+        
         if CurrentGadgets.__arch == "i386":
             layout = [
                 CurrentGadgets.pop_rbx_ret(),
