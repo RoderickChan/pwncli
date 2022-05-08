@@ -16,10 +16,10 @@ import signal
 from enum import Enum, unique
 from pwn import remote, process, ELF, tube
 from inspect import signature, _empty
-from pwncli.utils.exceptions import PwncliExit
+from .exceptions import PwncliExit
 from typing import List
 from itertools import product
-from pwncli.utils.misc import log_ex, ldd_get_libc_path, errlog_exit
+from .misc import log_ex, warn_ex_highlight, ldd_get_libc_path, errlog_exit
 
 __all__  = [
     'smart_decorator', 
@@ -29,8 +29,30 @@ __all__  = [
     "sleep_call_all", 
     "local_enumerate_attack", 
     "remote_enumerate_attack",
-    "stopwatch"
+    "stopwatch",
+    "deprecated", 
+    "unused"
     ]
+
+def deprecated(msg: str=""):
+    def wrapper1(func):
+        @functools.wraps(func)
+        def wrapper2(*args, **kwargs):
+            warn_ex_highlight("This function: {} is deprecated. {}".format(func.__name__, msg))
+            res = func(*args, **kwargs)
+            return res
+        return wrapper2
+    return wrapper1
+
+
+def unused(msg: str=""):
+    def wrapper1(func):
+        @functools.wraps(func)
+        def wrapper2(*args, **kwargs):
+            warn_ex_highlight("This function: {} is unused. {}".format(func.__name__, msg))
+            return None
+        return wrapper2
+    return wrapper1
 
 def smart_decorator(decorator):
     """Make a function to be a decorator.

@@ -3,16 +3,19 @@ import os
 from threading import Lock
 import time
 from pwncli.cli import gift
-from .misc import get_callframe_info, log2_ex, errlog_exit, log_code_base_addr, log_libc_base_addr, \
-    one_gadget_binary, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
-    get_flag_when_get_shell
+from .misc import get_callframe_info, log_ex, log2_ex, errlog_exit, log_code_base_addr, log_libc_base_addr, \
+    one_gadget_binary, one_gadget, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
+    get_flag_when_get_shell, ldd_get_libc_path
 from pwn import flat, asm, ELF
 from .ropperbox import RopperBox, RopperArchType
+from .decorates import deprecated
 
 __all__ = [
     "stop",
     "S",
     "get_current_one_gadget",
+    "get_current_one_gadget_from_file",
+    "get_current_one_gadget_from_libc",
     "get_current_codebase_addr",
     "get_current_libcbase_addr",
     "get_current_stackbase_addr",
@@ -70,14 +73,29 @@ def stop(enable=True):
 S = stop
 
 #----------------------------useful function-------------------------
-def get_current_one_gadget(libc_base=0, more=False):
+def get_current_one_gadget_from_file(libc_base=0, more=False):
     """Get current filename's all one_gadget.
 
     """
     if not gift.get('filename', None):
         errlog_exit("Cannot get_current_one_gadget, filename is None!")
     res = [x + libc_base for x in one_gadget_binary(gift['filename'], more)]
-    log2_ex("Get one_gadget: {}".format([hex(x) for x in res]))
+    log_ex("Get one_gadget: {} from {}".format([hex(x) for x in res], ldd_get_libc_path(gift['filename'])))
+    return res
+
+@deprecated("please use 'get_current_one_gadget_from_file' and 'get_current_one_gadget_from_libc' instead.")
+def get_current_one_gadget(libc_base=0, more=False):
+    get_current_one_gadget_from_file(libc_base, more)
+    
+
+def get_current_one_gadget_from_libc(more=False):
+    """Get current all one_gadget from libc
+
+    """
+    if not gift.get('libc', None):
+        errlog_exit("Cannot get_current_one_gadget_from_libc, libc is None!")
+    res = [x + gift['libc'].address for x in one_gadget(gift['libc'].path, more)]
+    log_ex("Get one_gadget: {} from {}".format([hex(x) for x in res], gift['libc'].path))
     return res
 
 _cache_segment_base_addr = None
@@ -170,6 +188,7 @@ def recv_current_libc_addr(offset:int=0):
     return recv_libc_addr(gift['io'], bits=gift['elf'].bits, offset=offset)
 
 
+@deprecated
 def get_current_flag_when_get_shell(use_cat=True, start_str="flag{"):
     if not gift.get('io', None):
         errlog_exit("Can not get current libc addr because of no io.")
@@ -243,6 +262,7 @@ def set_current_code_base_and_log(addr: int, offset: int or str = 0):
     res = set_current_code_base(addr, offset)
     log_code_base_addr(res)
     return res
+
 
 def set_remote_libc(libc_so_path: str):
     if not gift.get('remote'):
@@ -431,22 +451,32 @@ class CurrentGadgets:
         if not CurrentGadgets._initial_ropperbox(): 
             return 0
         func = getattr(CurrentGadgets.__internal_libcbox, func_name)
-        try:
-            res = func('elf')
-            if CurrentGadgets.__elf.pie:
-                res += CurrentGadgets.__elf.address
-            return res
-        except:
+        if CurrentGadgets.__find_in_elf:
+            try:
+                res = func('elf')
+                if CurrentGadgets.__elf.pie:
+                    res += CurrentGadgets.__elf.address
+                return res
+            except:
+                pass
+        
+        if CurrentGadgets.__find_in_libc:
             res = func('libc')
             if CurrentGadgets.__libc.pie:
                 res += CurrentGadgets.__libc.address
             return res
+        
+        if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
+            errlog_exit("Have closed both elf finder and libc finder.")
+        errlog_exit("Cannot find gadget using '{}'.".format(func_name))
+
 
     @staticmethod
-    def find_gadget(find : str, find_type='asm', get_list=False) -> int:
+    def find_gadget(find_str : str, find_type='asm', get_list=False) -> int:
         """ type: asm / opcode / string """
         if not CurrentGadgets._initial_ropperbox(): 
             return 0
+        find = find_str
         if find_type == "asm":
             find = asm(find).hex()
             func = getattr(CurrentGadgets.__internal_libcbox, "search_opcode")
@@ -456,20 +486,35 @@ class CurrentGadgets:
             func = getattr(CurrentGadgets.__internal_libcbox, "search_string")
         else:
             errlog_exit("Unsupported find_type, only: asm / opcode / string.")
-        try:
-            res = func(find ,'elf', get_list)
-            if CurrentGadgets.__elf.pie:
+        
+        res = None
+        if CurrentGadgets.__find_in_elf:
+            try:
+                res = func(find ,'elf', get_list)
+                _base = 0
+                if CurrentGadgets.__elf.pie:
+                    _base = CurrentGadgets.__elf.address
                 if get_list:
-                    return [i + CurrentGadgets.__elf.address for i in res]
+                    return [i + _base for i in res]
                 else:
-                    return CurrentGadgets.__elf.address + res
-        except:
+                    return _base + res
+            except:
+                pass
+
+        if CurrentGadgets.__find_in_libc:
             res = func(find ,'libc', get_list)
+            _base = 0
             if CurrentGadgets.__libc.pie:
-                if get_list:
-                    return [i + CurrentGadgets.__libc.address for i in res]
-                else:
-                    return CurrentGadgets.__libc.address + res 
+                _base = CurrentGadgets.__libc.address
+            if get_list:
+                return [i + _base for i in res]
+            else:
+                return _base + res
+
+        if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
+            errlog_exit("Have closed both elf finder and libc finder.")
+        errlog_exit("Cannot find gadget: {}.".format(find_str))
+
 
     @staticmethod
     def syscall() -> int:
@@ -625,3 +670,18 @@ class CurrentGadgets:
             errlog_exit("Unsupported arch: {}".format(CurrentGadgets.__arch))
         
         return flat(layout)
+
+    @staticmethod
+    def write_by_magic(write_addr: int, ori: int, expected: int) -> bytes:
+        if not CurrentGadgets._initial_ropperbox():
+            return None
+        if CurrentGadgets.__arch == "amd64":
+            return flat([
+                CurrentGadgets.find_gadget("pop rbx; pop rbp; pop r12; pop r13;"),
+                expected - ori if expected > ori else expected - ori + 0x100000000,
+                write_addr+0x3d, 0, 0, 0, 0,
+                CurrentGadgets.magic_gadget()
+            ])
+            
+        else:
+            errlog_exit("Only used for amd64!")

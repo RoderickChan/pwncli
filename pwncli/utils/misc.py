@@ -54,6 +54,8 @@ __all__ = [
     "log_ex_highlight",
     "log2_ex",
     "log2_ex_highlight",
+    "warn_ex",
+    "warn_ex_highlight",
     "errlog_ex",
     "errlog_ex_highlight",
     "errlog_exit",
@@ -144,6 +146,19 @@ def log2_ex_highlight(msg, *args):
     if args:
         msg %= args
     click.echo("[#] {}  {}".format(click.style("IMPORTANT INFO", fg="blue", bg="white"), msg))
+
+def warn_ex(msg, *args):
+    """Logs a warn message to stdout."""
+    if args:
+        msg %= args
+    click.echo("[*] {}  {}".format(click.style("WARN", fg="yellow"), msg))
+
+
+def warn_ex_highlight(msg, *args):
+    """Logs a warn message to stdout."""
+    if args:
+        msg %= args
+    click.echo("[*] {}  {}".format(click.style("WARN", fg="yellow", bg="white"), msg))
 
 
 def errlog_ex(msg, *args):
@@ -383,7 +398,8 @@ def get_flag_when_get_shell(io, use_cat:bool=True, start_str:str="flag{", timeou
         start_str (str, optional): String starts with in flag. Defaults to "flag{".
     """
     if use_cat:
-        io.sendline("cat /flag")
+        io.sendline("cat /flag || cat /flag.txt || cat flag || cat flag.txt || cat /home/ctf/flag || cat /home/ctf/flag.txt")
+        
     s = io.recvregex(start_str+".*}", timeout=timeout)
     if start_str.encode('utf-8') in s:
         log2_ex_highlight("{}".format(s))
