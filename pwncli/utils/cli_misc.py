@@ -6,7 +6,7 @@ from pwncli.cli import gift
 from .misc import get_callframe_info, log2_ex, errlog_exit, log_code_base_addr, log_libc_base_addr, \
     one_gadget_binary, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
     get_flag_when_get_shell
-from pwn import flat, asm
+from pwn import flat, asm, ELF
 from .ropperbox import RopperBox, RopperArchType
 
 __all__ = [
@@ -28,6 +28,7 @@ __all__ = [
     "set_current_libc_base_and_log",
     "set_current_code_base",
     "set_current_code_base_and_log",
+    "set_remote_libc",
     "s", "sl", "sa", "sla", "ru", "rl","rs",
     "rls", "rlc", "ra", "rr", "r", "rn", "ia", "ic",
     "CurrentGadgets"
@@ -242,6 +243,17 @@ def set_current_code_base_and_log(addr: int, offset: int or str = 0):
     res = set_current_code_base(addr, offset)
     log_code_base_addr(res)
     return res
+
+def set_remote_libc(libc_so_path: str):
+    if not gift.get('remote'):
+        return
+    if not gift.get('io', None):
+        errlog_exit("Can not set remote libc because of no io.")
+    if os.path.exists(libc_so_path) and os.path.isfile(libc_so_path):
+        gift['libc'] = ELF(libc_so_path, checksec=False)
+        gift['libc'].address = 0
+    else:
+        errlog_exit("libc_so_path not exists!")
 
 #-----------------------------io------------------------
 def s(data):

@@ -18,6 +18,7 @@ import sys
 import string
 import tempfile
 import atexit
+from pwncli.utils.config import try_get_config_data_by_key
 from pwncli.cli import pass_environ, _set_filename
 from pwncli.utils.misc import ldd_get_libc_path
 from pwncli.utils.cli_misc import CurrentGadgets
@@ -408,7 +409,9 @@ int {}()
     if ctx.fromcli: 
         ctx.gift['io'].interactive()
     else:
-        threading.Thread(target=lambda :CurrentGadgets.reset(), daemon=True).start()
+        res = try_get_config_data_by_key(ctx.config_data, "debug", "load_gadget")
+        if res and res.strip().lower() in ("true", "yes", "enabled", "enable", "1"):
+            threading.Thread(target=lambda :CurrentGadgets.reset(), daemon=True).start()
 
 
 
