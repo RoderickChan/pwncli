@@ -36,7 +36,7 @@ import re
 import functools
 import subprocess
 import struct
-from pwn import unpack, pack, flat, ELF
+from pwn import unpack, pack, flat, ELF, context
 import click
 
 __all__ = [
@@ -80,7 +80,9 @@ __all__ = [
     "recv_libc_addr",
     "get_flag_when_get_shell",
     "get_flag_by_recv",
-    "get_segment_base_addr_by_proc_maps"
+    "get_segment_base_addr_by_proc_maps",
+    "init_x86_context",
+    "init_x64_context"
 ]
 
 int16 = functools.partial(int, base=16)
@@ -456,13 +458,42 @@ def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
             _d['vdso'] = start_addr
     return _d
 
+#--------------------helper of pwncli script mode---------------------
+def _assign_globals(_io, _g):
+    _g['s'] = _io.send
+    _g['sl'] = _io.sendline
+    _g['sla'] = _io.sendlineafter
+    _g['sa'] = _io.sendafter
+    _g['slt'] = _io.sendlinethen
+    _g['st'] = _io.sendthen
+    _g['r'] = _io.recv
+    _g['rn'] = _io.recvn
+    _g['rr'] = _io.recvregex
+    _g['ru'] = _io.recvuntil
+    _g['ra'] = _io.recvall
+    _g['rl'] = _io.recvline
+    _g['rs'] = _io.recvlines
+    _g['rls'] = _io.recvline_startswith
+    _g['rle'] = _io.recvline_endswith
+    _g['rlc'] = _io.recvline_contains
+    _g['ia'] = _io.interactive
+    _g['ic'] = _io.close
+    _g['cr'] = _io.can_recv
+
+def init_x86_context(io, globals: dict, log_level: str="debug", timeout: int=5, arch: str="i386", os: str="linux", endian: str="little"):
+    context.update(arch=arch, os=os, endian=endian, log_level=log_level, timeout=timeout)
+    _assign_globals(io, globals)
+
+def init_x64_context(io, globals: dict, log_level: str="debug", timeout: int=5, arch: str="amd64", os: str="linux", endian: str="little"):
+    context.update(arch=arch, os=os, endian=endian, log_level=log_level, timeout=timeout)
+    _assign_globals(io, globals)
+
 #-------------------------------private-------------------------------
 def _get_elf_arch_info(filename):
     _e = ELF(filename, checksec=False)
     arch = _e.arch
     del _e
     return arch
-
 
 if __name__ == "__main__":
     import doctest

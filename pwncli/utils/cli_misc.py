@@ -32,8 +32,8 @@ __all__ = [
     "set_current_code_base",
     "set_current_code_base_and_log",
     "set_remote_libc",
-    "s", "sl", "sa", "sla", "ru", "rl","rs",
-    "rls", "rlc", "ra", "rr", "r", "rn", "ia", "ic",
+    "s", "sl", "sa", "sla", "st", "slt", "ru", "rl","rs",
+    "rls", "rlc", "rle", "ra", "rr", "r", "rn", "ia", "ic", "cr",
     "CurrentGadgets"
     ]
 
@@ -276,35 +276,48 @@ def set_remote_libc(libc_so_path: str):
         errlog_exit("libc_so_path not exists!")
 
 #-----------------------------io------------------------
-def s(data):
+def s(*args, **kwargs):
     """send"""
     io = gift.get("io", None)
     if io:
-        io.send(data)
+        io.send(*args, **kwargs)
 
-def sl(data):
+def sl(*args, **kwargs):
     """sendline"""
     io = gift.get("io", None)
     if io:
-        io.sendline(data)
+        io.sendline(*args, **kwargs)
 
-def sa(delim, data):
+def sa(*args, **kwargs):
     """sendafter"""
     io = gift.get("io", None)
     if io:
-        io.sendafter(delim, data)
+        io.sendafter(*args, **kwargs)
 
-def sla(delim, data):
+def sla(*args, **kwargs):
     """sendlineafter"""
     io = gift.get("io", None)
     if io:
-        io.sendlineafter(delim, data)
+        io.sendlineafter(*args, **kwargs)
 
-def ru(delim) -> bytes:
+def st(*args, **kwargs):
+    """sendthen"""
+    io = gift.get("io", None)
+    if io:
+        io.sendthen(*args, **kwargs)
+
+def slt(*args, **kwargs):
+    """sendlinethen"""
+    io = gift.get("io", None)
+    if io:
+        io.sendlinethen(*args, **kwargs)
+
+
+def ru(*args, **kwargs) -> bytes:
     """recvuntil"""
     io = gift.get("io", None)
     if io:
-        return io.recvuntil(delim)
+        return io.recvuntil(*args, **kwargs)
 
 def rl() -> bytes:
     """recvline"""
@@ -312,23 +325,29 @@ def rl() -> bytes:
     if io:
         return io.recvline()
 
-def rs(n) -> list:
+def rs(*args, **kwargs) -> list:
     """recvlines"""
     io = gift.get("io", None)
     if io:
-        return io.recvlines(n)
+        return io.recvlines(*args, **kwargs)
 
-def rls(delims) -> bytes:
+def rls(*args, **kwargs) -> bytes:
     """recvline_startswith"""
     io = gift.get("io", None)
     if io:
-        return io.recvline_startswith(delims)
+        return io.recvline_startswith(*args, **kwargs)
 
-def rlc(delims) -> bytes:
+def rle(*args, **kwargs) -> bytes:
+    """recvline_endswith"""
+    io = gift.get("io", None)
+    if io:
+        return io.recvline_endswith(*args, **kwargs)
+
+def rlc(*args, **kwargs) -> bytes:
     """recvline_contains"""
     io = gift.get("io", None)
     if io:
-        return io.recvline_contains(delims)
+        return io.recvline_contains(*args, **kwargs)
 
 def ra(timeout=5) -> bytes:
     """recvall"""
@@ -336,23 +355,23 @@ def ra(timeout=5) -> bytes:
     if io:
         return io.recvall(timeout)
 
-def rr(regex) -> bytes:
+def rr(*args, **kwargs) -> bytes:
     """recvregex"""
     io = gift.get("io", None)
     if io:
-        return io.recvregex(regex)
+        return io.recvregex(*args, **kwargs)
 
-def r() -> bytes:
+def r(*args, **kwargs) -> bytes:
     """recv"""
     io = gift.get("io", None)
     if io:
-        return io.recv()
+        return io.recv(*args, **kwargs)
 
-def rn(n) -> bytes:
+def rn(*args, **kwargs) -> bytes:
     """recvn"""
     io = gift.get("io", None)
     if io:
-        return io.recvn(n)
+        return io.recvn(*args, **kwargs)
 
 def ia():
     """interactive"""
@@ -365,6 +384,12 @@ def ic():
     io = gift.get("io", None)
     if io:
         io.close()
+
+def cr() -> bool:
+    """can_recv"""
+    io = gift.get("io", None)
+    if io:
+        return io.can_recv()
 
 # ----------------------------------gadget----------------
 
