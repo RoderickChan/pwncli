@@ -52,14 +52,14 @@ pwncli
 
 如果你选择使用`WSL`，那么，请尽量保证发行版的名字(distribution name)为默认的`Ubuntu-16.04/Ubuntu-18.04/Ubuntu-20.04`。`debug`命令的某些选项与默认发行版名称联系紧密。  
 
-`pwncli`的安装方式有两种，第一种是本地安装：
+`pwncli`的安装方式有两种，第一种是本地安装(**强烈建议使用此种方式安装**)：
 
 ```shell
 git clone https://github.com/RoderickChan/pwncli.git
 cd ./pwncli
 pip3 install --editable .
 ```
-安装结束后，别忘了将`pwncli`路径添加到`PATH`环境变量，路径一般为`~/.local/bin/pwncli`。
+安装结束后，别忘了将`pwncli`路径添加到`PATH`环境变量，路径一般为`~/.local/bin`, 可以在家目录下的`.bashrc/.zshrc`文件中添加`export PATH=$PATH:/home/xxx/.local/bin`。
 
 这种方式安装的好处是：当你需要`pwncli`保持更新时，只需要执行`git pull`即可使用最新版本的`pwncli`。
 
@@ -68,7 +68,7 @@ pip3 install --editable .
 ```
 pip3 install pwncli
 ```
-这种方式安装的`pwncli`可能不是最新版本，会遇到一些已解决`bug`。不过请相信我，我会及时将`pwncli`更新到`pypi`上去的。
+这种方式安装的`pwncli`可能不是最新版本，会遇到一些已解决的`bug`。不过请相信我，我会及时将`pwncli`更新到`pypi`上去的。
 
 安装结束后，执行`pwncli --version`，看到版本信息输出则代表安装成功。
 
@@ -163,6 +163,61 @@ io.interactive()
 ```
 
 不难发现，库模式与命令模式的使用区别：去掉`cli_script()`即可。需要注意，库模式下的脚本就是一个普通的`python`脚本，并不能解析命令行参数。
+
+# 教程
+视频教程请戳[VIDEO](https://www.youtube.com/watch?v=QFemxI3rnC8)。
+
+以下为最简易的教程。
+
+在使用`pwncli`之前，建议掌握`gdb/tmux`的基本命令，确保已安装了`pwndbg/gef/peda`等其中一个或多个插件。
+
+以脚本模式下的`debug`命令为例(这也是最常使用的模式和命令)。
+
+首先进入`tmux`环境，使用`tmux new -s xxx`进入即可。
+
+然后在脚本`exp.py`里写下：
+
+```python
+#!/usr/bin/python3
+# -*- encoding: utf-8 -*-
+
+from pwncli import *
+
+# use script mode
+cli_script()
+
+# get use for obj from gift
+io: tube = gift['io'] 
+elf: ELF = gift['elf']
+libc: ELF = gift['libc']
+
+ia()
+```
+
+然后赋予脚本执行权限，然后输入`./exp.py de ./pwn -t`即可看到开启了`tmux`调试窗口。
+
+对于无`PIE`的程序，下断点的方式为：
+
+```shell
+./exp.py de ./pwn -t -b 0x400088a # 在0x400088a处下断点
+
+./exp.py de ./pwn -t -b malloc -b free # 下2个断点
+```
+
+对于有`PIE`的程序，下断点的方式为：
+
+```shell
+./exp.py de ./pwn -t -b b+0xafd # 在 0xafd处下断点
+
+./exp.py de ./pwn -t -b malloc -b free -b b+0x101f # 下3个断点
+```
+
+脚本调试好后需要打远程：
+
+```
+./exp.py re ./pwn 127.0.0.1:13337
+```
+
 
 # pwncli 主命令
 选项的相关说明：
