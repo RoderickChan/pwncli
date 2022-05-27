@@ -84,7 +84,14 @@ __all__ = [
     "get_segment_base_addr_by_proc_maps",
     "init_x86_context",
     "init_x64_context",
-    "fmtstr_payload_ex"
+    "fmtstr_payload_ex",
+    "calc_chunksize_corrosion",
+    "calc_targetaddr_corrosion",
+    "calc_idx_tcache",
+    "calc_countaddr_tcache",
+    "calc_entryaddr_tcache",
+    "calc_countaddr_by_entryaddr_tcache",
+    "calc_entryaddr_by_countaddr_tcache"
 ]
 
 int16 = functools.partial(int, base=16)
@@ -499,6 +506,7 @@ def fmtstr_payload_ex(offset: int, writes: dict, numwritten: int=0, write_size: 
     Other parameters are identical with `fmtstr_payload' except `writes', its type is also dict, but you can specify the length you want to write.
 
     for example:
+        
         fmtstr_payload_ex(offset=12, writes={
             0xdead1000: 0x1234567890,
             0xdead2000: [0x90876543, 2], # only write 2 bytes
@@ -507,10 +515,15 @@ def fmtstr_payload_ex(offset: int, writes: dict, numwritten: int=0, write_size: 
 
     Args:
         offset (int): Offset of fmt str
+
         writes (dict): A dict of `addr:write_data'
+
         numwritten (int, optional): The count of chars that printf has outputted. Defaults to 0.
+
         write_size (str, optional): byte / short / int. Defaults to "short".
+
         offset_bytes (int, optional): Offset to put this payload. Defaults to 0.
+        
         debug (bool, optional): Show debug info or not. Defaults to False.
 
     Raises:
@@ -621,7 +634,89 @@ def fmtstr_payload_ex(offset: int, writes: dict, numwritten: int=0, write_size: 
     
     return real_output.encode() + last
 
-            
+
+#-------------------------------calc related--------------------------
+
+def calc_chunksize_corrosion(targetaddr: int, main_arena_fastbinsY_addr: int, bits: int=64) -> int:
+    """house of corrosion
+
+    Calculate chunksize by target address
+    """
+    assert bits == 64 or bits == 32, "wrong bits!"
+    assert targetaddr >= main_arena_fastbinsY_addr, "wrong addr!"
+    assert targetaddr & ((bits >> 3) - 1) == 0, "target address not pad!"
+    return (targetaddr - main_arena_fastbinsY_addr) * 2 + (bits >> 1)
+
+
+def calc_targetaddr_corrosion(chunksize: int, main_arena_fastbinsY_addr: int, bits: int=64) -> int:
+    """house of corrosion
+
+    Calculate target address by chunksize
+    """
+    assert bits == 64 or bits == 32, "wrong bits!"
+    pad = bits >> 1
+    assert chunksize & ((pad >> 1) - 1) == 0, "chunksize not pad!"
+    assert chunksize >= pad, "wrong chunksize!"
+    return ((chunksize - pad) >> 1) + main_arena_fastbinsY_addr
+
+
+def calc_idx_tcache(chunksize: int, bits: int=64):
+    """Calculate index in tcache by chunksize"""
+    assert bits == 64 or bits == 32, "wrong bits!"
+    pad = bits >> 1
+    assert chunksize & ((pad >> 1) - 1) == 0, "chunksize not pad!"
+    assert chunksize >= pad, "invalid chunksize!"
+    return (chunksize - pad) // (pad >> 1)
+
+
+def calc_countaddr_tcache(chunksize: int, tcache_perthread_addr: int, sizeofcount: int=2, bits: int=64):
+    """tcache_perthread_addr: 0x555555555010
+    
+    Calculate &tcache->counts[idx] 
+    """
+    assert sizeofcount == 1 or sizeofcount == 2, "glibc version >= 2.31, sizeof(count) = 2, otherwise 1"
+    idx = calc_idx_tcache(chunksize, bits)
+    return idx * sizeofcount + tcache_perthread_addr
+
+
+def calc_entryaddr_tcache(chunksize: int, tcache_perthread_addr: int, sizeofcount: int=2, bits: int=64):
+    """tcache_perthread_addr: 0x555555555010
+    
+    Calculate &tcache->entries[idx] 
+    """
+    assert sizeofcount == 1 or sizeofcount == 2, "glibc version >= 2.31, sizeof(count) = 2, otherwise 1"
+    idx = calc_idx_tcache(chunksize, bits)
+    start_addr = tcache_perthread_addr + sizeofcount * 64
+    return idx * (bits >> 3) + start_addr
+
+
+def calc_countaddr_by_entryaddr_tcache(tcache_perthread_addr: int, entryaddr: int, sizeofcount: int=2, bits: int=64):
+    """tcache_perthread_addr: 0x555555555010
+    
+    Calculate &tcache->counts[idx] by &tcache->entries[idx]
+    """
+    assert sizeofcount == 1 or sizeofcount == 2, "glibc version >= 2.31, sizeof(count) = 2, otherwise 1"
+    start_addr = tcache_perthread_addr + sizeofcount * 64
+    assert entryaddr >= start_addr, "invalid address!"
+    dis = entryaddr - start_addr
+    assert dis & ((bits >> 2) - 1) == 0, "distance not pad!"
+    idx = dis // (bits >> 3)
+    return idx * sizeofcount + tcache_perthread_addr
+
+
+def calc_entryaddr_by_countaddr_tcache(tcache_perthread_addr: int, countaddr: int, sizeofcount: int=2, bits: int=64):
+    """tcache_perthread_addr: 0x555555555010
+    
+    Calculate &tcache->entries[idx] by &tcache->counts[idx]
+    """
+    assert sizeofcount == 1 or sizeofcount == 2, "glibc version >= 2.31, sizeof(count) = 2, otherwise 1"
+    assert countaddr >= tcache_perthread_addr, "invalid address!"
+    dis = countaddr - tcache_perthread_addr
+    assert dis & (sizeofcount - 1) == 0, "distance not pad!"
+    idx = dis // sizeofcount
+    start_addr = tcache_perthread_addr + sizeofcount * 64
+    return idx * (bits >> 3) + start_addr
+
 
 #-------------------------------private-------------------------------
 def _get_elf_arch_info(filename):
