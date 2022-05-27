@@ -12,29 +12,57 @@
 import re
 import shutil
 import tempfile
+from time import sleep
 import requests
 import json
 import threading
 import os
-from .misc import errlog_exit, log2_ex, log_ex, one_gadget
+import atexit
+from .misc import errlog_exit, log_ex, one_gadget
 from .ropperbox import RopperBox
 
 __all__ = ["LibcBox"]
 
 class LibcBox:
-    def __init__(self):
+    def __init__(self, debug=False):
         self._data = dict() # post data, is a dict
         self._res = None # post res, is a dict
         self._symbols = None
         self._call_searcher = False
         self._downloaded = False
 
+        self.debug = debug # open debug or not
+
         self._rb = None # RopperBox
         self._tmp_dir = tempfile.mkdtemp()
 
-    def __del__(self):
+        self._lock = threading.Lock()
+        atexit.register(self.__clean)
+  
+
+    def _log(self, *args, **kwargs):
+        if self.debug:
+            log_ex(*args, **kwargs)
+
+
+    def __clean(self):
         if self._tmp_dir and os.path.exists(self._tmp_dir):
             shutil.rmtree(self._tmp_dir)
+            self._log("delete tmp directory {} success!".format(self._tmp_dir))
+
+    def __time_count(self, n, to_exit=True):
+        if n <= 0:
+             n = 30
+
+        while n:
+            if self._downloaded:
+                break
+            sleep(1)
+            n -= 1
+        
+        if to_exit:
+            errlog_exit("Download work donnot finish in {}s".format(n))
+
 
     def __post_to_find(self):
         r = requests.post(url="https://libc.rip/api/find", data=json.dumps(self._data), headers={'Content-Type': 'application/json'})
@@ -90,8 +118,10 @@ class LibcBox:
         url = self._res[key]
         fn = os.path.join(self._tmp_dir, url.split("/")[-1])
         if os.path.exists(fn) and (not redownload):
-            log2_ex("{} exists in current directory, it would not be downloaded again!".format(fn))
+            self._log("{} exists in current directory, it would not be downloaded again!".format(fn))
             return
+        
+        self._log("start to download {}...".format(key))
         if mode == "t":
             r = requests.get(url)
             with open(fn, "w", encoding='utf-8') as f:
@@ -102,6 +132,51 @@ class LibcBox:
                 for chunk in r.iter_content(4096):
                     if chunk:
                         f.write(chunk)
+
+
+    def __download_async(self, download_symbols, download_so, download_deb, redownload, load_gadgets):
+        if self._lock.acquire():
+            self._lock.locked()
+        
+        if not self._downloaded or redownload:
+            t1 = threading.Thread(target=self.__download_resources, args=('symbols_url', 't', redownload))
+            t1.start()
+            t2 = threading.Thread(target=self.__download_resources, args=('download_url', 'b', redownload))
+            t2.start()
+            t3 = threading.Thread(target=self.__download_resources, args=('libs_url', 'b', redownload))
+            t3.start()
+            t1.join()
+            t2.join()
+            t3.join()
+            self._downloaded = True
+
+        if download_symbols:
+            name = self._res['symbols_url'].split("/")[-1]
+            fn   = os.path.join(self._tmp_dir, name)
+            shutil.copyfile(fn, name)
+            self._log("Download {} success!".format(name))
+            if os.path.exists(fn):
+                with open(fn, "r", encoding="utf-8") as f:
+                    self._symbols = f.read()
+
+        if download_so:
+            name = self._res['download_url'].split("/")[-1]
+            fn   = os.path.join(self._tmp_dir, name)
+            shutil.copyfile(fn, name)
+            self._log("Download {} success!".format(name))
+
+        if download_deb:
+            name = self._res['libs_url'].split("/")[-1]
+            fn   = os.path.join(self._tmp_dir, name)
+            shutil.copyfile(fn, name)
+            self._log("Download {} success!".format(name))
+
+        if load_gadgets:
+            self._log("start to load gadget...")
+            threading.Thread(target=self.get_ropperbox, args=(False,), daemon=True).start()
+        
+        self._lock.release()
+
 
     def reset(self):
         self._data = dict() # post data, is a dict
@@ -114,6 +189,7 @@ class LibcBox:
         if self._tmp_dir and os.path.exists(self._tmp_dir):
             shutil.rmtree(self._tmp_dir)
         self._tmp_dir = tempfile.mkdtemp()
+        self._log("reset success!")
 
 
     def add_symbol(self, symbol_name:str, address:int):
@@ -161,53 +237,21 @@ class LibcBox:
         else:
             self._res = self._res[0]
         
-        if not self._downloaded or redownload:
-            t1 = threading.Thread(target=self.__download_resources, args=('symbols_url', 't', redownload))
-            t1.start()
-            t2 = threading.Thread(target=self.__download_resources, args=('download_url', 'b', redownload))
-            t2.start()
-            t3 = threading.Thread(target=self.__download_resources, args=('libs_url', 'b', redownload))
-            t3.start()
-            t1.join()
-            t2.join()
-            t3.join()
-            self._downloaded = True
-
-        if download_symbols:
-            name = self._res['symbols_url'].split("/")[-1]
-            fn   = os.path.join(self._tmp_dir, name)
-            shutil.copyfile(fn, name)
-            log2_ex("Download {} success!".format(name))
-            if os.path.exists(fn):
-                with open(fn, "r", encoding="utf-8") as f:
-                    self._symbols = f.read()
-
-        if download_so:
-            name = self._res['download_url'].split("/")[-1]
-            fn   = os.path.join(self._tmp_dir, name)
-            shutil.copyfile(fn, name)
-            log2_ex("Download {} success!".format(name))
-
-        if download_deb:
-            name = self._res['libs_url'].split("/")[-1]
-            fn   = os.path.join(self._tmp_dir, name)
-            shutil.copyfile(fn, name)
-            log2_ex("Download {} success!".format(name))
-
+        threading.Thread(target=self.__download_async, args=(download_symbols, download_so, download_deb, redownload, load_gadgets), daemon=True).start()
         self._call_searcher = True
-        if load_gadgets:
-            threading.Thread(target=self.get_ropperbox, args=(False,), daemon=True).start()
         
     
     def dump(self, symbol_name:str, show: bool=True) -> int:
         if not self._call_searcher:
             errlog_exit("Please call search before you dump!")
-        if symbol_name in ('dup2', 'printf', 'puts', 'str_bin_sh', 'read', 'strcpy', 'system', 'write', '__libc_start_main_ret'):
+        if symbol_name in self._res['symbols']:
             res = self._res['symbols'][symbol_name]
             res = int(res, base=16)
-            log_ex("%s address ==> %s", symbol_name, hex(res))
+            if show:
+                log_ex("%s address ==> %s", symbol_name, hex(res))
             return res
         else:
+            self.__time_count(10, False)
             if not self._symbols:
                 self._symbols = requests.get(self._res['symbols_url']).text
             
@@ -215,28 +259,36 @@ class LibcBox:
                 name, adr = line.split()
                 if name == symbol_name:
                     res = int(adr, base=16)
-                    log_ex("%s address ==> %s", symbol_name, hex(res))
+                    if show:
+                        log_ex("%s address ==> %s", symbol_name, hex(res))
                     return res
         
         errlog_exit("Cannot find symbol: {}".format(symbol_name))
 
 
+    def dump_str_bin_sh(self):
+        return self.dump("str_bin_sh")
+
+
     def dump_one_gadget(self, libc_base: int, more: bool=False, show=True) -> list:
         if not self._call_searcher:
             errlog_exit("Please call search before you dump!")
+        self.__time_count(30)
         res = [libc_base + x  for x in one_gadget(condition=self._res['buildid'], more=more, buildid=True)]
         if show:
             log_ex("one_gadget: %r", [hex(x) for x in res])
         return res
 
+
     def get_ropperbox(self, debug=False) -> RopperBox:
         if not self._rb:
             if not self._call_searcher:
                 errlog_exit("Please call search before you get_ropperbox!")
-
+            self.__time_count(30)
             name = self._res['download_url'].split("/")[-1]
             fn   = os.path.join(self._tmp_dir, name)
             self._rb = RopperBox(debug=debug)
             self._rb.add_file("libc", fn, None)
+        
         return self._rb
 
