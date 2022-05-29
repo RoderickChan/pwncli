@@ -56,7 +56,7 @@ def get_gadgets(ctx, filename, all_gadgets, directory, depth):
             cmd += " --all"
         if depth > 0:
             cmd += " --inst-count {}".format(depth)
-        store_file = "{}".format(os.path.join(directory, "ropper_gadgets"))
+        store_file = "{}".format(os.path.join(directory, "ropper_gadgets-" + os.path.split(ctx.get('filename'))[1]))
         ctx.vlog("gadget-command ---> Exec cmd: {} and store in {}".format(cmd, store_file))
         p = subprocess.Popen(shlex.split(cmd), stdout=open(store_file, "wt", encoding='utf-8', errors='ignore'))
         ps.append(p)
@@ -67,7 +67,7 @@ def get_gadgets(ctx, filename, all_gadgets, directory, depth):
             cmd += " --all"
         if depth > 0:
             cmd += " --depth {}".format(depth)
-        store_file = "{}".format(os.path.join(directory, "ropgadget_gadgets"))
+        store_file = "{}".format(os.path.join(directory, "ropgadget_gadgets-" + os.path.split(ctx.get('filename'))[1]))
         ctx.vlog("gadget-command ---> Exec cmd: {} and store in {}".format(cmd, store_file))
         p = subprocess.Popen(shlex.split(cmd), stdout=open(store_file, "wt", encoding='utf-8', errors='ignore'))
         ps.append(p)

