@@ -63,6 +63,7 @@ __all__ = [
     "errlog_ex_highlight_exit",
     "log_address",
     "log_address_ex",
+    "log_address_ex2",
     "log_libc_base_addr",
     "log_heap_base_addr",
     "log_code_base_addr",
@@ -207,25 +208,46 @@ def log_address(desc:str, address:int):
     log_ex("{} ===> {}".format(desc, hex(address)))
 
 
-def log_address_ex(variable:str, depth=2):
+def log_address_ex(variable_name:str, depth=2):
     """Log address from the variable's name by use of stack frame.
 
     Args:
-        variable (str): The name.
+        variable_name (str): The name.
         depth (int, optional): Stack frame depth. Default value is 2.
     """
-    assert isinstance(variable, str), "Variable must be a string!"
+    assert isinstance(variable_name, str), "variable_name must be a string!"
     assert depth >= 2, "depth error!"
     bf = sys._getframe()
     for i in range(depth - 1):
         bf = bf.f_back
     loc_var = bf.f_locals
-    if variable not in loc_var:
-        errlog_ex("Cannot find {}! Maybe the depth is wrong!".format(variable))
+    if variable_name not in loc_var:
+        errlog_ex("Cannot find {}! Maybe the depth is wrong!".format(variable_name))
     else:
-        var = loc_var[variable]
+        var = loc_var[variable_name]
         assert isinstance(var, int), "The address is not int!"
-        log_address(variable, var)
+        log_address(variable_name, var)
+
+
+def log_address_ex2(variable: int, depth: int=2):
+    """Log address by variable
+
+    Args:
+        variable (int): The var you want to log, must be int.
+        depth (int, optional): Stack frame depth. Defaults to 2.
+    """
+    assert isinstance(variable, int), "variable's type must be int!"
+    assert depth >= 2, "depth error!"
+    bf = sys._getframe()
+    for i in range(depth - 1):
+        bf = bf.f_back
+    loc_var = bf.f_locals
+
+    for k, v in loc_var.items():
+        if isinstance(v, int) and v == variable:
+            log_address(k, variable)
+            return
+    errlog_exit("Cannot find variable, check your depth!")
 
 
 def log_libc_base_addr(address:int):
