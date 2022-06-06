@@ -46,7 +46,7 @@ pwncli
 - 内置许多有用的命令与函数
 
 # 安装
-`pwncli`可以在`linux`和`windows`下使用，但在`windows`下使用受限严重，如`debug`命令将无法使用，`remote`命令仅部分可用。`pwncli`只能在`python3`环境上使用，目前暂不考虑与`python3`兼容。
+`pwncli`可以在`linux`和`windows`下使用，但在`windows`下使用受限严重，如`debug`命令将无法使用，`remote`命令仅部分可用。`pwncli`只能在`python3`环境上使用，目前暂不考虑与`python2`兼容。
 
 建议在`ubuntu`系统上使用`pwncli`，特别的，如果你了解`WSL`并选择使用`WSL`解答`pwn`题，`pwncli + WSL`将是一个极佳的选择。`debug`子命令为`WSL`系统设计了许多实用的参数，并实现了一些有趣的功能。
 
