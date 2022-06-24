@@ -6,7 +6,7 @@ from pwncli.cli import gift
 from .misc import get_callframe_info, log_ex, log2_ex, errlog_exit, log_code_base_addr, log_libc_base_addr, \
     one_gadget_binary, one_gadget, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
     get_flag_when_get_shell, ldd_get_libc_path
-from pwn import flat, asm, ELF
+from pwn import flat, asm, ELF, process, remote
 from .ropperbox import RopperBox, RopperArchType
 from .decorates import deprecated
 
@@ -32,6 +32,7 @@ __all__ = [
     "set_current_code_base",
     "set_current_code_base_and_log",
     "set_remote_libc",
+    "copy_current_io",
     "s", "sl", "sa", "sla", "st", "slt", "ru", "rl","rs",
     "rls", "rlc", "rle", "ra", "rr", "r", "rn", "ia", "ic", "cr",
     "CurrentGadgets"
@@ -264,7 +265,7 @@ def set_current_code_base_and_log(addr: int, offset: int or str = 0):
     return res
 
 
-def set_remote_libc(libc_so_path: str):
+def set_remote_libc(libc_so_path: str) -> ELF:
     if not gift.get('remote'):
         return
     if not gift.get('io', None):
@@ -272,8 +273,21 @@ def set_remote_libc(libc_so_path: str):
     if os.path.exists(libc_so_path) and os.path.isfile(libc_so_path):
         gift['libc'] = ELF(libc_so_path, checksec=False)
         gift['libc'].address = 0
+        return gift['libc']
     else:
         errlog_exit("libc_so_path not exists!")
+
+
+def copy_current_io():
+    """Only used for debug command"""
+    io = None
+    if gift.get('debug'):
+        io = process(gift.filename)
+    elif gift.get('remote'):
+        io = remote(gift.io, gift.port)
+    else:
+        raise RuntimeError()
+    return io
 
 #-----------------------------io------------------------
 def s(*args, **kwargs):

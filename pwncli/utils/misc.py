@@ -38,7 +38,6 @@ import subprocess
 import struct
 from pwn import unpack, pack, flat, ELF, context
 import click
-from math import ceil
 
 __all__ = [
     "int16",
@@ -79,6 +78,7 @@ __all__ = [
     "p64_ex",
     "p32_float",
     "p64_float",
+    "generate_payload_for_connect",
     "recv_libc_addr",
     "get_flag_when_get_shell",
     "get_flag_by_recv",
@@ -394,7 +394,19 @@ def p64_float(num:float, endian="little"):
         return struct.pack(">d", num)
     else:
         raise RuntimeError("Wrong endian!")
+
+def generate_payload_for_connect(ip, port):
+    """connect(socket_fd, buf, 0x10), generate payload of buf
     
+    assert len(buf) == 0x10
+    
+    """
+    int_ip = 0
+    for i in ip.strip().split("."):
+        int_ip <<= 8
+        int_ip |= int(i)
+    return pack(2, word_size=16, endianness="little") + pack(port, word_size=16, endianness="big") + pack(int_ip, word_size=32, endianness="big") + pack(0, 64)
+
 
 def recv_libc_addr(io, *, bits=64, offset=0) -> int:
     """Calcuate libc-base addr while recv '\x7f' in amd64 or '\xf7' in i386.
@@ -583,7 +595,7 @@ def calc_countaddr_by_entryaddr_tcache(tcache_perthread_addr: int, entryaddr: in
     start_addr = tcache_perthread_addr + sizeofcount * 64
     assert entryaddr >= start_addr, "invalid address!"
     dis = entryaddr - start_addr
-    assert dis & ((bits >> 2) - 1) == 0, "distance not pad!"
+    assert dis & ((bits >> 3) - 1) == 0, "distance not pad!"
     idx = dis // (bits >> 3)
     return idx * sizeofcount + tcache_perthread_addr
 
@@ -600,7 +612,6 @@ def calc_entryaddr_by_countaddr_tcache(tcache_perthread_addr: int, countaddr: in
     idx = dis // sizeofcount
     start_addr = tcache_perthread_addr + sizeofcount * 64
     return idx * (bits >> 3) + start_addr
-
 
 #-------------------------------private-------------------------------
 def _get_elf_arch_info(filename):
