@@ -297,11 +297,14 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
     # if gdb_script is file, then open it
     if is_file:
         if script:
-            with open("/tmp/pwncli_gdb_debug_file", 'w', encoding='utf-8') as f:
+            tmp_fd, tmp_gdb_script = tempfile.mkstemp(text=True)
+            os.close(tmp_fd)
+            atexit.register(lambda x: os.unlink(x), tmp_gdb_script)
+            with open(tmp_gdb_script, 'wt', encoding='utf-8') as f:
                 f.write(script +"\n")
-                with open(gdb_script, "r", encoding='utf-8') as f2:
+                with open(gdb_script, "rt", encoding='utf-8') as f2:
                     f.write(f2.read() + "\n")
-            gdb_script = "/tmp/pwncli_gdb_debug_file"
+            gdb_script = tmp_gdb_script
         script = open(gdb_script, "r", encoding="utf-8")
     
     if env:
