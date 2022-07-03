@@ -9,10 +9,10 @@
 '''
 
 import os
-from pwncli.utils.exceptions import PwncliTodoException
-from pwnlib import gdb
+from .exceptions import PwncliTodoException
+from .misc import _in_tmux
+from subprocess import check_output
 import time
-import tempfile
 
 __all__ = [
     "kill_gdb",
@@ -21,6 +21,15 @@ __all__ = [
     "tele_pie_content"
 ]
 
+_TMUX_INFO = ""
+def _get_tmux_info():
+    if _in_tmux():
+        if _TMUX_INFO:
+            return _TMUX_INFO
+        o = check_output("tmux display-message -p '#S:#I'")
+        _TMUX_INFO =  o.decode() + ".1"
+        return _TMUX_INFO
+    return None
 
 def kill_gdb(gdb_ins):
     """Kill gdb process."""
@@ -36,7 +45,11 @@ def execute_cmd_in_gdb(gdb_obj, cmd:str):
     cmd = cmd.replace(";", "\n")
     for x in cmd.splitlines():
         if x:
-            gdb_obj.execute(x)
+            if _get_tmux_info():
+                os.system("tmux send -t {} \"{}\" Enter".format(_TMUX_INFO, x))
+                time.sleep(0.1)
+            else:
+                gdb_obj.execute(x)
 
 
 def set_pie_breakpoints(gdb_obj, offset:int):

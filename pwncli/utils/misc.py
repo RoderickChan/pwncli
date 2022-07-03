@@ -36,7 +36,7 @@ import re
 import functools
 import subprocess
 import struct
-from pwn import unpack, pack, flat, ELF, context
+from pwn import unpack, pack, flat, ELF, context, which
 import click
 
 __all__ = [
@@ -619,6 +619,30 @@ def _get_elf_arch_info(filename):
     arch = _e.arch
     del _e
     return arch
+
+def _in_tmux():
+    return bool('TMUX' in os.environ and which('tmux'))
+
+def _in_wsl():
+    if os.path.exists('/proc/sys/kernel/osrelease'):
+        with open('/proc/sys/kernel/osrelease', 'rb') as f:
+            is_in_wsl = b'icrosoft' in f.read()
+        if is_in_wsl and which('wsl.exe') and which("cmd.exe"):
+            return True
+    return False
+
+def _get_gdb_plugin_info():
+    with open(os.path.expanduser("~/.gdbinit"), "a+", encoding="utf-8") as f:
+        f.seek(0, 0)
+        for line in f:
+            if line.strip().startswith("source"):
+                if "pwndbg" in line:
+                    return "pwndbg"
+                elif "gef" in line:
+                    return "gef"
+                elif "peda" in line:
+                    return "peda"
+    return None
 
 if __name__ == "__main__":
     import doctest

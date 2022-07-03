@@ -20,7 +20,7 @@ import tempfile
 import atexit
 from pwncli.utils.config import try_get_config_data_by_key
 from pwncli.cli import pass_environ, _set_filename
-from pwncli.utils.misc import ldd_get_libc_path
+from pwncli.utils.misc import ldd_get_libc_path, _in_tmux, _in_wsl, _get_gdb_plugin_info
 from pwncli.utils.cli_misc import CurrentGadgets
 
 _NO_TERMINAL = 0
@@ -29,34 +29,10 @@ _USE_OTHER_TERMINALS = 2
 _USE_GNOME_TERMINAL = 4
 
 
-def _in_tmux():
-    return bool('TMUX' in os.environ and which('tmux'))
-
-def _in_wsl():
-    if os.path.exists('/proc/sys/kernel/osrelease'):
-        with open('/proc/sys/kernel/osrelease', 'rb') as f:
-            is_in_wsl = b'icrosoft' in f.read()
-        if is_in_wsl and which('wsl.exe') and which("cmd.exe"):
-            return True
-    return False
-
 def __recover(f, c):
     # print("call recover")
     with open(f, "wb") as f2:
         f2.write(c)
-
-def _get_gdb_plugin_info():
-    with open(os.path.expanduser("~/.gdbinit"), "a+", encoding="utf-8") as f:
-        f.seek(0, 0)
-        for line in f:
-            if line.strip().startswith("source"):
-                if "pwndbg" in line:
-                    return "pwndbg"
-                elif "gef" in line:
-                    return "gef"
-                elif "peda" in line:
-                    return "peda"
-    return None
 
 
 def _set_gdb_type(pwncli_path, gdb_type):

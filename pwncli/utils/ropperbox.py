@@ -53,7 +53,7 @@ _inner_mapping = {
 
 class RopperBox:
     def __init__(self, *, badbytes: str='', show_all: bool=False, 
-                inst_count: int=6, op_type: RopperOptionType=RopperOptionType.all, detailed: bool=False, debug=False):
+                inst_count: int=10, op_type: RopperOptionType=RopperOptionType.all, detailed: bool=False, debug=False):
         self._rs = RopperService(options={
             'color': False,
             'badbytes': badbytes,
@@ -170,6 +170,9 @@ class RopperBox:
 
 
     def search_opcode(self, opcode: str, name: str=None, get_list: bool=False) -> Union[List[int], int]:
+        if len(opcode) > 14:
+            opcode = opcode[:14]
+            log_ex("opcode'length is more than 7 bytes, only seach 7 bytes.")
         return self._inner_search(opcode, name, "opcode", get_list)
 
 
