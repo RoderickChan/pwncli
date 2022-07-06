@@ -1,6 +1,6 @@
 
 import os
-from threading import Lock
+from threading import Lock, Thread
 import time
 from pwncli.cli import gift
 from .misc import get_callframe_info, log_ex, log2_ex, errlog_exit, log_code_base_addr, log_libc_base_addr, \
@@ -35,7 +35,7 @@ __all__ = [
     "copy_current_io",
     "s", "sl", "sa", "sla", "st", "slt", "ru", "rl","rs",
     "rls", "rlc", "rle", "ra", "rr", "r", "rn", "ia", "ic", "cr",
-    "CurrentGadgets"
+    "CurrentGadgets", "load_currentgadgets_background"
     ]
 
 def stop(enable=True):
@@ -419,9 +419,11 @@ class CurrentGadgets:
     _mutex = Lock()
 
     @staticmethod
-    def set_find_area(find_in_elf=True, find_in_libc=False):
+    def set_find_area(find_in_elf=True, find_in_libc=False, do_initial=False):
         CurrentGadgets.__find_in_elf = find_in_elf
         CurrentGadgets.__find_in_libc = find_in_libc
+        if do_initial:
+            CurrentGadgets._initial_ropperbox()
 
     @staticmethod
     def _initial_ropperbox() -> bool:
@@ -711,6 +713,74 @@ class CurrentGadgets:
         return flat(layout)
 
     @staticmethod
+    def orw_chain(flag_addr, buf_addr=None, flag_fd=3, write_fd=1) -> bytes:
+        if not CurrentGadgets._initial_ropperbox():
+            return None
+        
+        if not buf_addr:
+            buf_addr = flag_addr
+        
+        if CurrentGadgets.__arch == "i386":
+            layout = [
+                # open
+                CurrentGadgets.pop_rbx_ret(),
+                flag_addr,
+                CurrentGadgets.pop_rcx_ret(),
+                0,
+                CurrentGadgets.pop_rax_ret(),
+                5,
+                CurrentGadgets.syscall_ret(),
+                # read
+                CurrentGadgets.pop_rbx_ret(),
+                flag_fd,
+                CurrentGadgets.pop_rcx_ret(),
+                buf_addr,
+                CurrentGadgets.pop_rdx_ret(),
+                0x30,
+                CurrentGadgets.pop_rax_ret(),
+                3,
+                CurrentGadgets.syscall_ret(),
+                # write
+                CurrentGadgets.pop_rbx_ret(),
+                write_fd,
+                CurrentGadgets.pop_rax_ret(),
+                4,
+                CurrentGadgets.syscall_ret(),
+            ]
+        elif CurrentGadgets.__arch == "amd64":
+            layout = [
+                # open
+                CurrentGadgets.pop_rdi_ret(),
+                flag_addr,
+                CurrentGadgets.pop_rsi_ret(),
+                0,
+                CurrentGadgets.pop_rax_ret(),
+                2,
+                CurrentGadgets.syscall_ret(),
+                # read
+                CurrentGadgets.pop_rdi_ret(),
+                flag_fd,
+                CurrentGadgets.pop_rsi_ret(),
+                buf_addr,
+                CurrentGadgets.pop_rdx_ret(),
+                0x30,
+                CurrentGadgets.pop_rax_ret(),
+                0x0,
+                CurrentGadgets.syscall_ret(),
+                # write
+                CurrentGadgets.pop_rdi_ret(),
+                write_fd,
+                CurrentGadgets.pop_rax_ret(),
+                0x1,
+                CurrentGadgets.syscall_ret(),
+            ]
+        else:
+            errlog_exit("Unsupported arch: {}".format(CurrentGadgets.__arch))
+        
+        return flat(layout)
+
+
+    @staticmethod
     def write_by_magic(write_addr: int, ori: int, expected: int) -> bytes:
         if not CurrentGadgets._initial_ropperbox():
             return None
@@ -724,3 +794,7 @@ class CurrentGadgets:
             
         else:
             errlog_exit("Only used for amd64!")
+
+
+def load_currentgadgets_background(find_in_elf=True, find_in_libc=True):
+    Thread(target=CurrentGadgets.set_find_area, args=(find_in_elf, find_in_libc, True),daemon=True).start()
