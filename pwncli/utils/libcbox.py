@@ -17,7 +17,6 @@ import requests
 import json
 import threading
 import os
-import atexit
 from .misc import errlog_exit, log_ex, one_gadget
 from .ropperbox import RopperBox
 
@@ -37,7 +36,9 @@ class LibcBox:
         self._tmp_dir = tempfile.mkdtemp()
 
         self._lock = threading.Lock()
-        atexit.register(self.__clean)
+
+    def __del__(self):
+        self.__clean()
   
 
     def _log(self, *args, **kwargs):

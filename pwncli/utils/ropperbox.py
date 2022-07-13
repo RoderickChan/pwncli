@@ -10,7 +10,7 @@
 
 from ropper import RopperService, RopperError, Gadget
 from enum import Enum, unique
-from pwncli.utils.misc import errlog_exit, log_ex, _get_elf_arch_info
+from .misc import errlog_exit, log_ex, _get_elf_arch_info
 import os
 from typing import List, Union
 
@@ -70,6 +70,9 @@ class RopperBox:
     def _log(self, msg):
         if self._debug:
             log_ex(msg)
+
+    def __del__(self):
+        self.remove_file(None)
 
 
     def update_option(self, **kwargs):

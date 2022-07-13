@@ -12,12 +12,11 @@
 import threading
 import click
 from pwn import context, which, ELF, pause
+from pwnlib.atexit import register
 from pwnlib.gdb import attach
 import os
-import sys
 import string
 import tempfile
-import atexit
 from pwncli.utils.config import try_get_config_data_by_key
 from pwncli.cli import pass_environ, _set_filename
 from pwncli.utils.misc import ldd_get_libc_path, _in_tmux, _in_wsl, _get_gdb_plugin_info
@@ -274,8 +273,9 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
     if is_file:
         if script:
             tmp_fd, tmp_gdb_script = tempfile.mkstemp(text=True)
+            ctx.vlog("debug-command --> Create a tempfile used for gdb_script, file path: {}".format(tmp_gdb_script))
             os.close(tmp_fd)
-            atexit.register(lambda x: os.unlink(x), tmp_gdb_script)
+            register(lambda x: os.unlink(x), tmp_gdb_script)
             with open(tmp_gdb_script, 'wt', encoding='utf-8') as f:
                 f.write(script +"\n")
                 with open(gdb_script, "rt", encoding='utf-8') as f2:
@@ -319,7 +319,7 @@ int {}()
             if context.bits == 32:
                 cmd += " -m32"
             ctx.vlog("debug-command 'pause_before_main/hook_file' --> Execute cmd '{}'.".format(cmd))
-            atexit.register(lambda x: os.unlink(x) or os.unlink("{}.so".format(x)), tmp_path)
+            register(lambda x: os.unlink(x) or os.unlink("{}.so".format(x)), tmp_path)
             if not os.system(cmd):
                 ctx.vlog(msg="debug-command 'pause_before_main/hook_file' --> Execute last cmd success.")
                 if env:
