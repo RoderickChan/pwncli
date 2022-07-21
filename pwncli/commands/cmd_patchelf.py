@@ -83,7 +83,7 @@ def cli(ctx, filename, libc_version, back_up, filter_string, verbose, libc_so):
     if not os.path.exists(libc_dirname) or not os.path.isdir(libc_dirname):
         ctx.verrlog("patchelf-command --> Libs dir '{}' not exists!".format(libc_dirname))
         if yesno("clone glibc-all-in-one from github?"):
-            if 0 != os.system("git clone https://github.com/matrix1001/glibc-all-in-one.git ~/"):
+            if 0 != os.system("git clone https://github.com/matrix1001/glibc-all-in-one.git ~/glibc-all-in-one"):
                 ctx.abort("patchelf-command --> Execute cmd: git clone https://github.com/matrix1001/glibc-all-in-one.git ~/ failed!")
             ctx.vlog2("patchelf-command --> Execute cmd: git clone https://github.com/matrix1001/glibc-all-in-one.git ~/ success!")
             libc_dirname = os.path.join(os.environ['HOME'],"glibc-all-in-one/libs")
