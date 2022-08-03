@@ -37,18 +37,18 @@ class IO_FILE_plus_struct(FileStructure):
 
     
     @property
-    def _mode(self):
-        off = 320
+    def _mode(self) -> int:
+        off = 96
         if context.bits == 64:
-            off = 112
+            off = 192
         return (self.unknown2 >> off) & 0xffffffff
 
     @_mode.setter
     def _mode(self, value:int):
         assert value <= 0xffffffff and value >= 0, "value error: {}".format(hex(value))
-        off = 320
+        off = 96
         if context.bits == 64:
-            off = 112
+            off = 192
         self.unknown2 |= (value << off)
 
 

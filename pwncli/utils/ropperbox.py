@@ -198,6 +198,12 @@ class RopperBox:
         except RopperError:
             return self.search_opcode("5ac3", name)
 
+    def get_pop_rdx_rbx_ret(self, name: str=None) -> int:
+        try:
+            return self.search_gadget("pop rdx; pop rbx; ret;", name)
+        except RopperError:
+            return self.search_opcode("5a5bc3", name)
+
     def get_pop_rax_ret(self, name: str=None) -> int:
         try:
             return self.search_gadget("pop rax; ret;", name)
