@@ -1,4 +1,5 @@
 
+import functools
 import os
 from threading import Lock, Thread
 import time
@@ -513,6 +514,7 @@ class CurrentGadgets:
 
 
     @staticmethod
+    @functools.lru_cache
     def find_gadget(find_str : str, find_type='asm', get_list=False) -> int:
         """ type: asm / opcode / string """
         if not CurrentGadgets._initial_ropperbox(): 

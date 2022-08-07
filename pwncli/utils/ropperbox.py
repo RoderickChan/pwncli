@@ -8,6 +8,7 @@
 @Desc    : Use ropper api from https://github.com/sashs/Ropper
 '''
 
+import functools
 from ropper import RopperService, RopperError, Gadget
 from enum import Enum, unique
 from .misc import errlog_exit, log_ex, _get_elf_arch_info
@@ -163,15 +164,15 @@ class RopperBox:
         
         return _l if get_list else _l[0]
 
-
+    @functools.lru_cache
     def search_gadget(self, search: str, name: str=None, get_list: bool=False) -> Union[List[int], int]:
         return self._inner_search(search, name, "gadget", get_list)
 
-
+    @functools.lru_cache
     def search_string(self, string: str, name: str=None, get_list: bool=False) -> Union[List[int], int]:
         return self._inner_search(string, name, "string", get_list)
 
-
+    @functools.lru_cache
     def search_opcode(self, opcode: str, name: str=None, get_list: bool=False) -> Union[List[int], int]:
         if len(opcode) > 14:
             opcode = opcode[:14]
