@@ -78,6 +78,7 @@ __all__ = [
     "p64_ex",
     "p32_float",
     "p64_float",
+    "float_hexstr2int",
     "generate_payload_for_connect",
     "recv_libc_addr",
     "get_flag_when_get_shell",
@@ -394,6 +395,44 @@ def p64_float(num:float, endian="little"):
         return struct.pack(">d", num)
     else:
         raise RuntimeError("Wrong endian!")
+
+
+def float_hexstr2int(data: str or bytes, hexstr=True, endian="little", bits=64):
+    """float_hex2int('0x0.07f6d266e9fbp-1022') ---> 140106772946864"""
+    endian = endian.lower()
+    assert endian in ("little", "big"), "only little or big for endian!"
+    assert bits in (32, 64), "only 32 or 64 for bits!"
+    
+    if isinstance(data, bytes):
+        data = data.decode()
+    
+    assert isinstance(data, str), "data is not str!"
+
+    if endian == "little":
+        ori = "<"
+    else:
+        ori = ">"
+    
+    if bits == 64:
+        ch = "d"
+    else:
+        ch = "f"
+    
+    cmd = "from struct import pack\n"
+    if hexstr:
+        cmd += "a = float.fromhex('{}')\n"
+    else:
+        cmd += "a = float('{}')\n"
+    
+    cmd += "b = pack('{}{}', a)\n"
+    cmd += "print(int.from_bytes(b, '{}'))"
+    cmd = cmd.format(data, ori, ch, endian)
+    try:
+        res = subprocess.check_output([sys.executable, "-c", cmd]).strip()
+        return int(res)
+    except:
+        errlog_exit("float_hex2int failed, check cmd: \n{}".format(cmd))
+        
 
 def generate_payload_for_connect(ip, port):
     """connect(socket_fd, buf, 0x10), generate payload of buf
