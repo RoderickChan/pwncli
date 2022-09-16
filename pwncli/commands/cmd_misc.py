@@ -94,17 +94,19 @@ def copy_gdbinit(ctx, generate_script):
     if os.getuid() == 0:
         predir = "/bin"
 
-    cmd = "cp {} {}".format(os.path.join(
-        ctx.pwncli_path, "conf/.gdbinit-*"), os.getenv("HOME"))
-    ctx.vlog("setgdb-command ---> Exec cmd: {}".format(cmd))
-    os.system(cmd)
+    gdbinit_file_path = os.path.join(ctx.pwncli_path, "conf/.gdbinit-")
 
     if generate_script:
         for name in ("pwndbg", "gef", "peda"):
             _cur_path =os.path.join(predir ,"gdb-{}".format(name))
+            write_data = "#!/bin/sh\n"
+            write_data += 'cat > ~/.gdbinit << "EOF"\n'
+            with open(gdbinit_file_path+name, "rt", encoding="utf-8", errors="ignore") as gdbinitf:
+                write_data += gdbinitf.read()
+            write_data += '\nEOF\n'
+            write_data += "\nexec gdb \"$@\"\n"
             with open(_cur_path, "wt", encoding="utf-8", errors="ignore") as file:
-                file.write(
-                    "#!/bin/sh\ncp ~/.gdbinit-{} ~/.gdbinit\nexec gdb \"$@\"\n".format(name))
+                file.write(write_data)
                 ctx.vlog(
                     "setgdb-command ---> Generate {} success.".format(_cur_path))
             os.system("chmod 755 {}".format(_cur_path))
