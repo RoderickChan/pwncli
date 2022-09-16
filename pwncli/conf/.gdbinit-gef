@@ -16,7 +16,7 @@ define sbase
     end
 
     if $argc == 2
-        telescope $_base()+$arg0 $arg1
+        telescope $_base()+$arg0 -l $arg1
     end
 end
 
