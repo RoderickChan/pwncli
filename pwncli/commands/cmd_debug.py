@@ -15,6 +15,7 @@ from pwn import context, which, ELF, pause
 from pwnlib.atexit import register
 from pwnlib.gdb import attach
 import os
+import re
 import string
 import tempfile
 from pwncli.utils.config import try_get_config_data_by_key
@@ -103,7 +104,7 @@ def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file,
         terminal = ['tmux', 'splitw', '-h']
     elif flag & _USE_GNOME_TERMINAL:
         terminal = ["gnome-terminal", "--", "sh", "-c"]
-    elif (flag & _USE_OTHER_TERMINALS) and which('cmd.exe'): # use cmd.exe to launch wt.exe bash.ex ...
+    elif (flag & _USE_OTHER_TERMINALS) and which('cmd.exe'): # use cmd.exe to launch wt.exe bash.exe ...
         if is_file:
             gdbcmd = " {}\"".format("-x " + gdb_script)
         else:
@@ -128,21 +129,15 @@ def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file,
             os.system(cmd_use)
             return
         else:
-            ubu_name = ''
-            with open('/etc/issue', mode='rb') as f:
-                content = f.read()
-            if b'16.04' in content:
-                ubu_name = '16.04'
-            elif b'18.04' in content:
-                ubu_name = '18.04'
-            elif b'20.04' in content:
-                ubu_name = '20.04'
-            else:
-                ctx.abort('debug-command --> Only support ubuntu 16.04/18.04/20.04 in wsl')
-
-            distro_name = 'Ubuntu-{}'.format(ubu_name)
-            ubuntu_exe_name = 'ubuntu{}.exe'.format(ubu_name.replace('.', ""))
-            ctx.vlog2("debug-command --> Try to find wsl distro, name '{}'".format(distro_name))
+            distro_name = os.getenv('WSL_DISTRO_NAME')
+            if not distro_name:
+                ctx.abort('debug-command --> Cannot get distro name in wsl, please check your env!')
+            
+            if not re.search("ubuntu-\d\d.\d\d", distro_name, re.I):
+                ctx.abort('debug-command --> Only support Ubuntu-XX.XX system!')
+            
+            ctx.vlog2("debug-command --> Find wsl distro, name '{}'".format(distro_name))
+            ubuntu_exe_name = distro_name.lower().replace("-", "").replace(".", "") + ".exe"
             
             if attach_mode == 'wsl-u' and which(ubuntu_exe_name):
                 cmd_use = cmd.format(ubuntu_exe_name)
@@ -210,6 +205,20 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
         argv = []
     
     # detect attach_mode
+    __attachmode_mapping = {
+        "t": "tmux",
+        "a": "auto",
+        "b": "wsl-b",
+        "u": "wsl-u",
+        "wt": "wsl-wt",
+        "wts": "wsl-wts",
+        "w": "wsl-w",
+        "o": "wsl-o",
+    }
+    for _k, _v in __attachmode_mapping.items():
+        if attach_mode == _k:
+            attach_mode = _v
+    
     if attach_mode.startswith('wsl'):
         use_wsl = True
 
@@ -218,16 +227,16 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
     # check tmux
     if use_tmux:
         if not _in_tmux():
-            ctx.abort(msg="debug-command 'tmux' --> Not in tmux")
+            ctx.abort(msg="debug-command 'tmux' --> Not in tmux, please launch tmux first!")
         t_flag = _USE_TMUX
     # check wsl
     elif use_wsl:
         if not  _in_wsl():
-            ctx.abort(msg="debug-command 'wsl' --> Not in wsl")
+            ctx.abort(msg="debug-command 'wsl' --> Not in wsl, the option -w is only used for wsl!")
         t_flag = _USE_OTHER_TERMINALS
     elif use_gnome:
         if not which("gnome-terminal"):
-            ctx.abort(msg="debug-command 'gnome' --> No gnome-terminal")
+            ctx.abort(msg="debug-command 'gnome' --> No gnome-terminal, please install gnome-terminal first!")
         t_flag = _USE_GNOME_TERMINAL
 
     # process gdb-scripts
@@ -404,7 +413,7 @@ int {}()
 @click.option('-t', '--use-tmux', '--tmux', "tmux", is_flag=True, show_default=True, help="Use tmux to gdb-debug or not.")
 @click.option('-w', '--use-wsl', '--wsl', "wsl", is_flag=True, show_default=True, help="Use wsl to pop up windows for gdb-debug or not.")
 @click.option('-g', '--use-gnome', '--gnome', "gnome", is_flag=True, show_default=True, help="Use gnome terminal to pop up windows for gdb-debug or not.")
-@click.option('-m', '-am', '--attach-mode', "attach_mode", type=click.Choice(['auto', 'tmux', 'wsl-b', 'wsl-u', 'wsl-o', 'wsl-wt', 'wsl-wts', 'wsl-w']), nargs=1, default='auto', show_default=True, help="Gdb attach mode, wsl: bash.exe | wsl: ubuntu1x04.exe | wsl: open-wsl.exe | wsl: wt.exe wsl.exe")
+@click.option('-m', '-am', '--attach-mode', "attach_mode", type=click.Choice(['auto', 'tmux', 'wsl-b', 'wsl-u', 'wsl-o', 'wsl-wt', 'wsl-wts', 'wsl-w', 'a', 't', 'w', 'wt', 'wts', 'b', 'o', 'u']), nargs=1, default='auto', show_default=True, help="Gdb attach mode, wsl: bash.exe | wsl: ubuntu1x04.exe | wsl: open-wsl.exe | wsl: wt.exe wsl.exe")
 @click.option('-u', '-ug', '--use-gdb', "use_gdb", is_flag=True, show_default=True, help="Use gdb possibly.")
 @click.option('-G', '-gt','--gdb-type', "gdb_type", type=click.Choice(['auto', 'pwndbg', 'gef', 'peda']), nargs=1, default='auto', help="Select a gdb plugin.")
 @click.option('-b', '-gb', '--gdb-breakpoint', "gdb_breakpoint", default=[], type=str, multiple=True, show_default=True, help="Set gdb breakpoints while gdb-debug is used, it should be a hex address or '\$rebase' addr or a function name. Multiple breakpoints are supported.")

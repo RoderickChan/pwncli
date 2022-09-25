@@ -79,7 +79,7 @@ pwncli
 
 建议在`ubuntu`系统上使用`pwncli`，特别的，如果你了解`WSL`并选择使用`WSL`解答`pwn`题，`pwncli + WSL`将是一个极佳的选择。`debug`子命令为`WSL`系统设计了许多实用的参数，并实现了一些有趣的功能。
 
-如果你选择使用`WSL`，那么，请尽量保证发行版的名字(distribution name)为默认的`Ubuntu-16.04/Ubuntu-18.04/Ubuntu-20.04`。`debug`命令的某些选项与默认发行版名称联系紧密。  
+如果你选择使用`WSL`，那么，请尽量保证发行版的名字(distribution name)为默认的`Ubuntu-16.04/Ubuntu-18.04/Ubuntu-20.04/Ubuntu-22.04`。`debug`命令的某些选项与默认发行版名称联系紧密。  
 
 `pwncli`的安装方式有两种，第一种是本地安装(**强烈建议使用此种方式安装**)：
 
@@ -88,7 +88,7 @@ git clone https://github.com/RoderickChan/pwncli.git
 cd ./pwncli
 pip3 install --editable .
 ```
-安装结束后，别忘了将`pwncli`路径添加到`PATH`环境变量，路径一般为`~/.local/bin`, 可以在家目录下的`.bashrc/.zshrc`文件中添加`export PATH=$PATH:/home/xxx/.local/bin`。
+安装结束后，别忘了将`pwncli`所在的路径添加到`PATH`环境变量，其路径一般为`~/.local/bin`。可以在家目录下的`.bashrc/.zshrc`文件中添加`export PATH=$PATH:/home/xxx/.local/bin`。
 
 这种方式安装的好处是：当你需要`pwncli`保持更新时，只需要执行`git pull`即可使用最新版本的`pwncli`。
 
@@ -136,6 +136,7 @@ is_debug  = gift.debug # is debug or not
 is_remote = gift.remote # is remote or not
 gdb_pid   = gift.gdb_pid # gdb pid if debug
 
+# 有时候远程提供的libc与本地不一样，打靶机时替换libc为远程libc
 if gift.remote:
     libc = ELF("./libc.so.6)
     gift['libc'] = libc

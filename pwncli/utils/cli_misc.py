@@ -514,7 +514,7 @@ class CurrentGadgets:
 
 
     @staticmethod
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128, typed=True)
     def find_gadget(find_str : str, find_type='asm', get_list=False) -> int:
         """ type: asm / opcode / string """
         if not CurrentGadgets._initial_ropperbox(): 

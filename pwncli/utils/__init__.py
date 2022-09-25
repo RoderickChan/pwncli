@@ -6,7 +6,7 @@ from pwncli.utils.exceptions import *
 from pwncli.utils.io_file import *
 from pwncli.utils.syscall_num import *
 from pwncli.utils.shellcode import *
-from pwncli.utils.libcbox import LibcBox
+from pwncli.utils.libcbox import *
 from pwncli.utils.gdb_helper import *
 from pwncli.utils.bruteforce import *
 from pwncli.utils.ropperbox import *

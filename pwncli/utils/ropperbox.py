@@ -164,15 +164,15 @@ class RopperBox:
         
         return _l if get_list else _l[0]
 
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128, typed=True)
     def search_gadget(self, search: str, name: str=None, get_list: bool=False) -> Union[List[int], int]:
         return self._inner_search(search, name, "gadget", get_list)
 
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128, typed=True)
     def search_string(self, string: str, name: str=None, get_list: bool=False) -> Union[List[int], int]:
         return self._inner_search(string, name, "string", get_list)
 
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=128, typed=True)
     def search_opcode(self, opcode: str, name: str=None, get_list: bool=False) -> Union[List[int], int]:
         if len(opcode) > 14:
             opcode = opcode[:14]

@@ -255,8 +255,7 @@ def __process_args(ctx, args: _Inner_Dict):
         if ":" not in args['target']:
             ctx.abort("qemu-command --> Target wrong, format is ip:port")
         if args.ip or args.port:
-            ctx.abort(
-                "qemu-command --> Cannot specify ip and port again when target is not None.")
+            ctx.abort("qemu-command --> Cannot specify ip and port again when target is not None.")
         ip, port = args['target'].strip().split(":")
         args.ip = ip
         args.port = int(port)
@@ -265,17 +264,14 @@ def __process_args(ctx, args: _Inner_Dict):
 
     if args.ip and args.port and not args.debug_mode:
         args.remote_mode = True
-        ctx.vlog(
-            "qemu-command --> Open remote mode because the ip and port are all specified.")
+        ctx.vlog("qemu-command --> Open remote mode because the ip and port are all specified.")
 
     if args.debug_mode:
         if args.remote_mode:
-            cxt.abort(
-                "qemu-command --> Cannot open both debug mode and remote mode.")
+            ctx.abort("qemu-command --> Cannot open both debug mode and remote mode.")
 
     if args.remote_mode and not args.filename:
-        ctx.vlog2(
-            "qemu-command --> You need to set context manually otherwise some bugs would occur when you use flat or packing.")
+        ctx.vlog2("qemu-command --> You need to set context manually otherwise some bugs would occur when you use flat or packing.")
 
     if not args.remote_mode and not args.filename:
         ctx.abort("qemu-command --> Please set filename.")

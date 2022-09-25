@@ -12,7 +12,7 @@
 
 from pwnlib.util.hashes import *
 from pwnlib.util.iters import bruteforce, mbruteforce
-from pwncli.utils.misc import errlog_exit
+from .misc import errlog_exit
 from string import printable
 import typing
 

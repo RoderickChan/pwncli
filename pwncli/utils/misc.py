@@ -434,7 +434,7 @@ def float_hexstr2int(data: str or bytes, hexstr=True, endian="little", bits=64):
         errlog_exit("float_hex2int failed, check cmd: \n{}".format(cmd))
         
 
-def generate_payload_for_connect(ip, port):
+def generate_payload_for_connect(ip: str, port: int):
     """connect(socket_fd, buf, 0x10), generate payload of buf
     
     assert len(buf) == 0x10

@@ -10,7 +10,7 @@ setup(
     long_description="pwncli is a tool for pwner, let you pwn quickly and more effeciently.",
     packages=find_packages(),
     include_package_data=True,
-    install_requires=["click", "pwntools", "ropper", "lief", "ROPgadget"],
+    install_requires=["click", "pwntools", "ropper"],
     entry_points="""
         [console_scripts]
         pwncli=pwncli.cli:cli
