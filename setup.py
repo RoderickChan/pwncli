@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pwncli",
-    version="1.2",
+    version="1.3",
     author="roderick chan",
     author_email="ch22166@163.com",
     description="pwncli, do pwn quickly.",
