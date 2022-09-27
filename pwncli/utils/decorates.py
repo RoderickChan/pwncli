@@ -15,7 +15,7 @@ import os
 import signal
 from enum import Enum, unique
 from pwn import remote, process, ELF, tube
-from inspect import signature, _empty
+from inspect import signature
 from .exceptions import PwncliExit
 from typing import List
 from itertools import product

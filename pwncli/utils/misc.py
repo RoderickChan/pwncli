@@ -61,8 +61,11 @@ __all__ = [
     "errlog_exit",
     "errlog_ex_highlight_exit",
     "log_address",
+    "leak",
     "log_address_ex",
+    "leak_ex",
     "log_address_ex2",
+    "leak_ex2",
     "log_libc_base_addr",
     "log_heap_base_addr",
     "log_code_base_addr",
@@ -208,6 +211,7 @@ def log_address(desc:str, address:int):
     """
     log_ex("{} ===> {}".format(desc, hex(address)))
 
+leak = log_address
 
 def log_address_ex(variable_name:str, depth=2):
     """Log address from the variable's name by use of stack frame.
@@ -229,6 +233,7 @@ def log_address_ex(variable_name:str, depth=2):
         assert isinstance(var, int), "The address is not int!"
         log_address(variable_name, var)
 
+leak_ex = log_address_ex
 
 def log_address_ex2(variable: int, depth: int=2):
     """Log address by variable
@@ -250,6 +255,7 @@ def log_address_ex2(variable: int, depth: int=2):
             return
     errlog_exit("Cannot find variable, check your depth!")
 
+leak_ex2 = log_address_ex2
 
 def log_libc_base_addr(address:int):
     log_address("libc_base_addr", address)
