@@ -2,26 +2,15 @@ import os
 import re
 import shlex
 import subprocess
-import sys
+import string
 import tempfile
 
 import click
 from pwn import ELF, atexit, context, process, remote, which
 from pwncli.cli import _Inner_Dict, _set_filename, pass_environ
-from pwncli.utils.config import try_get_config_data_by_key
+from ..utils.config import try_get_config_data_by_key
+from ..utils.misc import _in_tmux, _in_wsl
 
-
-def _in_tmux():
-    return bool('TMUX' in os.environ and which('tmux'))
-
-
-def _in_wsl():
-    if os.path.exists('/proc/sys/kernel/osrelease'):
-        with open('/proc/sys/kernel/osrelease', 'rb') as f:
-            is_in_wsl = b'icrosoft' in f.read()
-        if is_in_wsl and which('wsl.exe') and which("cmd.exe"):
-            return True
-    return False
 
 
 def _set_gdb_type(pwncli_path, gdb_type):
@@ -192,6 +181,23 @@ def __debug_mode(ctx, args: _Inner_Dict):
             args.lib = _arch_usr_map[arch][1]
             ctx.vlog2(
                 "qemu-command --> Set default lib path: {}.".format(args.lib))
+            # find libc
+        if not context.binary.statically_linked:
+            libpath = os.path.join(args.lib, "lib")
+            usefile = ""
+            if os.path.exists(libpath) and os.path.isdir(libpath):
+                for _file in os.listdir(libpath):
+                    if re.search("libc-\d\.\d\d.so", _file, re.I):
+                        usefile = _file
+                        break
+                    elif _file == "libc.so.6":
+                        usefile = _file
+                        break
+                    elif _file == "libc.so":
+                        usefile = _file
+            if usefile:
+                ctx.gift['libc'] = ELF(os.path.join(libpath, usefile), checksec=False)
+
         if not os.path.isdir(args.lib):
             ctx.abort(
                 "qemu-command --> Args lib error, path {} not exists.".format(args.lib))
