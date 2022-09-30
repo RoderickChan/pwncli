@@ -16,6 +16,7 @@
     - [setgdb 二级子命令](#setgdb-二级子命令)
   - [patchelf 子命令](#patchelf-子命令)
   - [qemu 子命令](#qemu-子命令)
+  - [template 子命令](#template-子命令)
 - [依赖库](#依赖库)
 - [截图示例](#截图示例)
     - [pwncli 示例](#pwncli-示例)
@@ -740,13 +741,33 @@ TARGET      可选的    远程攻击时的ip和port，FILENAME和TARGET必须�
 
 ```
 
+## template 子命令
+
+该子命令方便生成各种攻击模板脚本文件，包括使用`pwncli`的命令行模式与脚本模式的攻击脚本，同时还提供了使用原生的`pwntools`需要使用到的模板。模板中定义了本地调试与远程攻击的相关代码，提供了常用的缩写函数，如`sa/sla/r/rl`等。
+
+输入`pwncli template -h` 得到帮助信息：
+
+```
+Usage: pwncli template [OPTIONS] [FILETYPE]
+
+  FILETYPE: The type of exp file
+
+  pwncli template cli
+  pwncli template lib
+  pwncli template pwn
+
+Options:
+  -h, --help  Show this message and exit.
+```
+
+其中，`cli`类型模板会使用`pwncli`的脚本模式，`lib`类型模板会使用库模式，`pwn`类型模板直接使用原始的`pwntools`来构建而不会使用`pwncli`。
+
 # 依赖库
 
 `pwncli`的依赖库清单如下所示：
 
 ```
-click  
-lief  
+click   
 ropper  
 pwntools  
 ```
