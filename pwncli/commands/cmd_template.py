@@ -14,6 +14,7 @@ import click
 import subprocess
 from datetime import datetime
 from pwncli.cli import pass_environ
+from ..utils.misc import one_gadget
 
 def _which(p):
     return os.system("which " + p + " >/dev/null 2>&1") == 0
@@ -25,8 +26,6 @@ def generate_cli_exp(ctx, directory):
 # Usage:
 #     Debug : python3 exp.py debug elf-file-path -t -b malloc
 #     Remote: python3 exp.py remote elf-file-path ip:port
-#     Qemu  : python3 exp.py qemu ./pwn --tmux
-#     Qemu  : python3 exp.py qemu ./pwn -L ./libs --tmux
 
 from pwncli import *
 cli_script()
@@ -36,6 +35,7 @@ io: tube = gift.io
 elf: ELF = gift.elf
 libc: ELF = gift.libc
 
+# one_gadgets: list = get_current_one_gadget_from_libc(more=False)
 CurrentGadgets.set_find_area(find_in_elf=True, find_in_libc=False, do_initial=False)
 
 def cmd(i, prompt):
@@ -60,7 +60,7 @@ def dele():
 
 ia()
 """
-    exp_path = os.path.join(directory, "exp.py")
+    exp_path = os.path.join(directory, "exp_cli.py")
     if os.path.exists(exp_path):
         res = input("[*] {} exists, continue to overwrite? [y/n] ".format(exp_path))
         if res.lower().strip() != "y":
@@ -91,10 +91,10 @@ ia()
         f.write(content)
     
     subprocess.run(["chmod", "+x", exp_path])
-    ctx.vlog("template-command --> Generate exp file: {}".format(exp_path))
+    ctx.vlog("template-command --> Generate cli mode exp file: {}".format(exp_path))
 
 
-def generate_nocli_exp(ctx, directory):
+def generate_lib_exp(ctx, directory):
     content = """#!/usr/bin/env python3
 # Date: {}
 # Link: https://github.com/RoderickChan/pwncli
@@ -115,13 +115,14 @@ io: tube = gift.io
 elf: ELF = gift.elf
 libc: ELF = gift.libc
 
+# one_gadgets: list = get_current_one_gadget_from_libc(more=False)
+CurrentGadgets.set_find_area(find_in_elf=True, find_in_libc=False, do_initial=False)
+
 def debug(gdbscript="", stop=False):
     if isinstance(io, process):
         if stop:
             pause()
         gdb.attach(io, gdbscript=gdbscript)
-
-CurrentGadgets.set_find_area(find_in_elf=True, find_in_libc=False, do_initial=False)
 
 def cmd(i, prompt):
     sla(prompt, i)
@@ -145,7 +146,7 @@ def dele():
 
 ia()
 """
-    exp_path = os.path.join(directory, "exp_nocli.py")
+    exp_path = os.path.join(directory, "exp_lib.py")
     if os.path.exists(exp_path):
         res = input("[*] {} exists, continue to overwrite? [y/n] ".format(exp_path))
         if res.lower().strip() != "y":
@@ -185,7 +186,7 @@ ia()
         f.write(content)
     
     subprocess.run(["chmod", "+x", exp_path])
-    ctx.vlog("template-command --> Generate nocli exp file: {}".format(exp_path))
+    ctx.vlog("template-command --> Generate lib mode exp file: {}".format(exp_path))
 
 
 def generate_pwn_exp(ctx, directory):
@@ -203,6 +204,7 @@ io = process('{}')
 # io = remote('127.0.0.1', 13337)
 elf = ELF('{}')
 libc = ELF('{}')
+{}
 
 def debug(gdbscript="", stop=False):
     if isinstance(io, process):
@@ -290,8 +292,12 @@ ia()
         terminal = ""
     
     current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    content = content.format(current_time, terminal, elf_file, elf_file, elf_file, libc_file)
+    onegagets = ""
+    if libc_file and _which("one_gadget"):
+        _og = one_gadget(libc_file, more=False)
+        _og = "[" + ", ".join([hex(x) for x in _og]) + "]"
+        onegagets = "one_gadgets = " + _og
+    content = content.format(current_time, terminal, elf_file, elf_file, elf_file, libc_file, onegagets)
     with open(exp_path, "wt", encoding="utf-8") as f:
         f.write(content)
     
@@ -305,22 +311,22 @@ ia()
 @pass_environ
 def cli(ctx, filetype):
     """
-    FILETYPE: cli/nocli
+    FILETYPE: The type of exp file
 
     \b
     pwncli template cli
-    pwncli template nocli
+    pwncli template lib
     pwncli template pwn
     """
     ctx.verbose = 2
     if not ctx.fromcli:
-        ctx.abort("template-command --> Please use the command in cli instead of a script!")
+        ctx.abort("template-command --> Please use the command in cli instead of a lib!")
     
-    if filetype == "nocli":
-        generate_nocli_exp(ctx, ".")
-    elif filetype == "pwn":
+    if filetype == "lib" or (filetype and "lib".startswith(filetype)):
+        generate_lib_exp(ctx, ".")
+    elif filetype == "pwn" or (filetype and "pwn".startswith(filetype)):
         generate_pwn_exp(ctx, ".")
     else:
-        if filetype and filetype != "cli":
-            ctx.abort("template-command --> The choice of filetype is ['cli', 'nocli', 'pwn']!")
+        if filetype and not "cli".startswith(filetype):
+            ctx.abort("template-command --> The choice of filetype is ['cli', 'lib', 'pwn']!")
         generate_cli_exp(ctx, ".")
