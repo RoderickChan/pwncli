@@ -323,7 +323,7 @@ def one_gadget(condition:str, more=False, buildid=False):
 
 
 def one_gadget_binary(binary_path:str, more=False) -> int:
-    """Get all one_gadget about a elf binary file.
+    """Get all one_gadget about an elf binary file.
 
     """
     binary_path = os.path.realpath(binary_path)
