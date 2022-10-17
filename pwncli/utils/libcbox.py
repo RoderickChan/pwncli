@@ -12,7 +12,7 @@
 import re
 import shutil
 import tempfile
-from time import sleep
+from time import sleep, time
 import requests
 import json
 import threading
@@ -117,22 +117,33 @@ class LibcBox:
     
     def __download_resources(self, key, mode, redownload):
         url = self._res[key]
-        fn = os.path.join(self._tmp_dir, url.split("/")[-1])
+        dname = url.split("/")[-1]
+        fn = os.path.join(self._tmp_dir, dname)
         if os.path.exists(fn) and (not redownload):
             self._log("{} exists in current directory, it would not be downloaded again!".format(fn))
             return
         
-        self._log("start to download {}...".format(key))
+        self._log("start to download {}...".format(dname))
         if mode == "t":
+            tt1 = time()
             r = requests.get(url)
             with open(fn, "w", encoding='utf-8') as f:
                 f.write(r.text)
+                tt2 = time()
+                self._log("Download {}: {} KB".format(dname, round(len(r.text) / 1024, 3)))
+                self._log("Download {} success! Time used: {} s. Speed: {} KB/s.".format(dname, round(tt2 - tt1, 3), round(len(r.text) / 1024 / round(tt2 - tt1, 3), 3)))
         elif mode == 'b':
+            bcount = 0
+            tt1 = time()
             r = requests.get(url, stream=True)
             with open(fn, "wb") as f:
-                for chunk in r.iter_content(4096):
+                for chunk in r.iter_content(0x40000):
                     if chunk:
                         f.write(chunk)
+                        bcount += len(chunk)
+                        self._log("Download {}: {} KB".format(dname, round(bcount / 1024, 3)))
+            tt2 = time()
+            self._log("Download {} success! Time used: {} s. Speed: {} KB/s.".format(dname, round(tt2 - tt1, 3), round(bcount / 1024 / round(tt2 - tt1, 3), 3)))
 
 
     def __download_async(self, download_symbols, download_so, download_deb, redownload, load_gadgets):
@@ -155,7 +166,7 @@ class LibcBox:
             name = self._res['symbols_url'].split("/")[-1]
             fn   = os.path.join(self._tmp_dir, name)
             shutil.copyfile(fn, name)
-            self._log("Download {} success!".format(name))
+            
             if os.path.exists(fn):
                 with open(fn, "r", encoding="utf-8") as f:
                     self._symbols = f.read()
@@ -164,13 +175,11 @@ class LibcBox:
             name = self._res['download_url'].split("/")[-1]
             fn   = os.path.join(self._tmp_dir, name)
             shutil.copyfile(fn, name)
-            self._log("Download {} success!".format(name))
 
         if download_deb:
             name = self._res['libs_url'].split("/")[-1]
             fn   = os.path.join(self._tmp_dir, name)
             shutil.copyfile(fn, name)
-            self._log("Download {} success!".format(name))
 
         if load_gadgets:
             self._log("start to load gadget...")
