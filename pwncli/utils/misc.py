@@ -73,10 +73,12 @@ __all__ = [
     "one_gadget",
     "one_gadget_binary",
     "u16_ex",
+    "u24_ex",
     "u32_ex",
     "u64_ex",
     "p8_ex",
     "p16_ex",
+    "p24_ex",
     "p32_ex",
     "p64_ex",
     "p32_float",
@@ -335,7 +337,7 @@ def one_gadget_binary(binary_path:str, more=False) -> int:
 
 
 #--------------------------------usefule function------------------------------
-def u16_ex(data: str or bytes):
+def u16_ex(data: str or bytes) -> int:
     assert isinstance(data, (str, bytes)), "wrong data type!"
     length = len(data)
     assert length <= 2, "len(data) > 2!"
@@ -345,7 +347,17 @@ def u16_ex(data: str or bytes):
     return unpack(data, 16)
 
 
-def u32_ex(data: str or bytes):
+def u24_ex(data: str or bytes) -> int:
+    assert isinstance(data, (str, bytes)), "wrong data type!"
+    length = len(data)
+    assert length <= 3, "len(data) > 3!"
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    data = data.ljust(3, b"\x00")
+    return unpack(data, 24)
+
+
+def u32_ex(data: str or bytes) -> int:
     assert isinstance(data, (str, bytes)), "wrong data type!"
     length = len(data)
     assert length <= 4, "len(data) > 4!"
@@ -355,7 +367,7 @@ def u32_ex(data: str or bytes):
     return unpack(data, 32)
     
 
-def u64_ex(data: str or bytes):
+def u64_ex(data: str or bytes) -> int:
     length = len(data)
     assert length <= 8, "len(data) > 8!"
     assert isinstance(data, (str, bytes)), "wrong data type!"
@@ -365,22 +377,36 @@ def u64_ex(data: str or bytes):
     return unpack(data, 64)
 
 
-def p8_ex(num:int):
+def p8_ex(num:int) -> bytes:
+    if num < 0:
+        num += 1 << 8
     num &= 0xff
     return pack(num, word_size=8)
 
 
-def p16_ex(num:int):
+def p16_ex(num:int) -> bytes:
+    if num < 0:
+        num += 1 << 16
     num &= 0xffff
     return pack(num, word_size=16)
 
 
-def p32_ex(num:int):
+def p24_ex(num: int) -> bytes:
+    if num < 0:
+        num += 1 << 24
+    num &= 0xffff
+    return pack(num, word_size=24)
+
+def p32_ex(num:int) -> bytes:
+    if num < 0:
+        num += 1 << 32
     num &= 0xffffffff
     return pack(num, word_size=32)
 
 
-def p64_ex(num:int):
+def p64_ex(num:int) -> bytes:
+    if num < 0:
+        num += 1 << 64
     num &= 0xffffffffffffffff
     return pack(num, word_size=64)
 
@@ -394,7 +420,7 @@ def p32_float(num:float, endian="little") -> bytes:
         raise RuntimeError("Wrong endian!")
         
 
-def p64_float(num:float, endian="little"):
+def p64_float(num:float, endian="little") -> bytes:
     if endian.lower() == "little":
         return struct.pack("<d", num)
     elif endian.lower() == "big":
@@ -403,7 +429,7 @@ def p64_float(num:float, endian="little"):
         raise RuntimeError("Wrong endian!")
 
 
-def float_hexstr2int(data: str or bytes, hexstr=True, endian="little", bits=64):
+def float_hexstr2int(data: str or bytes, hexstr=True, endian="little", bits=64) -> int:
     """float_hex2int('0x0.07f6d266e9fbp-1022') ---> 140106772946864"""
     endian = endian.lower()
     assert endian in ("little", "big"), "only little or big for endian!"
@@ -440,7 +466,7 @@ def float_hexstr2int(data: str or bytes, hexstr=True, endian="little", bits=64):
         errlog_exit("float_hex2int failed, check cmd: \n{}".format(cmd))
         
 
-def generate_payload_for_connect(ip: str, port: int):
+def generate_payload_for_connect(ip: str, port: int) -> bytes:
     """connect(socket_fd, buf, 0x10), generate payload of buf
     
     assert len(buf) == 0x10
