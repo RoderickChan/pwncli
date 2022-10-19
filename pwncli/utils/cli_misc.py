@@ -10,6 +10,8 @@ from .misc import get_callframe_info, log_ex, log2_ex, errlog_exit, log_code_bas
 from pwn import flat, asm, ELF, process, remote
 from .ropperbox import RopperBox, RopperArchType
 from .decorates import deprecated
+from .syscall_num import SyscallNumber
+
 
 __all__ = [
     "stop",
@@ -660,134 +662,87 @@ class CurrentGadgets:
             return [CurrentGadgets.pop_rdx_rbx_ret(), rdx_val, rbx_val]
 
     @staticmethod
-    def execve_chain(bin_sh_addr=None) -> bytes:
+    def __inner_chain(i386_num, syscall_num, para1, para2=None, para3=None) -> bytes:
         if not CurrentGadgets._initial_ropperbox():
             return None
-        
         if CurrentGadgets.__arch == "i386":
+            if para1 < 0:
+                para1 += 1 << 32
             layout = [
                 CurrentGadgets.pop_rbx_ret(),
-                bin_sh_addr or CurrentGadgets.bin_sh(),
-                CurrentGadgets.pop_rcx_ret(),
-                0,
-                CurrentGadgets.__try_get_rdx_gadget(0, bin_sh_addr or CurrentGadgets.bin_sh()),
-                CurrentGadgets.pop_rax_ret(),
-                0xb,
-                CurrentGadgets.syscall()
-            ]
+                para1
+                ]
+            if para2 is not None:
+                layout.append(CurrentGadgets.pop_rcx_ret())
+                layout.append(para2)
+
+            if para3 is not None:
+                layout.append(CurrentGadgets.__try_get_rdx_gadget(para3, para1))
+            
+            layout.append(CurrentGadgets.pop_rax_ret())
+            layout.append(i386_num)
+            layout.append(CurrentGadgets.syscall_ret())
+
         elif CurrentGadgets.__arch == "amd64":
+            if para1 < 0:
+                para1 += 1 << 64
             layout = [
                 CurrentGadgets.pop_rdi_ret(),
-                bin_sh_addr or CurrentGadgets.bin_sh(),
-                CurrentGadgets.pop_rsi_ret(),
-                0,
-                CurrentGadgets.__try_get_rdx_gadget(0),
-                CurrentGadgets.pop_rax_ret(),
-                0x3b,
-                CurrentGadgets.syscall()
-            ]
+                para1
+                ]
+            if para2 is not None:
+                layout.append(CurrentGadgets.pop_rsi_ret())
+                layout.append(para2)
+            
+            if para3 is not None:
+                layout.append(CurrentGadgets.__try_get_rdx_gadget(para3))
+            
+            layout.append(CurrentGadgets.pop_rax_ret())
+            layout.append(syscall_num)
+            layout.append(CurrentGadgets.syscall_ret())
         else:
             errlog_exit("Unsupported arch: {}".format(CurrentGadgets.__arch))
-        
-        return flat(layout)
+
+    @staticmethod
+    def syscall_chain(syscall_num, para1, para2=None, para3=None) -> bytes:
+        return CurrentGadgets.__inner_chain(syscall_num, syscall_num, para1, para2, para3)
+
+    @staticmethod
+    def execve_chain(bin_sh_addr=None) -> bytes:
+        return CurrentGadgets.__inner_chain(SyscallNumber.i386.EXECVE, SyscallNumber.amd64.EXECVE, bin_sh_addr or CurrentGadgets.bin_sh(), 0, 0)
 
     @staticmethod
     def mprotect_chain(va, length=0x1000, prog=7) -> bytes:
-        if not CurrentGadgets._initial_ropperbox():
-            return None
-        
-        if CurrentGadgets.__arch == "i386":
-            layout = [
-                CurrentGadgets.pop_rbx_ret(),
-                va,
-                CurrentGadgets.pop_rcx_ret(),
-                length,
-                CurrentGadgets.__try_get_rdx_gadget(prog, va),
-                CurrentGadgets.pop_rax_ret(),
-                125,
-                CurrentGadgets.syscall()
-            ]
-        elif CurrentGadgets.__arch == "amd64":
-            layout = [
-                CurrentGadgets.pop_rdi_ret(),
-                va,
-                CurrentGadgets.pop_rsi_ret(),
-                length,
-                CurrentGadgets.__try_get_rdx_gadget(prog),
-                CurrentGadgets.pop_rax_ret(),
-                10,
-                CurrentGadgets.syscall()
-            ]
-        else:
-            errlog_exit("Unsupported arch: {}".format(CurrentGadgets.__arch))
-        
-        return flat(layout)
+        return CurrentGadgets.__inner_chain(SyscallNumber.i386.MPROTECT, SyscallNumber.amd64.MPROTECT, va, length, prog)
+
+    @staticmethod
+    def open_chain(fileaddr, flag=0, mode=None) -> bytes:
+        return CurrentGadgets.__inner_chain(SyscallNumber.i386.OPEN, SyscallNumber.amd64.OPEN, fileaddr, flag, mode)
+
+    @staticmethod
+    def openat_chain(fileaddr, flag=0) -> bytes:
+        return CurrentGadgets.__inner_chain(SyscallNumber.i386.OPENAT, SyscallNumber.amd64.OPENAT, -100, fileaddr, flag)
+
+    @staticmethod
+    def read_chain(fd, buf, length) -> bytes:
+        return CurrentGadgets.__inner_chain(SyscallNumber.i386.READ, SyscallNumber.amd64.READ, fd, buf, length)
+
+    @staticmethod
+    def write_chain(fd, buf, length) -> bytes:
+        return CurrentGadgets.__inner_chain(SyscallNumber.i386.WRITE, SyscallNumber.amd64.WRITE, fd, buf, length)
+
 
     @staticmethod
     def orw_chain(flag_addr, buf_addr=None, flag_fd=3, write_fd=1, buf_len=0x30) -> bytes:
-        if not CurrentGadgets._initial_ropperbox():
-            return None
-        
-        if not buf_addr:
-            buf_addr = flag_addr
-        
-        if CurrentGadgets.__arch == "i386":
-            layout = [
-                # open
-                CurrentGadgets.pop_rbx_ret(),
-                flag_addr,
-                CurrentGadgets.pop_rcx_ret(),
-                0,
-                CurrentGadgets.pop_rax_ret(),
-                5,
-                CurrentGadgets.syscall_ret(),
-                # read
-                CurrentGadgets.pop_rbx_ret(),
-                flag_fd,
-                CurrentGadgets.pop_rcx_ret(),
-                buf_addr,
-                CurrentGadgets.__try_get_rdx_gadget(buf_len, flag_fd),
-                CurrentGadgets.pop_rax_ret(),
-                3,
-                CurrentGadgets.syscall_ret(),
-                # write
-                CurrentGadgets.pop_rbx_ret(),
-                write_fd,
-                CurrentGadgets.pop_rax_ret(),
-                4,
-                CurrentGadgets.syscall_ret(),
-            ]
-        elif CurrentGadgets.__arch == "amd64":
-            layout = [
-                # open
-                CurrentGadgets.pop_rdi_ret(),
-                flag_addr,
-                CurrentGadgets.pop_rsi_ret(),
-                0,
-                CurrentGadgets.pop_rax_ret(),
-                2,
-                CurrentGadgets.syscall_ret(),
-                # read
-                CurrentGadgets.pop_rdi_ret(),
-                flag_fd,
-                CurrentGadgets.pop_rsi_ret(),
-                buf_addr,
-                CurrentGadgets.__try_get_rdx_gadget(buf_len),
-                CurrentGadgets.pop_rax_ret(),
-                0x0,
-                CurrentGadgets.syscall_ret(),
-                # write
-                CurrentGadgets.pop_rdi_ret(),
-                write_fd,
-                CurrentGadgets.pop_rax_ret(),
-                0x1,
-                CurrentGadgets.syscall_ret(),
-            ]
-        else:
-            errlog_exit("Unsupported arch: {}".format(CurrentGadgets.__arch))
-        
-        return flat(layout)
+        return CurrentGadgets.open_chain(flag_addr) + \
+            CurrentGadgets.read_chain(flag_fd, buf_addr or flag_addr, buf_len) + \
+            CurrentGadgets.write_chain(write_fd, buf_addr or flag_addr, buf_len)
 
+    @staticmethod
+    def otrw_chain(flag_addr, buf_addr=None, flag_fd=3, write_fd=1, buf_len=0x30) -> bytes:
+        return CurrentGadgets.openat_chain(flag_addr) + \
+            CurrentGadgets.read_chain(flag_fd, buf_addr or flag_addr, buf_len) + \
+            CurrentGadgets.write_chain(write_fd, buf_addr or flag_addr, buf_len)
 
     @staticmethod
     def write_by_magic(write_addr: int, ori: int, expected: int) -> bytes:

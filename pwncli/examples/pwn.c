@@ -18,6 +18,7 @@ void vuln()
 void main()
 {
 	setbuf(stdout, 0);
+	malloc(0x100);
 	char name[0x10] = {0};
 	puts("read your name: ");
 	read(0, name, 0x10);

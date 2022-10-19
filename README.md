@@ -160,16 +160,17 @@ context.arch="amd64"
 io = process("./pwn")
 
 # 如你需要根据偏移搜索libc版本与其他函数
-# 该功能与LibcSearcher类似
+# 该功能与LibcSearcher类似，但不需要本地安装，需要联网使用
 libc_box = LibcBox()
 libc_box.add_symbol("system", 0x640)
 libc_box.add_symbol("puts", 0x810)
-libc_box.search(download_symbols=False, download_so=False, download_libs=True)
+libc_box.search(download_symbols=False, download_so=False, download_libs=True) # 是否下载到本地
 read_offset = libc_box.dump("read")
 
 # 根据pid获取程序的libc基地址
 res = get_segment_base_addr_by_proc_maps(pid=10150)
 libc_base = res['libc']
+heap_base = get_current_heapbase_addr() # 仅用于本地调试
 
 # 获取shellcode
 cat_flag = ShellcodeMall.amd64.cat_flag
@@ -181,11 +182,51 @@ reverse_tcp = ShellcodeMall.amd64.reverse_tcp_connect(ip="127.0.0.1", port=10001
 def add():
     pass
 
+# 若该函数10s内都没有运行结束，就会抛出异常
+@stopwatch(10)
+def del_():
+  pass
+
+# api不再使用
+@unused
+def wtf():
+  pass
+
 # 搜索gadget
 ropper_box = RopperBox()
 ropper_box.add_file("libc", "libc.so.6", arch=RopperArchType.x86_64)
 pop_rdi_ret = ropper_box.get_pop_rdi_ret()
 leav_ret = ropper_box.search_gadget("leave; ret")
+
+# 构造IO_FILE结构体
+fake_file = IO_FILE_plus_struct()
+fake_file.flags = 0xfbad1887
+fake_file._mode = 1
+fake_file.vtable = 0xdeadbeef
+payload = bytes(fake_file)
+
+# 替换payload
+payload = "aaaabbbbcccc"
+new_payload = payload_replace(payload, {4: "eeee"}) # aaaaeeeecccc
+
+
+# 获取当前装载的libc的gadget
+all_ogs = get_current_one_gadget_from_libc()
+
+
+# 封装当前io的常用操作函数
+# sendline
+sl("data")
+# sendafter
+sa("\n", "data)
+
+
+# 直接使用当前gadget
+CurrentGadgets.set_find_area(find_in_elf=True, find_in_libc=False, do_initial=False)
+
+pop_rdi_ret = CurrentGadgets.pop_rdi_ret()
+
+execve_chain = CurrentGadgets.execve_chain(bin_sh_addr=0x11223344)
 
 # pwncli中还有许多其他实用的接口
 # ......

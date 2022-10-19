@@ -130,3 +130,6 @@ dmypy.json
 
 # test
 test/
+
+.gdb_history
+core
