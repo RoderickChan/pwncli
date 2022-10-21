@@ -19,9 +19,9 @@ import re
 import string
 import tempfile
 from pwncli.utils.config import try_get_config_data_by_key
-from pwncli.cli import pass_environ, _set_filename
+from pwncli.cli import pass_environ, _set_filename, _Inner_Dict
 from pwncli.utils.misc import ldd_get_libc_path, _in_tmux, _in_wsl, _get_gdb_plugin_info
-from pwncli.utils.cli_misc import CurrentGadgets
+from pwncli.utils.cli_misc import CurrentGadgets, get_current_codebase_addr, get_current_libcbase_addr
 
 _NO_TERMINAL = 0
 _USE_TMUX = 1
@@ -219,6 +219,11 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
         if attach_mode == _k:
             attach_mode = _v
     
+    if attach_mode == "auto":
+        if try_get_config_data_by_key(ctx.config_data, "debug", "attach_mode"):
+            attach_mode = try_get_config_data_by_key(ctx.config_data, "debug", "attach_mode")
+            assert(attach_mode in (['auto', 'tmux', 'wsl-b', 'wsl-u', 'wsl-o', 'wsl-wt', 'wsl-wts', 'wsl-w'])), "wrong config of 'attach_mode'"
+            
     if attach_mode.startswith('wsl'):
         use_wsl = True
 
@@ -242,14 +247,16 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
     # process gdb-scripts
     is_file = False
     script = ''
+    
     if gdb_script:
-        if os.path.isfile(gdb_script):
+        if os.path.isfile(gdb_script) and os.path.exists(gdb_script):
             is_file = True
         else:
             script = gdb_script.strip().replace(';', '\n') + '\n'
     if gdb_breakpoint and len(gdb_breakpoint) > 0:
         for gb in gdb_breakpoint:
-            if gb.startswith('0x') or gb.isdecimal() or all(c in string.hexdigits for c in gb):
+            gb = gb.replace(" ", "")
+            if gb.startswith(('0x', "0X")) or gb.isdecimal():
                 script += 'b *{}\n'.format(gb)
             elif gb.startswith(('$rebase(', '$_base(')):
                 fi = gb.index('(')
@@ -257,26 +264,17 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
                 script += "b *###({})\n".format(gb[fi+1: bi])
             elif gb.startswith('base+'):
                 script += "b *###({})\n".format(gb[5:])
+            elif gb.startswith('bin+'):
+                script += "b *###({})\n".format(gb[4:])
             elif gb.startswith('b+'):
                 script += "b *###({})\n".format(gb[2:])
+            elif gb.startswith('+'):
+                script += "b *###({})\n".format(gb[:])
+            elif "+" in gb:
+                script += "b *####{}####\n".format(gb)
             else:
                 script += 'b {}\n'.format(gb)
-    script += 'c\n'
-    gdb_type_change_flag = 0
-    if gdb_type == "auto":
-        gdb_type = _get_gdb_plugin_info()
-        gdb_type_change_flag = 1
-    
-    if gdb_type == 'pwndbg':
-        script = script.replace("###", "$rebase")
-    elif gdb_type == "gef":
-        script = script.replace("###(", "($_base()+")
-    else:
-        if "###" in script:
-            ctx.abort(msg="debug-command 'gdb breakpoint' --> Cannot set base bp in peda or original gdb.")
 
-    if gdb_type_change_flag:
-        gdb_type = 'auto'
 
     # if gdb_script is file, then open it
     if is_file:
@@ -286,12 +284,11 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
             os.close(tmp_fd)
             register(lambda x: os.unlink(x), tmp_gdb_script)
             with open(tmp_gdb_script, 'wt', encoding='utf-8') as f:
-                f.write(script +"\n")
                 with open(gdb_script, "rt", encoding='utf-8') as f2:
-                    f.write(f2.read() + "\n")
+                    script += f2.read()
+                f.write(script +"\n")
             gdb_script = tmp_gdb_script
-        script = open(gdb_script, "r", encoding="utf-8")
-    
+
     if env:
         env = _parse_env(ctx, env)
         if not env:
@@ -314,13 +311,17 @@ void pause_before_main()
 }}
                 """
             for __func in hook_function:
-                print(__func)
+                _func_retval = 0
+                if ":" in __func:
+                    __func, _func_retval = __func.split(":")
+                elif "=" in __func:
+                    __func, _func_retval = __func.split("=")
                 file_content += """
 int {}()
 {{
-    return 0;
+    return {};
 }}
-                """.format(__func)
+                """.format(__func, _func_retval)
             _, tmp_path = tempfile.mkstemp(suffix=".c", text=True)
             with open(tmp_path, "w", encoding="utf-8") as tem_f:
                 tem_f.write(file_content)
@@ -341,26 +342,84 @@ int {}()
             ctx.verrlog(msg="debug-command 'pause_before_main' --> Cannot find gcc in PATH.")
 
     # set binary
-    
     ctx.gift['io'] = context.binary.process(argv, timeout=ctx.gift['context_timeout'], env=env)
+    ctx.gift['_elf_base'] = get_current_codebase_addr()
+    if not ctx.gift['elf'].statically_linked:
+        rp = None
+        if env and "LD_PRELOAD" in env:
+            for rp_ in env["LD_PRELOAD"].split(";"):
+                if "libc" in rp_:
+                    rp = rp_
+                    break
+
+        if not rp:
+            rp = ldd_get_libc_path(filename)
+
+        if rp:
+            ctx.gift['libc'] = ELF(rp, checksec=False)
+            ctx.gift['libc'].address = 0
+            ctx.gift['_libc_base'] = get_current_libcbase_addr()
+        else:
+            ctx.gift['libc'] = ctx.gift['io'].libc
+            ctx.gift['_libc_base'] = ctx.gift['libc'].address
+            ctx.gift['libc'].address = 0
+            ctx.vlog2('debug-command --> ldd cannot find the libc.so.6 or libc-2.xx.so, and rename your libc file to "libc.so.6" if you add it to LD_PRELOAD')
+        
     ctx.vlog('debug-command --> Set process({}, argv={}, env={})'.format(filename, argv, env))
     
-    rp = None
-    if env and "LD_PRELOAD" in env:
-        for rp_ in env["LD_PRELOAD"].split(";"):
-            if "libc" in rp_:
-                rp = rp_
-                break
-
-    if not rp:
-        rp = ldd_get_libc_path(filename)
-
-    if rp:
-        ctx.gift['libc'] = ELF(rp, checksec=False)
-        ctx.gift['libc'].address = 0
-    else:
-        ctx.vlog2('debug-command --> ldd cannot find the libc.so.6 or libc-2.xx.so, and rename your libc file to "libc.so.6" if you add it to LD_PRELOAD')
+    # set base address for gdbscript
+    if "####" in script:
+        ctx.gift['_elf_base'] = get_current_codebase_addr()
+        _pattern = "####([\d\w\+]+)####"
+        _script = script
+        _result = ""
+        for _match in re.finditer(_pattern, script, re.I):
+            _expr = _match.groups()[0]
+            _sym, _off = _expr.split("+")
+            
+            if _off.startswith(("0x", "0X")):
+                _off = int(_off, base=16)
+            elif _num.isdigit():
+                _off = int(_off, base=10)
+            elif all(c in string.hexdigits for c in _num):
+                _off = int(_off, base=16)
+            else:
+                _off = 0
+            
+            if _sym in ctx.gift.libc.sym:
+                _result = hex(ctx.gift['_libc_base'] + ctx.gift.libc.sym[_sym]+ _off)
+            elif _sym in ctx.gift.elf.sym:
+                _result = hex(ctx.gift['_elf_base'] + ctx.gift.elf.sym[_sym] + _off)
+            
+            _script = _script.replace("####{}####".format(_expr), _result)
+        script = _script
     
+    if "###" in script:
+        _pattern = "###\(([0-9a-fx]+)\)"
+        _script = script
+        for _match in re.finditer(_pattern, script, re.I):
+            _num = _match.groups()[0]
+            _result = ""
+            if _num.startswith(("0x", "0X")):
+                _result = hex(ctx.gift['_elf_base'] + int(_num, base=16))
+            elif _num.isdigit():
+                _result = hex(ctx.gift['_elf_base'] + int(_num, base=10))
+            elif all(c in string.hexdigits for c in _num):
+                _result = hex(ctx.gift['_elf_base'] + int(_num, base=16))
+            else:
+                ctx.verrlog(msg="debug-command 'set gdbscript' --> Not a valid address in gdbscript: {}.".format(_num))
+
+            _script = _script.replace("###({})".format(_num), _result)
+        script = _script
+
+    if script:
+        script += "c\n"
+        ctx.vlog("debug-command 'gdbscript content':\n{}\n{}{}\n".format("="*20, script, "="*20))
+        if is_file: # 更新gdb file
+            with open(gdb_script, "wt", encoding="utf-8") as _f:
+                _f.write(script)
+
+
     # set gdb-type
     if t_flag == _NO_TERMINAL and gdb_type != "auto":
         if _in_tmux():
@@ -406,7 +465,7 @@ int {}()
 @click.command(name='debug', short_help="Debug the pwn file locally.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.option('--argv', type=str, default=None, required=False, show_default=True, help="Argv for process.")
-@click.option("-e", '--set-env', "--env", "env", type=str, default=None, required=False, help="The env setting for process, such as LD_PRELOAD setting, split using ',' or ';', assign using '=' or ':'.")
+@click.option("-e", '--set-env', "--env", "env", type=str, default=None, required=False, help="The env setting for process, such as LD_PRELOAD setting, split using ',' or ';', assign using ':'.")
 @click.option('-p', '--pause', '--pause-before-main', "pause_before_main", is_flag=True, show_default=True, help="Pause before main is called or not, which is helpful for gdb attach.")
 @click.option('-f', '-hf','--hook-file', "hook_file", type=str,  default=None, required=False, help="Specify a hook.c file, where you write some functions to hook.")
 @click.option('-H', '-HF', '--hook-function', "hook_function", default=[], type=str, multiple=True, show_default=True, help="The functions you want to hook would be out of work.")
@@ -430,6 +489,7 @@ def cli(ctx, verbose, filename, argv, env,
     \b
     Debug in tmux:
         python3 exp.py debug ./pwn --tmux --gdb-breakpoint malloc -gb 0x400789
+        python3 exp.py debug ./pwn --tmux --env LD_PRELOAD:./libc-2.27.so
     """
     ctx.vlog("Welcome to use pwncli-debug command~")
     if not ctx.verbose:
@@ -437,23 +497,28 @@ def cli(ctx, verbose, filename, argv, env,
     if verbose:
         ctx.vlog("debug-command --> Open 'verbose' mode")
 
+    args = _Inner_Dict()
+    args.filename = filename
+    args.argv = argv
+    args.env = env
+    args.gdb_breakpoint = gdb_breakpoint
+    args.gdb_script = gdb_script
+    args.tmux = tmux
+    args.wsl = wsl
+    args.gnome = gnome
+    args.attach_mode = attach_mode
+    args.use_gdb = use_gdb
+    args.gdb_type = gdb_type
+    args.pause_before_main = pause_before_main
+    args.hook_file = hook_file
+    args.hook_function = hook_function
+    args.no_log = no_log
+    args.no_stop = no_stop
+
+
     # log verbose info
-    ctx.vlog("debug-command --> Get 'filename': {}".format(filename))
-    ctx.vlog("debug-command --> Get 'argv': {}".format(argv))
-    ctx.vlog("debug-command --> Get 'env': {}".format(env))
-    ctx.vlog("debug-command --> Get 'pause_before_main': {}".format(pause_before_main))
-    ctx.vlog("debug-command --> Get 'hook_file': {}".format(hook_file))
-    ctx.vlog("debug-command --> Get 'hook_function': {}".format(hook_function))
-    ctx.vlog("debug-command --> Get 'no-log': {}".format(no_log))
-    ctx.vlog("debug-command --> Get 'no-stop': {}".format(no_stop))
-    ctx.vlog("debug-command --> Get 'tmux': {}".format(tmux))
-    ctx.vlog("debug-command --> Get 'wsl': {}".format(wsl))
-    ctx.vlog("debug-command --> Get 'gnome': {}".format(gnome))
-    ctx.vlog("debug-command --> Get 'attach_mode': {}".format(attach_mode))
-    ctx.vlog("debug-command --> Get 'use_gdb': {}".format(use_gdb))
-    ctx.vlog("debug-command --> Get 'gdb_type': {}".format(gdb_type))
-    ctx.vlog("debug-command --> Get 'gdb_breakpoint': {}".format(gdb_breakpoint))
-    ctx.vlog("debug-command --> Get 'gdb_script': {}".format(gdb_script))
+    for k, v in args.items():
+        ctx.vlog("debug-command --> Get '{}': {}".format(k, v))
 
     ctx.gift['debug'] = True
     ctx.gift['no_stop'] = no_stop

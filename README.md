@@ -282,7 +282,26 @@ ia()
 ./exp.py de ./pwn -t -b b+0xafd # 在 0xafd处下断点
 
 ./exp.py de ./pwn -t -b malloc -b free -b b+0x101f # 下3个断点
+
+./exp.py de ./pwn -t -b malloc+0x10 # 在malloc+0x10处下断点，首先在libc里面寻找malloc符号，然后在elf中寻找malloc符号
 ```
+
+想要`hook`掉某些函数，如`ptrace`：
+
+```shell
+./exp.py de ./pwn -H ptrace -H alarm:1   # hook掉ptrace，默认返回0；hook掉alarm，返回值为1
+
+./exp.py de ./pwn -h ./hook.c # 自己写好hook.c后指定即可
+```
+
+使用带桌面的`ubuntu`虚拟机调试，可以选择`gnome`弹出窗口：
+
+```shell
+./exp.py de ./pwn -g -b 0x400088a # 在0x400088a处下断点
+
+./exp.py de ./pwn -g -s "directory /usr/glibc/glibc-2.31/malloc" # 指定源码调试目录
+```
+
 
 脚本调试好后需要打远程：
 
