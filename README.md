@@ -1,4 +1,5 @@
-- [pwncli 使用炫酷的命令行](#pwncli-使用炫酷的命令行)
+- [前言](#前言)
+- [简介](#简介)
 - [安装](#安装)
 - [使用模式](#使用模式)
   - [命令行模式](#命令行模式)
@@ -26,9 +27,18 @@
     - [misc 示例](#misc-示例)
     - [patchelf 示例](#patchelf-示例)
     - [qemu 示例](#qemu-示例)
-- [写在最后](#写在最后)
 
-# pwncli 使用炫酷的命令行
+# 前言
+
+一开始写这个工具是因为在学习`pwn`的过程中，经常反复的去注释和取消注释`gdb.attach(xxx)`这样的语句，下不同断点的时候要不断地修改脚本，本地调通打远程的时候也要改脚本。
+
+习惯命令行操作后，我设想能否设计一个命令行工具，能通过命令行参数去控制一些东西，避免在调试`pwn`题的时候重复地执行上面这些工作而只专注于编写解题脚本。当想法酝酿起来，自己便试着写下第一行代码，于是，`pwncli`就此诞生。
+
+工具的目的在于实用性，我觉得`pwncli`满足实用性要求，在调试`pwn`题时能节省大量的时间。
+
+如果你觉得`pwncli`好用，请介绍给周围的`pwner`。如果你还有任何疑问，请提交`issue`或联系我`roderickchan@foxmail.com`，我将非常乐意与你讨论交流。如果你有好的想法，或者发现新的`bug`，欢迎提交`pull requests`。
+
+# 简介
 [EN](https://github.com/RoderickChan/pwncli/blob/main/README-EN.md) | [ZH](https://github.com/RoderickChan/pwncli/blob/main/README.md) | [API](https://github.com/RoderickChan/pwncli/blob/main/API-doc.md) | [VIDEO](https://www.youtube.com/watch?v=QFemxI3rnC8)
 
 `pwncli`是一款简单、易用的`pwn`题调试与攻击工具，能提高你在`CTF`比赛中调试`pwn`题脚本的速度与效率。
@@ -836,129 +846,115 @@ pwntools
 
 ### pwncli 示例
 
-![image-20220226232019621](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226232019621.png)
+![image-20220226232019621](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226232019621.png)
 
 ### debug 示例
 
 `pwncli -vv debug ./test`：
 
-![image-20220226232116090](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226232116090.png)
+![image-20220226232116090](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226232116090.png)
 
 `pwncli -vv debug ./test -t`：
 
-![image-20220226232356871](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226232356871.png)
+![image-20220226232356871](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226232356871.png)
 
 
 
 `pwncli de ./test -t -b main`：
 
-![image-20220226232710687](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226232710687.png)
+![image-20220226232710687](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226232710687.png)
 
 这个时候没有断住：
 
 `pwncli de ./test -p -t -b main`：
 
-![image-20220226232858593](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226232858593.png)
+![image-20220226232858593](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226232858593.png)
 
-![image-20220226232946892](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226232946892.png)
+![image-20220226232946892](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226232946892.png)
 
 
 
 `pwncli de ./test -H puts`：
 
-![image-20220226233434698](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226233434698.png)
+![image-20220226233434698](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226233434698.png)
 
 `pwncli de ./test -t -s "vmmap;b main"`：
 
-![image-20220226233628316](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226233628316.png)
+![image-20220226233628316](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226233628316.png)
 
 
 
 `pwncli de ./test -w`：
 
-![image-20220226233900484](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226233900484.png)
+![image-20220226233900484](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226233900484.png)
 
 
 
 `pwncli de ./test -w -m wsl-u`：
 
-![image-20220226234010903](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226234010903.png)
+![image-20220226234010903](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226234010903.png)
 
 
 
 `pwncli de ./test -w -m wsl-wts`：
 
-![image-20220226234057770](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226234057770.png)
+![image-20220226234057770](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226234057770.png)
 
 
 
 `pwncli de ./test -t -g pwndbg`：
 
-![image-20220226234152877](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226234152877.png)
+![image-20220226234152877](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226234152877.png)
 
 
 
 `pwncli de ./test -u`:
 
-![image-20220226234307876](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226234307876.png)
+![image-20220226234307876](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226234307876.png)
 
 ### remote 示例
 
 `pwncli re ./test 127.0.0.1:10001`：
 
-![image-20220226235042604](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226235042604.png)
+![image-20220226235042604](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226235042604.png)
 
 
 
 `pwncli -vv re ./test -i 127.0.0.1 -p 10001`：
 
-![image-20220226235158851](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226235158851.png)
+![image-20220226235158851](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226235158851.png)
 
 
 
 `pwncli -vv re 127.0.0.1:10001`：
 
-![image-20220226235248653](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226235248653.png)
+![image-20220226235248653](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226235248653.png)
 
 ### config 示例
 
 `pwncli config list example`：
 
-![image-20220226235423624](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226235423624.png)
+![image-20220226235423624](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226235423624.png)
 
 ### misc 示例
 
 `pwncli misc gadget ./test`：
 
-![image-20220226235602674](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226235602674.png)
+![image-20220226235602674](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226235602674.png)
 
 
 
 `sudo pwncli misc setgdb -g`：
 
-![image-20220226235738869](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226235738869.png)
+![image-20220226235738869](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226235738869.png)
 
 ### patchelf 示例
 
 `pwncli patchelf ./test -b 2.31`：
 
-![image-20220226235851991](https://github.com/RoderickChan/repo_image/blob/main/pwncli/image-20220226235851991.png)
+![image-20220226235851991](https://github.com/RoderickChan/pwncli/blob/main/img/image-20220226235851991.png)
 
 ### qemu 示例
 
 **TODO**
 
-
-# 写在最后
-
-一开始写这个工具是因为在学习`pwn`的过程中，经常反复的去注释和取消注释`gdb.attach(xxx)`这样的语句，下不同断点的时候要不断地修改脚本，本地调通打远程的时候也要改脚本。
-
-习惯命令行操作后，我设想能否设计一个命令行工具，能通过命令行参数去控制一些东西，避免在调试`pwn`题的时候重复地执行上面这些工作而只专注于编写解题脚本。当想法酝酿起来，自己便试着写下第一行代码，于是，`pwncli`就此诞生。
-
-工具的目的在于实用性，我觉得`pwncli`满足实用性要求，在调试`pwn`题时能节省大量的时间。
-
-如果你觉得`pwncli`好用，请介绍给周围的`pwner`。如果你还有任何疑问，请提交`issue`或联系我`ch22166@163.com`，我将非常乐意与你讨论交流。如果你有好的想法，或者发现新的`bug`，欢迎提交`pull requests`。
-
-
-
-生命不息，奋斗不止！
