@@ -149,7 +149,7 @@ gdb_pid   = gift.gdb_pid # gdb pid if debug
 
 # 有时候远程提供的libc与本地不一样，打靶机时替换libc为远程libc
 if gift.remote:
-    libc = ELF("./libc.so.6)
+    libc = ELF("./libc.so.6")
     gift['libc'] = libc
 
 # 这里写下攻击函数等
