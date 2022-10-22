@@ -95,7 +95,6 @@ def _parse_env(ctx, env: str):
 
     
 
-
 def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file, gdb_script):
     terminal = None
     dirname = os.path.dirname(ctx.gift['filename'])
@@ -343,7 +342,8 @@ int {}()
 
     # set binary
     ctx.gift['io'] = context.binary.process(argv, timeout=ctx.gift['context_timeout'], env=env)
-    ctx.gift['_elf_base'] = get_current_codebase_addr()
+    ctx.gift['_elf_base'] = ctx.gift.elf.address or get_current_codebase_addr()
+
     if not ctx.gift['elf'].statically_linked:
         rp = None
         if env and "LD_PRELOAD" in env:
@@ -369,7 +369,6 @@ int {}()
     
     # set base address for gdbscript
     if "####" in script:
-        ctx.gift['_elf_base'] = get_current_codebase_addr()
         _pattern = "####([\d\w\+]+)####"
         _script = script
         _result = ""
@@ -379,17 +378,28 @@ int {}()
             
             if _off.startswith(("0x", "0X")):
                 _off = int(_off, base=16)
-            elif _num.isdigit():
+            elif _off.isdigit():
                 _off = int(_off, base=10)
-            elif all(c in string.hexdigits for c in _num):
+            elif all(c in string.hexdigits for c in _off):
                 _off = int(_off, base=16)
             else:
                 _off = 0
             
+            # libc is always PIE enabled...
             if _sym in ctx.gift.libc.sym:
-                _result = hex(ctx.gift['_libc_base'] + ctx.gift.libc.sym[_sym]+ _off)
+                if ctx.gift.libc.address: # already have base address
+                    _result = hex(ctx.gift.libc.sym[_sym] + _off)
+                else:
+                    _result = hex(ctx.gift['_libc_base'] + ctx.gift.libc.sym[_sym]+ _off)
+
             elif _sym in ctx.gift.elf.sym:
-                _result = hex(ctx.gift['_elf_base'] + ctx.gift.elf.sym[_sym] + _off)
+                if ctx.gift.elf.pie: # PIE enabled
+                    if ctx.gift.elf.address:
+                        _result = hex(ctx.gift.elf.sym[_sym] + _off)
+                    else:
+                        _result = hex(ctx.gift.elf.sym[_sym] + _off + ctx.gift['_elf_base'])
+                else:
+                    _result = hex(ctx.gift.elf.sym[_sym] + _off)
             
             _script = _script.replace("####{}####".format(_expr), _result)
         script = _script
