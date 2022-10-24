@@ -156,7 +156,7 @@ class _EnumerateAttackMode(Enum):
 
 
 def _call_func_invoke(call_func, libc_path, loop_time, loop_list, tube_func, *tube_args):
-    libc = ELF(libc_path)
+    libc = ELF(libc_path, checksec=False)
     # print(tube_args)
     if loop_list:
         l_count = 0
@@ -168,7 +168,7 @@ def _call_func_invoke(call_func, libc_path, loop_time, loop_list, tube_func, *tu
             try:
                 call_func(t, libc, *iter_items)
             except PwncliExit as ex:
-                log_ex("Pwncli is exiting...ex info: {}".format(ex))
+                log_ex("Pwncli is exiting...exception info: {}".format(ex))
                 break
             except:
                 pass
@@ -185,7 +185,7 @@ def _call_func_invoke(call_func, libc_path, loop_time, loop_list, tube_func, *tu
             try:
                 call_func(t, libc)
             except PwncliExit as ex:
-                log_ex("Pwncli is exiting...ex info: {}".format(ex))
+                log_ex("Pwncli is exiting...exception info: {}".format(ex))
                 break
             except:
                 pass
@@ -226,15 +226,7 @@ def _check_func_args(func_call, loop_list):
         assert len(pars) == (2 + len(loop_list)), "  Length of para is not {}.\n".format(2 + len(loop_list))+com_help_info
     else:
         assert len(pars) == 2, "  Length of para is not 2.\n"+com_help_info
-    
-    kl = []
-    vl = []
-    for k, v in pars.items():
-        kl.append(k)
-        vl.append(v)
-    
-    assert (issubclass(vl[0].annotation, tube)) and (issubclass(vl[1].annotation, ELF)), "  Type of {} is: {}, type of {} is {}.".format(kl[0], 
-        vl[0].annotation, kl[1], vl[1].annotation)+com_help_info
+
 
 
 def _light_enumerate_attack(argv, ip, port, attack_mode, libc_path=None, loop_time=0x10, loop_list:List[List]=None):
@@ -243,6 +235,8 @@ def _light_enumerate_attack(argv, ip, port, attack_mode, libc_path=None, loop_ti
         def wrapper2(*args, **kwargs):
                 # check 
                 _check_func_args(func_call, loop_list)
+                io, _ = args
+                io.close()
                 # auto detect libc_path
                 if argv is not None and libc_path is None:
                     _libc_path = ldd_get_libc_path(argv)

@@ -44,7 +44,6 @@ __all__ = [
     "int8",
     "int2",
     "int16_ex",
-    "int16_ex",
     "int8_ex",
     "int2_ex",
     "int_ex",
@@ -394,7 +393,7 @@ def p16_ex(num:int) -> bytes:
 def p24_ex(num: int) -> bytes:
     if num < 0:
         num += 1 << 24
-    num &= 0xffff
+    num &= 0xffffff
     return pack(num, word_size=24)
 
 def p32_ex(num:int) -> bytes:
@@ -479,7 +478,7 @@ def generate_payload_for_connect(ip: str, port: int) -> bytes:
     return pack(2, word_size=16, endianness="little") + pack(port, word_size=16, endianness="big") + pack(int_ip, word_size=32, endianness="big") + pack(0, 64)
 
 
-def recv_libc_addr(io, *, bits=64, offset=0) -> int:
+def recv_libc_addr(io, *, bits=64, offset=0, timeout=5) -> int:
     """Calcuate libc-base addr while recv '\x7f' in amd64 or '\xf7' in i386.
 
     Args:
@@ -495,7 +494,7 @@ def recv_libc_addr(io, *, bits=64, offset=0) -> int:
     """
     assert bits == 32 or bits == 64
     contains = b"\x7f" if bits == 64 else b"\xf7"
-    m = io.recvuntil(contains)
+    m = io.recvuntil(contains, timeout=timeout)
     if contains not in m:
         raise RuntimeError("Cannot get libc addr")
     if bits == 32:
