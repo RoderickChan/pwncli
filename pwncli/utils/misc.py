@@ -44,7 +44,6 @@ __all__ = [
     "int8",
     "int2",
     "int16_ex",
-    "int16_ex",
     "int8_ex",
     "int2_ex",
     "int_ex",
@@ -394,7 +393,7 @@ def p16_ex(num:int) -> bytes:
 def p24_ex(num: int) -> bytes:
     if num < 0:
         num += 1 << 24
-    num &= 0xffff
+    num &= 0xffffff
     return pack(num, word_size=24)
 
 def p32_ex(num:int) -> bytes:
