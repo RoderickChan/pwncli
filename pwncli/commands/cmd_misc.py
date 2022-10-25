@@ -4,8 +4,8 @@ import subprocess
 import shlex
 
 import click
-from pwn import which
-from pwncli.cli import AliasedGroup, _set_filename, pass_environ
+from pwn import which, listen, context
+from pwncli.cli import AliasedGroup, _set_filename, pass_environ, _Inner_Dict
 
 
 @click.command(cls=AliasedGroup, name='misc', short_help="Misc of useful sub-commands.")
@@ -220,3 +220,65 @@ for s in {}:
         # os.system(f"cat {tf.name}")
         ctx.vlog("dstruct-command ---> Exec cmd: {}".format(cmd))
         os.system(cmd)
+
+
+@cli.command(name="listen", short_help="Listen and spawn a program when connected.")
+@click.option('-l', '--listen-once', "listen_one", is_flag=True, help="List once.")
+@click.option('-L', '--listen-forever', "listen_forever", is_flag=True, help="List forever.")
+@click.option('-p', '--port', "port", type=int, default=13337, help="List port.")
+@click.option('-t', '--timeout', "timeout", type=int, default=300, help="List port.")
+@click.option('-e', '--executable', "executable", type=str, default="", help="Executable file path to spawn.")
+@click.option('-v', '--verbose', count=True, help="Show more info or not.")
+@pass_environ
+def listen_(ctx, listen_one, listen_forever, port, timeout, executable, verbose):
+    """
+    \b
+    pwncli misc listen -l
+    pwncli misc listen -L
+    pwncli misc listen -l -p 10001
+    pwncli misc listen -l -vv -p 10001
+    pwncli misc listen -l -vv -p 10001 -e /bin/bash
+
+    pwncli m l -l
+    """
+    if port < 1025:
+        port = 13337
+        ctx.vlog("listen-command ---> port must be larger than 1024.")
+    if timeout < 1:
+        timeout = 300
+        ctx.vlog("listen-command ---> timeout must be a positive.")
+    if executable:
+        if os.path.exists(executable) and os.path.isfile(executable) and os.access(executable, os.X_OK):
+            ctx.vlog2("listen-command ---> executable file check pass!.")
+        else:
+            ctx.abort("listen-command ---> executable file check failed! path: {}".format(executable))
+    if (listen_one and listen_forever) or (not listen_one and listen_forever):
+        ctx.abort("listen-command ---> listen_once and listen_forever cannot be specified or canceled at the same time")
+    args = _Inner_Dict()
+    args.listen_one = listen_one
+    args.listen_forever = listen_forever
+    args.port = port
+    args.timeout = timeout
+    args.executable = executable
+    args.verbose = verbose
+    for k, v in args.items():
+        ctx.vlog("listen-command --> Set '{}': {}".format(k, v))
+
+    if verbose:
+        context.log_level = "debug"
+    else:
+        context.log_level = "error"
+
+    def _f():
+        ser = listen(port)
+        if executable:
+            ser.spawn_process(executable)
+        ser.wait_for_connection()
+        while ser.recv(4096, timeout=timeout):
+            pass
+        ser.wait_for_close(timeout)
+
+    while listen_forever:
+        _f()
+    else:
+        _f()
