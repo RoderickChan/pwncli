@@ -268,7 +268,7 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
             elif gb.startswith('b+'):
                 script += "b *###({})\n".format(gb[2:])
             elif gb.startswith('+'):
-                script += "b *###({})\n".format(gb[:])
+                script += "b *###({})\n".format(gb[1:])
             elif "+" in gb:
                 script += "b *####{}####\n".format(gb)
             else:
