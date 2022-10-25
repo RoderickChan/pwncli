@@ -82,7 +82,7 @@ print(hex(x), hex(y))
 
 ### recv_libc_addr
 
-功能：当接收到`/x7f`或`/xf7`时，根据设置的arch自动将包含"`/x7f`"在内的前3个字节/前6个字节解包为一个整数。
+功能：当接收到`/x7f`或`/xf7`时，根据设置的arch自动将包含"`/x7f`"在内的前3个字节/前6个字节解包为一个整数
 
 参数：
 
@@ -91,6 +91,70 @@ print(hex(x), hex(y))
 + offset：打包后的整数要减去的偏移
 
 返回值： 一个整数
+
+
+
+## 日志打印
+
+### log_ex
+
+功能：打印参数内容至终端标准输出
+
+参数：
+
++ msg：要输出内容。如果需要输出多个内容，则需要用括号将参数括起来
+
+返回值：无
+
+示例：
+
+```python
+打印一个字符串
+>>log_msg = "hello_world"
+>>log_ex(log_msg)
+[*] INFO  hello_world
+
+打印多个字符串
+>>log_msg1 = "Hello"
+>>log_msg2 = "Pwncli"
+>>log_ex((log_msg1,log_msg2))
+[*] INFO  ('hello', 'Pwncli')
+
+```
+
+### log_ex_highlight
+
+
+
+### log2_ex
+
+
+
+### log2_ex_highlight
+
+
+
+### log_address
+
+
+
+### log_address_ex
+
+
+
+### log_address_ex2
+
+
+
+### log_libc_base_addr
+
+
+
+### log_heap_base_addr
+
+
+
+### log_code_base_addr
 
 
 
