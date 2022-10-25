@@ -268,7 +268,7 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
             elif gb.startswith('b+'):
                 script += "b *###({})\n".format(gb[2:])
             elif gb.startswith('+'):
-                script += "b *###({})\n".format(gb[:])
+                script += "b *###({})\n".format(gb[1:])
             elif "+" in gb:
                 script += "b *####{}####\n".format(gb)
             else:
@@ -343,6 +343,9 @@ int {}()
     # set binary
     ctx.gift['io'] = context.binary.process(argv, timeout=ctx.gift['context_timeout'], env=env)
     ctx.gift['_elf_base'] = ctx.gift.elf.address or get_current_codebase_addr()
+    ctx.gift['process_argv'] = argv.copy()
+    if env:
+        ctx.gift['process_env'] = env.copy()
 
     if not ctx.gift['elf'].statically_linked:
         rp = None

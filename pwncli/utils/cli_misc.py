@@ -7,7 +7,7 @@ from pwncli.cli import gift
 from .misc import get_callframe_info, log_ex, log2_ex, errlog_exit, log_code_base_addr, log_libc_base_addr, \
     one_gadget_binary, one_gadget, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
     get_flag_when_get_shell, ldd_get_libc_path
-from pwn import flat, asm, ELF, process, remote
+from pwn import flat, asm, ELF, process, remote, context
 from .ropperbox import RopperBox, RopperArchType
 from .decorates import deprecated
 from .syscall_num import SyscallNumber
@@ -282,14 +282,14 @@ def set_remote_libc(libc_so_path: str) -> ELF:
 
 
 def copy_current_io():
-    """Only used for debug command"""
+    """Only used for debug/remote command"""
     io = None
     if gift.get('debug'):
-        io = process(gift.filename)
+        io = context.binary.process(gift.process_argv, timeout=gift.context_timeout, env=gift.process_env)
     elif gift.get('remote'):
-        io = remote(gift.io, gift.port)
+        io = remote(gift.ip, gift.port, timeout=gift.context_timeout)
     else:
-        raise RuntimeError()
+        raise RuntimeError("copy_current_io error, no debug and no remote!")
     return io
 
 #-----------------------------io------------------------

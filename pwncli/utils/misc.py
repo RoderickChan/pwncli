@@ -285,7 +285,7 @@ def ldd_get_libc_path(filepath:str) -> str:
     try:
         out = subprocess.check_output(["ldd", filepath], encoding='utf-8').split()
         for o in out:
-            if "/libc.so" in o or "/libc-2." in o:
+            if "/libc" in o:
                 rp = os.path.realpath(o)
                 break
     except:
@@ -547,7 +547,7 @@ def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
     ld_flag = 0
 
     for r in res:
-        rc = re.compile(r"^([0123456789abcdef]{6,14})-([0123456789abcdef]{6,14})", re.S)
+        rc = re.compile(r"^([0-9a-f]{6,14})-([0-9a-f]{6,14})", re.S)
         rc = rc.findall(r)
         if len(rc) != 1 or len(rc[0]) != 2:
             continue
@@ -556,10 +556,10 @@ def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
         if (filename is not None) and (not code_flag) and filename in r:
             code_flag = 1
             _d['code'] = start_addr
-        elif (not libc_flag) and ("/libc-2." in r or "/libc.so" in r):
+        elif (not libc_flag) and ("/libc" in r):
             libc_flag = 1
             _d['libc'] = start_addr
-        elif (not ld_flag) and ("/ld-2." in r):
+        elif (not ld_flag) and ("/ld" in r):
             ld_flag = 1
             _d['ld'] = start_addr
         elif "heap" in r:
