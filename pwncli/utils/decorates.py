@@ -247,6 +247,8 @@ def _light_enumerate_attack(argv, ip, port, attack_mode, libc_path=None, loop_ti
         def wrapper2(*args, **kwargs):
                 # check 
                 _check_func_args(func_call, loop_list, True)
+                io, _ = args
+                io.close()
                 # auto detect libc_path
                 if argv is not None and libc_path is None:
                     _libc_path = ldd_get_libc_path(argv)

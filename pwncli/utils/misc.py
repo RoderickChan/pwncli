@@ -478,7 +478,7 @@ def generate_payload_for_connect(ip: str, port: int) -> bytes:
     return pack(2, word_size=16, endianness="little") + pack(port, word_size=16, endianness="big") + pack(int_ip, word_size=32, endianness="big") + pack(0, 64)
 
 
-def recv_libc_addr(io, *, bits=64, offset=0) -> int:
+def recv_libc_addr(io, *, bits=64, offset=0, timeout=5) -> int:
     """Calcuate libc-base addr while recv '\x7f' in amd64 or '\xf7' in i386.
 
     Args:
@@ -494,7 +494,7 @@ def recv_libc_addr(io, *, bits=64, offset=0) -> int:
     """
     assert bits == 32 or bits == 64
     contains = b"\x7f" if bits == 64 else b"\xf7"
-    m = io.recvuntil(contains)
+    m = io.recvuntil(contains, timeout=timeout)
     if contains not in m:
         raise RuntimeError("Cannot get libc addr")
     if bits == 32:

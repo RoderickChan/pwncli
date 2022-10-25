@@ -183,13 +183,13 @@ def tele_current_pie_content(offset:int, number=10):
 
 #-----------------other------------------------
 
-def recv_current_libc_addr(offset:int=0):
+def recv_current_libc_addr(offset:int=0, timeout=5):
     if not gift.get("elf", None):
         errlog_exit("Can not get current libc addr because of no elf.")
     if not gift.get('io', None):
         errlog_exit("Can not get current libc addr because of no io.")
     
-    return recv_libc_addr(gift['io'], bits=gift['elf'].bits, offset=offset)
+    return recv_libc_addr(gift['io'], bits=gift['elf'].bits, offset=offset, timeout=timeout)
 
 
 @deprecated
