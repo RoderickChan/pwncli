@@ -112,8 +112,6 @@ def copy_gdbinit(ctx, generate_script):
             os.system("chmod 755 {}".format(_cur_path))
 
 
-# add distance command
-
 
 # add display struct info
 @cli.command(name="dstruct", short_help="Display struct info by gdb.")
@@ -162,7 +160,7 @@ def export_struct_info(ctx, filename, save_all, directory, name):
     for n in name:
         if n not in struct_name:
             ctx.abort(
-                "dstruct-command ---> Invalid name: {}, cannnot find this struct.".format(n))
+                "dstruct-command ---> Invalid name: {}, cannot find this struct.".format(n))
 
     # default to print all
     if len(name) == 0:
@@ -222,7 +220,7 @@ for s in {}:
         os.system(cmd)
 
 
-@cli.command(name="listen", short_help="Listen and spawn a program when connected.")
+@cli.command(name="listen", short_help="Listen on a port and spawn a program when connected.")
 @click.option('-l', '--listen-once', "listen_one", is_flag=True, help="List once.")
 @click.option('-L', '--listen-forever', "listen_forever", is_flag=True, help="List forever.")
 @click.option('-p', '--port', "port", type=int, default=13337, help="List port.")

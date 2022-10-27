@@ -82,6 +82,8 @@ __all__ = [
     "p64_ex",
     "p32_float",
     "p64_float",
+    "pad_ljust",
+    "pad_rjust",
     "float_hexstr2int",
     "generate_payload_for_connect",
     "recv_libc_addr",
@@ -323,7 +325,7 @@ def one_gadget(condition:str, more=False, buildid=False):
         errlog_exit("Cannot exec one_gadget, maybe you don't install one_gadget or filename is wrong or buildid is wrong!")
 
 
-def one_gadget_binary(binary_path:str, more=False) -> int:
+def one_gadget_binary(binary_path:str, more=False):
     """Get all one_gadget about an elf binary file.
 
     """
@@ -335,7 +337,7 @@ def one_gadget_binary(binary_path:str, more=False) -> int:
         errlog_exit("Exec ldd {} fail!".format(binary_path))
 
 
-#--------------------------------usefule function------------------------------
+#--------------------------------useful function------------------------------
 def u16_ex(data: str or bytes) -> int:
     assert isinstance(data, (str, bytes)), "wrong data type!"
     length = len(data)
@@ -427,6 +429,17 @@ def p64_float(num:float, endian="little") -> bytes:
     else:
         raise RuntimeError("Wrong endian!")
 
+def pad_ljust(payload, psz, filler="\x00") -> bytes:
+    len_ = len(payload)
+    comple = len_ % psz
+    if comple > 0:
+        return flat(payload, filler * (psz - comple))
+
+def pad_rjust(payload, psz, filler="\x00") -> bytes:
+    len_ = len(payload)
+    comple = len_ % psz
+    if comple > 0:
+        return flat(filler * (psz - comple), payload)
 
 def float_hexstr2int(data: str or bytes, hexstr=True, endian="little", bits=64) -> int:
     """float_hex2int('0x0.07f6d266e9fbp-1022') ---> 140106772946864"""
