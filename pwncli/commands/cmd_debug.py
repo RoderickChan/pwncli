@@ -299,16 +299,41 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
             if hook_file and os.path.exists(hook_file):
                 with open(hook_file, "r", encoding="utf-8") as hook_f:
                     file_content += hook_f.read()
+            if "#include" in file_content:
+                ctx.vlog2("debug-command --> Please don't introduce any standard library when hook function or define struct, all include statements will be ignored!")
+                file_content = file_content.replace("#inclde", "//#include")
             if pause_before_main:
-                file_content = "#include <stdio.h>\n" + file_content
-                file_content +="""
-void pause_before_main(void) __attribute__((constructor));
-
+                file_content +="void pause_before_main(void) __attribute__((constructor));\n"
+                if context.bits == 64:
+                    file_content += """
 void pause_before_main()
-{{
-    getchar();
-}}
-                """
+{
+    asm(
+        "lea rax,[rsp-0x10];"
+        "xor edi, edi;"
+        "mov rsi, rax;"
+        "xor edx, edx;"
+        "inc edx;"
+        "xor eax, eax;"
+        "syscall;"
+        );
+}
+                    """
+                else:
+                    file_content += """
+void pause_before_main()
+{
+    asm(
+        "lea eax,[esp-0x10];"
+        "xor ebx, ebx;"
+        "mov ecx, eax;"
+        "mov edx, 1;"
+        "xor eax, eax;"
+        "mov al, 3;"
+        "int 0x80;"
+        );
+}
+                    """
             for __func in hook_function:
                 _func_retval = 0
                 if ":" in __func:
@@ -316,17 +341,19 @@ void pause_before_main()
                 elif "=" in __func:
                     __func, _func_retval = __func.split("=")
                 file_content += """
-int {}()
-{{
-    return {};
-}}
-                """.format(__func, _func_retval)
+int %s()
+{
+    return %d;
+}
+                """ % (__func, _func_retval)
             _, tmp_path = tempfile.mkstemp(suffix=".c", text=True)
             with open(tmp_path, "w", encoding="utf-8") as tem_f:
                 tem_f.write(file_content)
-            cmd = "gcc -g -fPIC -shared {} -o {}.so".format(tmp_path, tmp_path)
+            cmd = "gcc -g -fPIC -shared {} -o {}.so -masm=intel -nostdlib".format(tmp_path, tmp_path)
             if context.bits == 32:
                 cmd += " -m32"
+            else:
+                cmd += " -m64"
             ctx.vlog("debug-command 'pause_before_main/hook_file' --> Execute cmd '{}'.".format(cmd))
             register(lambda x: os.unlink(x) or os.unlink("{}.so".format(x)), tmp_path)
             if not os.system(cmd):
@@ -370,7 +397,7 @@ int {}()
         
     ctx.vlog('debug-command --> Set process({}, argv={}, env={})'.format(filename, argv, env))
     
-    # set base address for gdbscript
+    # set base+XXX breakpoints
     if "####" in script:
         _pattern = "####([\d\w\+]+)####"
         _script = script
@@ -406,8 +433,11 @@ int {}()
             
             _script = _script.replace("####{}####".format(_expr), _result)
         script = _script
-    
+
+    # have base-format breakpoints
     if "###" in script:
+        if not ctx.gift['elf'].pie:
+            ctx.vlog2("debug-command --> set base-format breakpoints while current binary's PIE not enable")
         _pattern = "###\(([0-9a-fx]+)\)"
         _script = script
         for _match in re.finditer(_pattern, script, re.I):
