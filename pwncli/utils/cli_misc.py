@@ -336,11 +336,11 @@ def ru(*args, **kwargs) -> bytes:
     if io:
         return io.recvuntil(*args, **kwargs)
 
-def rl() -> bytes:
+def rl(*args, **kwargs) -> bytes:
     """recvline"""
     io = gift.get("io", None)
     if io:
-        return io.recvline()
+        return io.recvline(*args, **kwargs)
 
 def rs(*args, **kwargs) -> list:
     """recvlines"""

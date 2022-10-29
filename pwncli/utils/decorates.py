@@ -15,7 +15,11 @@ import os
 import signal
 from enum import Enum, unique
 from pwn import remote, process, ELF, tube, context
-from collections import  Iterable
+try:
+    from collections.abc import Iterable
+except:
+    from collections import Iterable
+
 from inspect import signature
 from .exceptions import PwncliExit
 from typing import List
@@ -173,6 +177,9 @@ def _call_func_invoke(call_func, libc_path, loop_time, loop_list, tube_func, *tu
             except PwncliExit as ex:
                 log_ex("Pwncli is exiting...ex info: {}".format(ex))
                 break
+            except KeyboardInterrupt:
+                errlog_exit("KeyboardInterrupt!")
+                pass
             except:
                 pass
             finally:
@@ -190,6 +197,9 @@ def _call_func_invoke(call_func, libc_path, loop_time, loop_list, tube_func, *tu
             except PwncliExit as ex:
                 log_ex("Pwncli is exiting...ex info: {}".format(ex))
                 break
+            except KeyboardInterrupt:
+                errlog_exit("KeyboardInterrupt!")
+                pass
             except:
                 pass
             finally:
@@ -226,9 +236,11 @@ def _check_func_args(func_call, loop_list, check_first):
             assert isinstance(ll, (Iterable, tuple, list)), "  An element of loop_list is not tuple or list.\n"+com_help_info
             assert len(ll) > 0, "  Length of an element of loop_list is 0.\n"+com_help_info
         # check paras len
-        assert len(pars) == (2 + len(loop_list)), "  Length of para is not {}.\n".format(2 + len(loop_list))+com_help_info
+        if check_first:
+            assert len(pars) == (2 + len(loop_list)), "  Length of para is not {}.\n".format(2 + len(loop_list))+com_help_info
     else:
-        assert len(pars) == 2, "  Length of para is not 2.\n"+com_help_info
+        if check_first:
+            assert len(pars) == 2, "  Length of para is not 2.\n"+com_help_info
 
     if check_first:
         kl = []
@@ -271,8 +283,16 @@ from pwncli.cli import gift
 from .cli_misc import copy_current_io, get_current_codebase_addr, get_current_libcbase_addr
 
 def _smart_enumerate_attack_helper2():
-    # copy io
-    gift.io = copy_current_io()
+    _cof = 10
+    while _cof:
+        try:
+            # copy io
+            gift.io = copy_current_io()
+            _cof = 0
+        except KeyboardInterrupt:
+            errlog_exit("KeyboardInterrupt!")
+        except:
+            _cof -= 1
 
     if gift.debug:
         if gift["_elf_base"] is not None:
@@ -320,6 +340,9 @@ def _smart_enumerate_attack_helper(func_call, loop_time, loop_list):
             except PwncliExit as ex:
                 log_ex("Pwncli is exiting...ex info: {}".format(ex))
                 break
+            except KeyboardInterrupt:
+                errlog_exit("KeyboardInterrupt!")
+                pass
             except:
                 pass
             finally:
@@ -337,6 +360,9 @@ def _smart_enumerate_attack_helper(func_call, loop_time, loop_list):
             except PwncliExit as ex:
                 log_ex("Pwncli is exiting...ex info: {}".format(ex))
                 break
+            except KeyboardInterrupt:
+                errlog_exit("KeyboardInterrupt!")
+                pass
             except:
                 pass
             finally:
