@@ -245,11 +245,15 @@ def listen_(ctx, listen_one, listen_forever, port, timeout, executable, verbose)
     if timeout < 1:
         timeout = 300
         ctx.vlog("listen-command ---> timeout must be a positive.")
+    
     if executable:
-        if os.path.exists(executable) and os.path.isfile(executable) and os.access(executable, os.X_OK):
-            ctx.vlog2("listen-command ---> executable file check pass!.")
-        else:
-            ctx.abort("listen-command ---> executable file check failed! path: {}".format(executable))
+        executable = executable.split()
+        for exe_ in executable:
+            if exe_:
+                if os.path.exists(exe_) and os.path.isfile(exe_) and os.access(exe_, os.X_OK):
+                    ctx.vlog2("listen-command ---> executable file check pass!.")
+                else:
+                    ctx.abort("listen-command ---> executable file check failed! path: {}".format(exe_))
     if (listen_one and listen_forever) or (not listen_one and listen_forever):
         ctx.abort("listen-command ---> listen_once and listen_forever cannot be specified or canceled at the same time")
     args = _Inner_Dict()

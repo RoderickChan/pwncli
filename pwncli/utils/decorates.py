@@ -37,7 +37,8 @@ __all__  = [
     "smart_enumerate_attack",
     "stopwatch",
     "deprecated", 
-    "unused"
+    "unused",
+    "show_name"
     ]
 
 def deprecated(msg: str=""):
@@ -73,6 +74,23 @@ def smart_decorator(decorator):
             return decorator(func=func, *args, **kwargs)
         return wrapper2
     return wrapper1
+
+
+def show_name(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        args_str = ""
+        kwargs_str = ""
+        if args:
+            args_str = ", ".join(str(x) for x in args)
+        if kwargs:
+            if args_str:
+                args_str += ", "
+            kwargs_str = ", ".join("{}={}".format(_k, _v) for _k, _v in kwargs.items())
+        log_ex("call func: {}({}{})".format(func.__name__, args_str, kwargs_str))
+        res = func(*args, **kwargs)
+        return res
+    return wrapper
 
 
 def time_count(func):
