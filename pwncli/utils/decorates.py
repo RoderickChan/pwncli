@@ -38,8 +38,25 @@ __all__  = [
     "stopwatch",
     "deprecated", 
     "unused",
-    "show_name"
+    "show_name",
+    "always_success"
     ]
+
+
+def always_success(show_err=False):
+    def wrapper1(func):
+        @functools.wraps(func)
+        def wrapper2(*args, **kwargs):
+            res = None
+            try:
+                res = func(*args, **kwargs)
+            except Exception as e:
+                if show_err:
+                    warn_ex_highlight("error info: {}".format(e))
+            return res
+        return wrapper2
+    return wrapper1
+
 
 def deprecated(msg: str=""):
     def wrapper1(func):
@@ -60,6 +77,7 @@ def unused(msg: str=""):
             return None
         return wrapper2
     return wrapper1
+
 
 def smart_decorator(decorator):
     """Make a function to be a decorator.

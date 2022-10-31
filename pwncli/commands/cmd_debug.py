@@ -185,7 +185,7 @@ def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file,
 
 
 def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, attach_mode, 
-                use_gdb, gdb_type, gdb_breakpoint, gdb_script, pause_before_main, hook_file, hook_function):
+                use_gdb, gdb_type, gdb_breakpoint, gdb_script, pause_before_main, hook_file, hook_function, gdb_tbreakpoint):
     # set filename
     if not ctx.gift.get('filename', None):
         _set_filename(ctx, filename, msg="debug-command --> Set 'filename': {}".format(filename))
@@ -252,27 +252,31 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
             is_file = True
         else:
             script = gdb_script.strip().replace(';', '\n') + '\n'
-    if gdb_breakpoint and len(gdb_breakpoint) > 0:
-        for gb in gdb_breakpoint:
+
+    _prefix = ["break"] * len(gdb_breakpoint) + ["tbreak"] * len(gdb_tbreakpoint)
+    _merge_bps = gdb_breakpoint + gdb_tbreakpoint
+    if _merge_bps and len(_merge_bps) > 0:
+        for _pre, gb in zip(_prefix, _merge_bps):
             gb = gb.replace(" ", "")
+            script += _pre
             if gb.startswith(('0x', "0X")) or gb.isdecimal():
-                script += 'b *{}\n'.format(gb)
+                script += ' *{}\n'.format(gb)
             elif gb.startswith(('$rebase(', '$_base(')):
                 fi = gb.index('(')
                 bi = gb.index(')')
-                script += "b *###({})\n".format(gb[fi+1: bi])
+                script += " *###({})\n".format(gb[fi+1: bi])
             elif gb.startswith('base+'):
-                script += "b *###({})\n".format(gb[5:])
+                script += " *###({})\n".format(gb[5:])
             elif gb.startswith('bin+'):
-                script += "b *###({})\n".format(gb[4:])
+                script += " *###({})\n".format(gb[4:])
             elif gb.startswith('b+'):
-                script += "b *###({})\n".format(gb[2:])
+                script += " *###({})\n".format(gb[2:])
             elif gb.startswith('+'):
-                script += "b *###({})\n".format(gb[1:])
+                script += " *###({})\n".format(gb[1:])
             elif "+" in gb:
-                script += "b *####{}####\n".format(gb)
+                script += " *####{}####\n".format(gb)
             else:
-                script += 'b {}\n'.format(gb)
+                script += ' {}\n'.format(gb)
 
 
     # if gdb_script is file, then open it
@@ -518,13 +522,14 @@ int %s()
 @click.option('-m', '-am', '--attach-mode', "attach_mode", type=click.Choice(['auto', 'tmux', 'wsl-b', 'wsl-u', 'wsl-o', 'wsl-wt', 'wsl-wts', 'wsl-w', 'a', 't', 'w', 'wt', 'wts', 'b', 'o', 'u']), nargs=1, default='auto', show_default=True, help="Gdb attach mode, wsl: bash.exe | wsl: ubuntu1x04.exe | wsl: open-wsl.exe | wsl: wt.exe wsl.exe")
 @click.option('-u', '-ug', '--use-gdb', "use_gdb", is_flag=True, show_default=True, help="Use gdb possibly.")
 @click.option('-G', '-gt','--gdb-type', "gdb_type", type=click.Choice(['auto', 'pwndbg', 'gef', 'peda']), nargs=1, default='auto', help="Select a gdb plugin.")
-@click.option('-b', '-gb', '--gdb-breakpoint', "gdb_breakpoint", default=[], type=str, multiple=True, show_default=True, help="Set gdb breakpoints while gdb-debug is used, it should be a hex address or '\$rebase' addr or a function name. Multiple breakpoints are supported.")
+@click.option('-b', '-gb', '--gdb-breakpoint', "gdb_breakpoint", default=[], type=str, multiple=True, show_default=True, help="Set gdb breakpoints while gdb is used. Multiple breakpoints are supported.")
+@click.option('-T', '-tb', '--gdb-tbreakpoint', "gdb_tbreakpoint", default=[], type=str, multiple=True, show_default=True, help="Set gdb temporary breakpoints while gdb is used. Multiple tbreakpoints are supported.")
 @click.option('-s', '-gs', '--gdb-script', "gdb_script", default=None, type=str, show_default=True, help="Set gdb commands like '-ex' or '-x' while gdb-debug is used, the content will be passed to gdb and use ';' to split lines. Besides eval-commands, file path is supported.")
 @click.option('-n', '-nl', '--no-log', "no_log", is_flag=True, show_default=True, help="Disable context.log or not.")
 @click.option('-P', '-ns', '--no-stop', "no_stop", is_flag=True, show_default=True, help="Use the 'stop' function or not. Only for python script mode.")
 @click.option('-v', '--verbose', count=True, help="Show more info or not.")
 @pass_environ
-def cli(ctx, verbose, filename, argv, env, 
+def cli(ctx, verbose, filename, argv, env, gdb_tbreakpoint,
         tmux, wsl, gnome, attach_mode, use_gdb, gdb_type, gdb_breakpoint, gdb_script, 
         no_log, no_stop, pause_before_main, hook_file, hook_function):
     """FILENAME: The ELF filename.
@@ -545,6 +550,7 @@ def cli(ctx, verbose, filename, argv, env,
     args.argv = argv
     args.env = env
     args.gdb_breakpoint = gdb_breakpoint
+    args.gdb_tbreakpoint = gdb_tbreakpoint
     args.gdb_script = gdb_script
     args.tmux = tmux
     args.wsl = wsl
@@ -572,7 +578,8 @@ def cli(ctx, verbose, filename, argv, env,
 
     # set value
     _check_set_value(ctx, filename, argv, env, tmux, wsl, gnome, attach_mode, 
-                use_gdb, gdb_type, gdb_breakpoint, gdb_script, pause_before_main, hook_file, hook_function)
+                use_gdb, gdb_type, gdb_breakpoint, gdb_script, pause_before_main, 
+                hook_file, hook_function, gdb_tbreakpoint)
 
 
     
