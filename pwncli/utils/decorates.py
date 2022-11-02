@@ -39,7 +39,9 @@ __all__  = [
     "deprecated", 
     "unused",
     "show_name",
-    "always_success"
+    "always_success",
+    "only_debug",
+    "only_remote"
     ]
 
 
@@ -317,6 +319,39 @@ remote_enumerate_attack = functools.partial(_light_enumerate_attack, argv=None, 
 
 from pwncli.cli import gift
 from .cli_misc import copy_current_io, get_current_codebase_addr, get_current_libcbase_addr
+
+
+# only call when gift.remote is True
+def only_debug(show_warn=True):
+    def wrapper1(func_call):
+        @functools.wraps(func_call)
+        def wrapper2(*args, **kwargs):
+            if gift.debug:
+                res = func_call(*args, **kwargs)
+            else:
+                if show_warn:
+                    warn_ex_highlight("{} will not be called because gift.debug is not True.".format(func_call.__name__))
+                res = None
+            return res
+        return wrapper2
+    return wrapper1
+
+
+# only call when gift.remote is True
+def only_remote(show_warn=True):
+    def wrapper1(func_call):
+        @functools.wraps(func_call)
+        def wrapper2(*args, **kwargs):
+            if gift.debug:
+                res = func_call(*args, **kwargs)
+            else:
+                if show_warn:
+                    warn_ex_highlight("{} will not be called because gift.remote is not True.".format(func_call.__name__))
+                res = None
+            return res
+        return wrapper2
+    return wrapper1
+
 
 def _smart_enumerate_attack_helper2():
     _cof = 10

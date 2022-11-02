@@ -682,6 +682,7 @@ class CurrentGadgets:
             layout.append(CurrentGadgets.pop_rax_ret())
             layout.append(i386_num)
             layout.append(CurrentGadgets.syscall_ret())
+            return flat(layout)
 
         elif CurrentGadgets.__arch == "amd64":
             if para1 < 0:
@@ -700,8 +701,10 @@ class CurrentGadgets:
             layout.append(CurrentGadgets.pop_rax_ret())
             layout.append(syscall_num)
             layout.append(CurrentGadgets.syscall_ret())
+            return flat(layout)
         else:
             errlog_exit("Unsupported arch: {}".format(CurrentGadgets.__arch))
+        
 
     @staticmethod
     def syscall_chain(syscall_num, para1, para2=None, para3=None) -> bytes:
