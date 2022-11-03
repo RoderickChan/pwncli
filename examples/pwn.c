@@ -2,9 +2,11 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+char *bin_sh = "/bin/sh";
+
 void backdoor()
 {
-	system("/bin/sh");
+	system("echo 'hello!'");
 }
 
 void vuln()
@@ -23,5 +25,6 @@ void main()
 	puts("read your name: ");
 	read(0, name, 0x10);
 	printf("welcome to the game, %s\n", name);
+	printf("back door address: 0x%lx\n", (size_t)&backdoor);
 	vuln();
 }
