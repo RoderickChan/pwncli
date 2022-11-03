@@ -254,7 +254,7 @@ def listen_(ctx, listen_one, listen_forever, port, timeout, executable, verbose)
                     ctx.vlog2("listen-command ---> executable file check pass!.")
                 else:
                     ctx.abort("listen-command ---> executable file check failed! path: {}".format(exe_))
-    if (listen_one and listen_forever) or (not listen_one and listen_forever):
+    if (listen_one and listen_forever) or (not listen_one and  not listen_forever):
         ctx.abort("listen-command ---> listen_once and listen_forever cannot be specified or canceled at the same time")
     args = _Inner_Dict()
     args.listen_one = listen_one

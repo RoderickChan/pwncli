@@ -8,7 +8,7 @@ from .misc import get_callframe_info, log_ex, log2_ex, errlog_exit, log_code_bas
     one_gadget_binary, one_gadget, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
     get_flag_when_get_shell, ldd_get_libc_path
 from pwn import flat, asm, ELF, process, remote, context
-from .ropperbox import RopperBox, RopperArchType
+from .gadgetbox import RopperBox, RopperArchType
 from .decorates import deprecated
 from .syscall_num import SyscallNumber
 
@@ -192,7 +192,6 @@ def recv_current_libc_addr(offset:int=0, timeout=5):
     return recv_libc_addr(gift['io'], bits=gift['elf'].bits, offset=offset, timeout=timeout)
 
 
-@deprecated
 def get_current_flag_when_get_shell(use_cat=True, start_str="flag{"):
     if not gift.get('io', None):
         errlog_exit("Can not get current libc addr because of no io.")
@@ -411,7 +410,7 @@ def cr() -> bool:
 # ----------------------------------gadget----------------
 
 class CurrentGadgets:
-    __internal_libcbox = None
+    __internal_gadgetbox = None
     __elf = None
     __libc = None
     __arch = None
@@ -457,7 +456,7 @@ class CurrentGadgets:
             CurrentGadgets._mutex.release()
             return False
 
-        CurrentGadgets.__internal_libcbox = RopperBox()
+        CurrentGadgets.__internal_gadgetbox = RopperBox()
 
         res = False
         if elf and CurrentGadgets.__find_in_elf:
@@ -465,14 +464,18 @@ class CurrentGadgets:
                 log2_ex("Unsupported arch, only for i386 and amd64.")
             else:
                 CurrentGadgets.__arch = elf.arch
-                CurrentGadgets.__internal_libcbox.add_file("elf", elf.path, __arch_mapping[elf.arch])
+                CurrentGadgets.__internal_gadgetbox.add_file("elf", elf.path, __arch_mapping[elf.arch])
+                if CurrentGadgets.__elf.pie:
+                    CurrentGadgets.__internal_gadgetbox.set_imagebase("elf", CurrentGadgets.__elf.address)
                 res = True
         if libc and CurrentGadgets.__find_in_libc:
             if libc.arch not in __arch_mapping:
                 log2_ex("Unsupported arch, only for i386 and amd64..")
             else:
                 CurrentGadgets.__arch = libc.arch
-                CurrentGadgets.__internal_libcbox.add_file("libc", libc.path, __arch_mapping[elf.arch])
+                CurrentGadgets.__internal_gadgetbox.add_file("libc", libc.path, __arch_mapping[elf.arch])
+                if CurrentGadgets.__libc.pie:
+                    CurrentGadgets.__internal_gadgetbox.set_imagebase("libc", CurrentGadgets.__libc.address)
                 res = True
         
         CurrentGadgets.__loaded = res
@@ -481,7 +484,7 @@ class CurrentGadgets:
 
     @staticmethod
     def reset():
-        CurrentGadgets.__internal_libcbox = None
+        CurrentGadgets.__internal_gadgetbox = None
         CurrentGadgets.__elf = None
         CurrentGadgets.__libc = None
         CurrentGadgets.__arch = None
@@ -494,20 +497,20 @@ class CurrentGadgets:
     def _internal_find(func_name):
         if not CurrentGadgets._initial_ropperbox(): 
             return 0
-        func = getattr(CurrentGadgets.__internal_libcbox, func_name)
+        func = getattr(CurrentGadgets.__internal_gadgetbox, func_name)
         if CurrentGadgets.__find_in_elf:
+            if CurrentGadgets.__elf.pie:
+                CurrentGadgets.__internal_gadgetbox.set_imagebase("elf", CurrentGadgets.__elf.address)
             try:
                 res = func('elf')
-                if CurrentGadgets.__elf.pie:
-                    res += CurrentGadgets.__elf.address
                 return res
             except:
                 pass
         
         if CurrentGadgets.__find_in_libc:
-            res = func('libc')
             if CurrentGadgets.__libc.pie:
-                res += CurrentGadgets.__libc.address
+                CurrentGadgets.__internal_gadgetbox.set_imagebase("libc", CurrentGadgets.__libc.address)
+            res = func('libc')
             return res
         
         if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
@@ -524,37 +527,27 @@ class CurrentGadgets:
         find = find_str
         if find_type == "asm":
             find = asm(find).hex()
-            func = getattr(CurrentGadgets.__internal_libcbox, "search_opcode")
+            func = getattr(CurrentGadgets.__internal_gadgetbox, "search_opcode")
         elif find_type == "opcode":
-            func = getattr(CurrentGadgets.__internal_libcbox, "search_opcode")
+            func = getattr(CurrentGadgets.__internal_gadgetbox, "search_opcode")
         elif find_type == "string":
-            func = getattr(CurrentGadgets.__internal_libcbox, "search_string")
+            func = getattr(CurrentGadgets.__internal_gadgetbox, "search_string")
         else:
             errlog_exit("Unsupported find_type, only: asm / opcode / string.")
         
         res = None
         if CurrentGadgets.__find_in_elf:
+            if CurrentGadgets.__elf.pie:
+                CurrentGadgets.__internal_gadgetbox.set_imagebase("elf", CurrentGadgets.__elf.address)
             try:
-                res = func(find ,'elf', get_list)
-                _base = 0
-                if CurrentGadgets.__elf.pie:
-                    _base = CurrentGadgets.__elf.address
-                if get_list:
-                    return [i + _base for i in res]
-                else:
-                    return _base + res
+                return func(find ,'elf', get_list)
             except:
                 pass
 
         if CurrentGadgets.__find_in_libc:
-            res = func(find ,'libc', get_list)
-            _base = 0
             if CurrentGadgets.__libc.pie:
-                _base = CurrentGadgets.__libc.address
-            if get_list:
-                return [i + _base for i in res]
-            else:
-                return _base + res
+                CurrentGadgets.__internal_gadgetbox.set_imagebase("libc", CurrentGadgets.__libc.address)
+            return func(find ,'libc', get_list)
 
         if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
             errlog_exit("Have closed both elf finder and libc finder.")

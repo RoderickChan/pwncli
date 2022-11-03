@@ -18,7 +18,7 @@ import json
 import threading
 import os
 from .misc import errlog_exit, log_ex, one_gadget
-from .ropperbox import RopperBox
+from .gadgetbox import RopperBox
 
 __all__ = ["LibcBox"]
 
