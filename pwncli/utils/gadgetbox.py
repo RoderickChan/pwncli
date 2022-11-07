@@ -158,8 +158,7 @@ class RopgadgetBox(_GadgetBase):
             raise RuntimeError("arch must be i386 or amd64!")
         super().add_file(name, filepath, arch)
         
-        # 后台处理得到gadgets
-        # TODO
+
     def _getallgadgets(self, obj: _GadgetObj):
         out_ = subprocess.check_output(["ROPgadget", "--binary", obj.filepath, "--all"]).decode('utf-8', errors='ignore').splitlines()[2:]
         if len(out_) == 0:
