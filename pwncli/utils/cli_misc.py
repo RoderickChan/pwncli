@@ -8,7 +8,7 @@ from .misc import get_callframe_info, log_ex, log2_ex, errlog_exit, log_code_bas
     one_gadget_binary, one_gadget, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
     get_flag_when_get_shell, ldd_get_libc_path
 from pwn import flat, asm, ELF, process, remote, context
-from .gadgetbox import RopperBox, RopperArchType
+from .gadgetbox import RopperBox, RopperArchType, RopgadgetBox
 from .decorates import deprecated
 from .syscall_num import SyscallNumber
 
@@ -428,6 +428,11 @@ class CurrentGadgets:
             CurrentGadgets._initial_ropperbox()
 
     @staticmethod
+    def set_debug(debug):
+        CurrentGadgets._initial_ropperbox()
+        CurrentGadgets.__internal_gadgetbox.set_debug(debug)
+
+    @staticmethod
     def _initial_ropperbox() -> bool:
         """Get gadget from current elf and libc"""
         if CurrentGadgets._mutex.acquire(blocking=True):
@@ -455,8 +460,10 @@ class CurrentGadgets:
             log2_ex("Have closed both elf finder and libc finder.")
             CurrentGadgets._mutex.release()
             return False
-
-        CurrentGadgets.__internal_gadgetbox = RopperBox()
+        try:
+            CurrentGadgets.__internal_gadgetbox = RopgadgetBox()
+        except:
+            CurrentGadgets.__internal_gadgetbox = RopperBox()
 
         res = False
         if elf and CurrentGadgets.__find_in_elf:
@@ -464,7 +471,12 @@ class CurrentGadgets:
                 log2_ex("Unsupported arch, only for i386 and amd64.")
             else:
                 CurrentGadgets.__arch = elf.arch
-                CurrentGadgets.__internal_gadgetbox.add_file("elf", elf.path, __arch_mapping[elf.arch])
+
+                if CurrentGadgets.__internal_gadgetbox.box_name == "ropper":
+                    CurrentGadgets.__internal_gadgetbox.add_file("elf", elf.path, __arch_mapping[elf.arch])
+                elif CurrentGadgets.__internal_gadgetbox.box_name == "ropgadget":
+                    CurrentGadgets.__internal_gadgetbox.add_file("elf", elf.path, elf.arch)
+
                 if CurrentGadgets.__elf.pie:
                     CurrentGadgets.__internal_gadgetbox.set_imagebase("elf", CurrentGadgets.__elf.address)
                 res = True
@@ -473,7 +485,11 @@ class CurrentGadgets:
                 log2_ex("Unsupported arch, only for i386 and amd64..")
             else:
                 CurrentGadgets.__arch = libc.arch
-                CurrentGadgets.__internal_gadgetbox.add_file("libc", libc.path, __arch_mapping[elf.arch])
+                if CurrentGadgets.__internal_gadgetbox.box_name == "ropper":
+                    CurrentGadgets.__internal_gadgetbox.add_file("libc", libc.path, __arch_mapping[elf.arch])
+                elif CurrentGadgets.__internal_gadgetbox.box_name == "ropgadget":
+                    CurrentGadgets.__internal_gadgetbox.add_file("libc", libc.path, elf.arch)
+
                 if CurrentGadgets.__libc.pie:
                     CurrentGadgets.__internal_gadgetbox.set_imagebase("libc", CurrentGadgets.__libc.address)
                 res = True
@@ -746,7 +762,7 @@ class CurrentGadgets:
             return None
         if CurrentGadgets.__arch == "amd64":
             return flat([
-                CurrentGadgets.find_gadget("pop rbx; pop rbp; pop r12; pop r13;"),
+                CurrentGadgets.find_gadget("5b5d415c415d415e415fc3", 'opcode'),
                 expected - ori if expected > ori else expected - ori + 0x100000000,
                 write_addr+0x3d, 0, 0, 0, 0,
                 CurrentGadgets.magic_gadget()

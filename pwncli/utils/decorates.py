@@ -397,7 +397,7 @@ def _smart_enumerate_attack_helper2():
         if gift.elf and gift.elf.pie:
             gift['elf'].address = 0
 
-def _smart_enumerate_attack_helper(func_call, loop_time, loop_list):
+def _smart_enumerate_attack_helper(func_call, loop_time, loop_list, show_error):
     # close current io
     gift.io.close()
     if loop_list:
@@ -414,7 +414,9 @@ def _smart_enumerate_attack_helper(func_call, loop_time, loop_list):
             except KeyboardInterrupt:
                 errlog_exit("KeyboardInterrupt!")
                 pass
-            except:
+            except Exception as e:
+                if show_error:
+                    log_ex("error: %r", e)
                 pass
             finally:
                 try:
@@ -434,7 +436,9 @@ def _smart_enumerate_attack_helper(func_call, loop_time, loop_list):
             except KeyboardInterrupt:
                 errlog_exit("KeyboardInterrupt!")
                 pass
-            except:
+            except Exception as e:
+                if show_error:
+                    log_ex("error: %r", e)
                 pass
             finally:
                 try:
@@ -443,13 +447,13 @@ def _smart_enumerate_attack_helper(func_call, loop_time, loop_list):
                     pass
             
 
-def smart_enumerate_attack(loop_time: int=0x10, loop_list:List[List]=None):
+def smart_enumerate_attack(loop_time: int=0x10, loop_list:List[List]=None, show_error=False):
     def wrapper1(func_call):
         @functools.wraps(func_call)
         def wrapper2(*args, **kwargs):
             _check_func_args(func_call, loop_list, False)
-            if gift['from_script']:
-                _smart_enumerate_attack_helper(func_call, loop_time, loop_list)
+            if gift.from_script:
+                _smart_enumerate_attack_helper(func_call, loop_time, loop_list, show_error)
             else:
                 errlog_exit("'smart_enumerate_attack' only support script mode!")
         return wrapper2

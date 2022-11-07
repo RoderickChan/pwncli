@@ -9,13 +9,14 @@
 '''
 
 import functools
+import subprocess
+
 from ropper import RopperService, RopperError, Gadget
 from enum import Enum, unique
 from .misc import errlog_exit, log_ex, _get_elf_arch_info
 import os
 import threading
 import time
-import keystone as ks
 from typing import List, Union, Dict
 
 __all__ = ['RopperOptionType', 'RopperArchType', 'RopperBox', "RopgadgetBox"]
@@ -26,20 +27,19 @@ class _GadgetObj:
         self.filepath = filepath
         self.arch = arch
         self.imgbase = imgbase
-        self.ks = None
-        self.allgadgets = None # {all: {stat:addr}, string: {str:addr}, opcode:{opcode: addr}}
+        self.allgadgets = None # {addr: {addr: stat}, asm: {stat:addr}, count: int}
         self.allgadget_done = False
-        self.cache = None
 
 
 class _GadgetBase:
     def __init__(self, debug):
         self._debug = debug
+        self.box_name = "base"
         self.allinfo: Dict[str, _GadgetObj] = dict()
     
-    def _log(self, msg):
+    def _log(self, msg, *args):
         if self._debug:
-            log_ex(msg)
+            log_ex(msg, *args)
 
     def set_debug(self, val: bool):
         self._debug = val
@@ -143,79 +143,146 @@ class _GadgetBase:
 
 
 class RopgadgetBox(_GadgetBase):
-    def __init__(self, debug):
+    def __init__(self, debug=False):
         super().__init__(debug)
+        self.box_name = "ropgadget"
         if os.system("which ROPgadget >/dev/null 2>&1") != 0:
             raise FileExistsError("RopgadgetBox error! Please install ROPgadget first!")
 
-    def add_file(self, name: str, filepath: str, arch: str):
+    def add_file(self, name: str, filepath: str, arch: str=None):
+        """arch: i386 or amd64"""
         if not arch:
             arch = _get_elf_arch_info(filepath)
-        if arch != "i386" or arch != "amd64":
+
+        if arch != "i386" and arch != "amd64":
             raise RuntimeError("arch must be i386 or amd64!")
         super().add_file(name, filepath, arch)
-        if arch == "i386":
-            self.allinfo[name].ks = ks.Ks(ks.KS_ARCH_X86, ks.KS_MODE_32 + ks.KS_MODE_LITTLE_ENDIAN)
-        else:
-            self.allinfo[name].ks = ks.Ks(ks.KS_ARCH_X86, ks.KS_MODE_64 + ks.KS_MODE_LITTLE_ENDIAN)
         
         # 后台处理得到gadgets
         # TODO
-        def _getallgadgets(obj: _GadgetObj):
+    def _getallgadgets(self, obj: _GadgetObj):
+        out_ = subprocess.check_output(["ROPgadget", "--binary", obj.filepath, "--all"]).decode('utf-8', errors='ignore').splitlines()[2:]
+        if len(out_) == 0:
             obj.allgadget_done = True
-            pass
-        threading.Thread(target=_getallgadgets, args=(self.allinfo[name],), daemon=True).start()
+            return
+        count_ = int(out_[-1].split(":")[1])
+        obj.allgadgets = dict()
+        obj.allgadgets['count'] = count_
+        obj.allgadgets['addr'] = dict()
+        obj.allgadgets['asm'] = dict()
+        for item in out_[:-1]:
+            if not item:
+                continue
+            res = item.split(":")
+            addr, asm_= int(res[0], base=16) + obj.imgbase, res[1]
+            asm_ = asm_.strip()
+            if addr in obj.allgadgets['addr']:
+                obj.allgadgets['addr'][addr].append(asm_)
+            else:
+                obj.allgadgets['addr'][addr] = [asm_]
+            if asm_ in obj.allgadgets['asm']:
+                obj.allgadgets['asm'][asm_].append(addr)
+            else:
+                obj.allgadgets['asm'][asm_] = [addr]
+        obj.allgadget_done = True
+
 
     def remove_file(self, name: str):
         super().remove_file(name)
 
     def get_allgadgets(self, name):
         if name in self.allinfo:
-            while not self.allinfo[name].allgadget_done:
-                time.sleep(5)
-                self._log("wait for load gadgets...")
+            if not self.allinfo[name].allgadget_done:
+                self._getallgadgets(self.allinfo[name])
             return self.allinfo[name].allgadgets
         raise RuntimeError("{} is error!".format(name))
 
-    def _inner_search(self, sname, key, name, get_list):
-        if not name:
-            for _n in self.allinfo.keys():
-                res =  self._inner_search(self, sname, key, _n, get_list)
-                if res:
-                    return res
-            return None
-        
-        if name not in self.allinfo:
-            raise RuntimeError("{} is error!".format(name))
-        
-        if self.allinfo[name].allgadget_done:
-            res = self.allinfo[name].allgadgets[sname].get(key, None)
-        else:
-            # TODO
-            res = []
+    @functools.lru_cache(maxsize=128, typed=True)
+    def search_gadget(self, search: str, name: str, get_list: bool=False) -> Union[List[int], int]:
+        # preprocess
+        search_ = search.split(";")
+        search_2 = []
+        for stat in search_:
+            stat = stat.strip()
+            if not stat:
+                continue
+            search_2.append(stat)
+        search = " ; ".join(search_2)
 
-        if not res:
+        if not name:
+            name_ = self.allinfo.keys()
+        else:
+            name_ = [name]
+        res = []
+        for n in name_:
+            self._log("search_gadget %r in %r", search,n)
+            allgadgets = self.get_allgadgets(n)
+            #print(allgadgets['asm'])
+            if search in allgadgets['asm']:
+                res += allgadgets['asm'][search]
+
+        if len(res) == 0:
             return None
-        
         if get_list:
             return res
-        else:
-            return res[0]
+        return res[0]
 
-
-    def search_gadget(self, search: str, name: str, get_list: bool=False) -> Union[List[int], int]:
-        # TODO 先gadget 再hex
-
-        #
-        opcode = bytes(self.ks.asm(search)).hex()
-        return self.search_opcode(opcode, name, get_list)
-
-
+    @functools.lru_cache(maxsize=128, typed=True)
     def search_string(self, string: str, name: str, get_list: bool=False) -> Union[List[int], int]:
-        return self._inner_search("string", string, name, get_list)
+        if string.endswith("\x00"):
+            string = string.rstrip("\x00")
 
+        if not name:
+            name_ = self.allinfo.keys()
+        else:
+            name_ = [name]
+        res = []
+        for n in name_:
+            self._log("search_string %r in %r",string, n)
+            curobj = self.allinfo[n]
+            out_ = subprocess.check_output(["ROPgadget", "--binary", curobj.filepath, "--string", string])\
+            .decode('utf-8', errors='ignore')\
+            .splitlines()[2:]
+            if len(out_) == 0:
+                continue
+            for item in out_:
+                if not item:
+                    continue
+                res.append(int(item.split(":")[0], base=16) + curobj.imgbase)
+        if len(res) == 0:
+            return None
+        if get_list:
+            return res
+        return res[0]
+
+    @functools.lru_cache(maxsize=128, typed=True)
     def search_opcode(self, opcode: str, name: str, get_list: bool=False) -> Union[List[int], int]:
-        return self._inner_search("opcode", opcode, name, get_list)
+        # preprocess
+        opcode = opcode.strip()
+
+        if not name:
+            name_ = self.allinfo.keys()
+        else:
+            name_ = [name]
+        res = []
+        for n in name_:
+            self._log("search_opcode %r in %r", opcode, n)
+            curobj = self.allinfo[n]
+            out_ = subprocess.check_output(["ROPgadget", "--binary", curobj.filepath, "--opcode", opcode])\
+            .decode('utf-8', errors='ignore')\
+            .splitlines()[2:]
+            if len(out_) == 0:
+                continue
+            for item in out_:
+                if not item:
+                    continue
+                res.append(int(item.split(":")[0], base=16) + curobj.imgbase)
+
+        if len(res) == 0:
+            return None
+        if get_list:
+            return res
+        return res[0]
 
 
 @unique
@@ -257,6 +324,7 @@ class RopperBox(_GadgetBase):
     def __init__(self, *, badbytes: str='', show_all: bool=False, 
                 inst_count: int=10, op_type: RopperOptionType=RopperOptionType.all, detailed: bool=False, debug=False):
         super().__init__(debug)
+        self.box_name = "ropper"
         self._rs = RopperService(options={
             'color': False,
             'badbytes': badbytes,
