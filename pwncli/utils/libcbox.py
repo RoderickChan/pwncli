@@ -264,7 +264,7 @@ class LibcBox:
 
 
     def add_symbol(self, symbol_name:str, address:int):
-        self.__process_symbols({symbol_name:hex(address)})
+        self.__process_symbols({symbol_name:hex(address & 0xfff)})
         return self
 
     def add_md5(self, hash_val):

@@ -351,7 +351,7 @@ void pause_before_main()
                 file_content += """
 int %s()
 {
-    return %d;
+    return %s;
 }
                 """ % (__func, _func_retval)
             _, tmp_path = tempfile.mkstemp(suffix=".c", text=True)
