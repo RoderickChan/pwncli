@@ -276,9 +276,12 @@ def listen_(ctx, listen_one, listen_forever, port, timeout, executable, verbose)
         if executable:
             ser.spawn_process(executable)
         ser.wait_for_connection()
-        while ser.recv(4096, timeout=timeout):
+        try:
+            while ser.recv(4096, timeout=timeout):
+                pass
+        except:
             pass
-        ser.wait_for_close(timeout)
+        ser.close()
 
     while listen_forever:
         _f()
