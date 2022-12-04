@@ -98,7 +98,9 @@ __all__ = [
     "calc_countaddr_tcache",
     "calc_entryaddr_tcache",
     "calc_countaddr_by_entryaddr_tcache",
-    "calc_entryaddr_by_countaddr_tcache"
+    "calc_entryaddr_by_countaddr_tcache",
+    "protect_ptr",
+    "reveal_ptr"
 ]
 
 int16 = functools.partial(int, base=16)
@@ -113,6 +115,19 @@ int_ex = lambda x: int(x.decode()) if isinstance(x, bytes) else int(x)
 
 flat_z = functools.partial(flat, filler=b"\x00")
 
+def protect_ptr(address, next) -> int:
+    return (address >> 12) ^ next
+
+def reveal_ptr(addr) -> int:
+    """
+    addr = addr1 ^ addr2
+    addr2 = addr1 + XXX 
+    calc the heap address
+    """
+    _res = addr
+    for i in range(3):
+        _res = (_res >> 12) ^ addr
+    return _res
 
 
 def get_callframe_info(depth:int=2):
