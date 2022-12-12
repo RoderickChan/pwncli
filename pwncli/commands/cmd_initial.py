@@ -1,11 +1,11 @@
-import os.path
+import os
 import re
 
 import click
-import sys
 from pwncli.cli import pass_environ, _Inner_Dict
 from pwn import ELF, wget
 from subprocess import getstatusoutput
+
 
 def _is_elf_file(filepath):
     if os.path.exists(filepath) and os.path.isfile(filepath):
@@ -16,8 +16,15 @@ def _is_elf_file(filepath):
         data = f.read(4)
         return data == b"\x7fELF"
 
+
 def _left_str(s):
     return s.ljust(0x16, " ")
+
+
+def _make_template_exit():
+    os.system("pwncli template cli")
+    exit(0)
+
 
 def _collect_info(ctx, info):
     ctx.vlog("-" * 70)
@@ -25,23 +32,29 @@ def _collect_info(ctx, info):
     glibc_info = ""
     status, output = getstatusoutput("cat /etc/issue")
     if status == 0:
-        ctx.vlog(_left_str("Operating System") + " --->    {}".format(output[:-6]))
+        ctx.vlog(_left_str("Operating System") +
+                 " --->    {}".format(output[:-6]))
 
     status, output = getstatusoutput("ls -al /lib/x86_64-linux-gnu/libc.so.6")
     if status == 0:
         info.sys_libcfile = os.path.realpath("/lib/x86_64-linux-gnu/libc.so.6")
-        ctx.vlog(_left_str("Default libc path") + " --->    {}".format(info.sys_libcfile))
+        ctx.vlog(_left_str("Default libc path") +
+                 " --->    {}".format(info.sys_libcfile))
 
         status, output = getstatusoutput("/lib/x86_64-linux-gnu/libc.so.6")
         if status == 0:
-            glibc_info = re.findall("glibc [\d\.]+-\d+ubuntu[\d\.]+", output.splitlines()[0], re.I)[0]
+            glibc_info = re.findall(
+                "glibc [\d\.]+-\d+ubuntu[\d\.]+", output.splitlines()[0], re.I)[0]
             ctx.vlog(_left_str("Default libc version") +
                      " --->    {}".format(glibc_info))
 
-    status, output = getstatusoutput("ls -al /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2")
+    status, output = getstatusoutput(
+        "ls -al /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2")
     if status == 0:
-        info.sys_ldfile = os.path.realpath("/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2")
-        ctx.vlog(_left_str("Default ld path") + " --->    {}".format(info.sys_ldfile))
+        info.sys_ldfile = os.path.realpath(
+            "/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2")
+        ctx.vlog(_left_str("Default ld path") +
+                 " --->    {}".format(info.sys_ldfile))
 
     info.sys_glibcinfo = glibc_info
 
@@ -67,7 +80,10 @@ def _detect_file(ctx, info):
                  " --->    {}".format(libcfile))
         status, output = getstatusoutput("./"+libcfile)
         if status == 0:
-            glibcinfo = re.findall("glibc [\d\.]+-\d+ubuntu[\d\.]+", output.splitlines()[0], re.I)[0]
+            if "musl" in output:
+                _make_template_exit()  # musl
+            glibcinfo = re.findall(
+                "glibc [\d\.]+-\d+ubuntu[\d\.]+", output.splitlines()[0], re.I)[0]
             ctx.vlog(_left_str("Detect libc version") +
                      " --->    {}".format(glibcinfo))
 
@@ -86,28 +102,87 @@ def _detect_file(ctx, info):
     info.ldfile = ldfile
     info.glibcinfo = glibcinfo
     info.elffile = elffile
+
     if not elffile:
         ctx.abort("cannot detect elf file!")
+    elf = ELF(elffile, checksec=False)
+    if elf.arch != "amd64":
+        ctx.abort("only support amd64!")
+
+    if elf.statically_linked:
+        _make_template_exit()
+    info.elf = elf
 
 
 def _download_and_patch(ctx, info):
-    if info.sys_glibcinfo and info.glibcinfo and info.sys_glibcinfo == info.glibcinfo:
-        ctx.vlog("No need to patchelf...")
-        info.patchelf = 0
+    if not info.libcfile and not info.ldfile:
+        _make_template_exit()
+
+    status, output = getstatusoutput("ldd " + info.elffile)
+    lddoutput = output
+    if status != 0:
+        ctx.verrlog("ldd error!")
+        _make_template_exit()
+
+    if "/lib/x86_64-linux-gnu" in output:
+        if info.libcfile:
+            if info.glibcinfo:
+                if info.sys_glibcinfo == info.glibcinfo:
+                    _make_template_exit()
+                else:
+                    info.patchelf = 1
+                    info.download = 1
+            else:
+                if info.ldfile:
+                    info.patchelf = 1
+                    info.download = 0
+                else:
+                    _make_template_exit()
+        else:
+            _make_template_exit()
+
+    else:
+        if info.libcfile:
+            if info.glibcinfo:
+                if info.ldfile:
+                    info.download = 0
+                else:
+                    info.download = 1
+                info.patchelf = 1
+        else:
+            ctx.verrlog("No libc in current directory!")
+            _make_template_exit()
+
+    if info.download and info.sys_glibcinfo and info.glibcinfo and info.sys_glibcinfo == info.glibcinfo:
         if not info.ldfile and info.sys_ldfile:
             getstatusoutput("cp -L {} .".format(info.sys_ldfile))
-            info.ldfile = info.sys_ldfile
+            info.ldfile = os.path.split(info.sys_ldfile)[1]
+            info.download = 0
 
-    if info.glibcinfo and info.patchelf != 0:
-        info.patchelf = 1
+    if info.download:
+        # TODO
+        # unstrip first, then download deb
+        # download ld first
+        # unstrip
+        # download dbg-deb
 
-    # TODO 1. get ldd info
-    #      2. need patched?
-    #      3. download deb/ddeb
-    #      4. do patchlef
-    status, output = getstatusoutput("ldd " + info.elffile)
+        pass
+
+    if info.patchelf and info.libcfile and info.ldfile:
+        curlibc = "./" + info.libcfile
+        curld = "./" + info.ldfile
+        curfile = "./" + info.elffile
+        if curlibc not in lddoutput or curld not in lddoutput:
+            cmd = "patchelf --replace-needed libc.so.6 {} {}".format(
+                curlibc, curfile)
+            getstatusoutput(cmd)
+            ctx.vlog(_left_str("Exec cmd") + " --->    {}".format(cmd))
+
+            cmd = "patchelf --set-interpreter {} ./{}".format(curld, curfile)
+            getstatusoutput(cmd)
+            ctx.vlog(_left_str("Exec cmd") + " --->    {}".format(cmd))
+
     pass
-
 
 
 @click.command(name='initial', short_help="pwn initial tool, inspired by https://github.com/io12/pwninit.")
@@ -118,4 +193,5 @@ def cli(ctx):
     _collect_info(ctx, info)
     _detect_file(ctx, info)
     _download_and_patch(ctx, info)
-    os.system("pwncli template cli")
+    print(repr(info))
+    _make_template_exit()

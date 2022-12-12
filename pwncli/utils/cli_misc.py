@@ -1,13 +1,24 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
+'''
+@File    : cli_misc.py
+@Time    : 2022/12/12 21:34:37
+@Author  : Roderick Chan
+@Email   : ch22166@163.com
+@Desc    : None
+'''
+
 
 import functools
 import os
+import subprocess
 from threading import Lock, Thread
 import time
 from pwncli.cli import gift
 from .misc import get_callframe_info, log_ex, log2_ex, errlog_exit, log_code_base_addr, log_libc_base_addr, \
     one_gadget_binary, one_gadget, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
-    get_flag_when_get_shell, ldd_get_libc_path
-from pwn import flat, asm, ELF, process, remote, context
+    get_flag_when_get_shell, ldd_get_libc_path, _in_tmux, _in_wsl
+from pwn import flat, asm, ELF, process, remote, context, atexit, wget, which, sleep
 from .gadgetbox import RopperBox, RopperArchType, RopgadgetBox
 from .decorates import deprecated
 from .syscall_num import SyscallNumber
@@ -38,8 +49,12 @@ __all__ = [
     "copy_current_io",
     "s", "sl", "sa", "sla", "st", "slt", "ru", "rl","rs",
     "rls", "rlc", "rle", "ra", "rr", "r", "rn", "ia", "ic", "cr",
-    "CurrentGadgets", "load_currentgadgets_background"
+    "CurrentGadgets", "load_currentgadgets_background",
+    "kill_heaptrace", "launch_heaptrace"
     ]
+
+
+
 
 def stop(enable=True):
     """Stop the program and print the caller's info
@@ -75,6 +90,99 @@ def stop(enable=True):
     input(" Press any key to continue......")
 
 S = stop
+
+_tmux_pane = None
+_gnome_pid = -1
+_heaptrace_pid = -100
+
+def _kill_heaptrace_in_tmux_pane():
+    global _tmux_pane, _heaptrace_pid
+    os.system("tmux send-keys -t {} C-c 2>/dev/null".format(_tmux_pane))
+    os.system("tmux kill-pane -t {} 2>/dev/null".format(_tmux_pane))
+
+def _kill_heaptrace_in_gnome():
+    # global _gnome_pid, _heaptrace_pid
+    # os.system("kill -SIGINT {} 2>/dev/null".format(_heaptrace_pid))
+    # os.system("kill -9 {} 2>/dev/null".format(_gnome_pid))
+    pass
+
+def _kill_heaptrace_in_wsl():
+    # global _heaptrace_pid
+    # os.system("kill -SIGINT {} 2>/dev/null".format(_heaptrace_pid))
+    pass
+
+def _launch_heaptrace_in_tmux():
+    global _tmux_pane, _heaptrace_pid
+    pid = gift.io.pid
+    _tmux_pane= subprocess.check_output(["tmux", "splitw", "-h", '-F#{session_name}:#{window_index}.#{pane_index}', "-P"]).decode().strip()
+    atexit.register(_kill_heaptrace_in_tmux_pane)
+    os.system("tmux send-keys -t {} 'heaptrace --attach {}' C-m".format(_tmux_pane, pid))
+    os.system("tmux select-pane -L")
+
+
+def _launch_heaptrace_in_wsl():
+    global _heaptrace_pid
+    pid = gift.io.pid
+    cmd = "cmd.exe /c start wt.exe wsl.exe -d {} bash -c \"{}\"".format(os.getenv("WSL_DISTRO_NAME"), "heaptrace --attach {}".format(pid))
+    os.system(cmd)
+
+
+def _launch_heaptrace_in_gnome():
+    global _gnome_pid, _heaptrace_pid
+    pid = gift.io.pid
+    p = subprocess.Popen(["gnome-terminal", "--", "sh", "-c", "heaptrace --attach {}".format(pid)])
+    global _gnome_pid
+    _gnome_pid = p.pid
+    atexit.register(_kill_heaptrace_in_gnome)
+
+
+def kill_heaptrace():
+    if gift.debug and gift.io and not gift.gdb_obj:
+        if _in_tmux():
+            _kill_heaptrace_in_tmux_pane()  
+        elif _in_wsl():
+            _kill_heaptrace_in_wsl()
+        elif which("gnome-terminal"):
+            _kill_heaptrace_in_gnome()
+
+
+def launch_heaptrace(stop_=True):
+    if gift.debug and gift.io and not gift.gdb_obj:
+        pass
+    else:
+        return
+    if not which("heaptrace"):
+        res = input("Install heaptrace from https://github.com/Arinerron/heaptrace/releases/download/2.2.8/heaptrace? [y/n]").strip()
+        if res != "y":
+            errlog_exit("Cannot find heaptrace!")
+        try:
+            wget("https://github.com/Arinerron/heaptrace/releases/download/2.2.8/heaptrace", save=True, timeout=300)
+            subprocess.check_output(["chmod", "+x", "heaptrace"])
+            bin_path = "$HOME/.local/bin" if os.getuid() != 0 else "/usr/local/bin"
+            subprocess.check_output(["mv", "heaptrace", bin_path])
+        except:
+            errlog_exit("Cannot download or install heaptrace!")
+    
+    if _in_tmux():
+        _launch_heaptrace_in_tmux()
+    elif _in_wsl() and which("wt.exe"):
+        _launch_heaptrace_in_wsl()
+        sleep(1)
+    elif which("gnome-terminal"):
+        _launch_heaptrace_in_gnome()
+    else:
+        errlog_exit("Don't know how to launch heaptrace!")
+    
+    # global _heaptrace_pid
+    # sleep(0.5)
+    # out_ = subprocess.check_output("ps aux | grep \"heaptrace --attach\"", shell=True).decode().splitlines()
+    # # print(out_)
+    # for i in out_:
+    #     if "heaptrace --attach" in i and "grep" not in i:
+    #         _heaptrace_pid = i.split()[1]
+    #         break
+    # print(_heaptrace_pid)
+    stop(stop_)
 
 #----------------------------useful function-------------------------
 def get_current_one_gadget_from_file(libc_base=0, more=False):

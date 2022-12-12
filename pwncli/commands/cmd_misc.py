@@ -1,10 +1,21 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
+'''
+@File    : cmd_misc.py
+@Time    : 2022/12/12 15:41:17
+@Author  : Roderick Chan
+@Email   : ch22166@163.com
+@Desc    : None
+'''
+
+
 import os
 import tempfile
 import subprocess
 import shlex
 
 import click
-from pwn import which, listen, context
+from pwn import which, listen, context, wget
 from pwncli.cli import AliasedGroup, _set_filename, pass_environ, _Inner_Dict
 
 
@@ -18,9 +29,10 @@ def cli(ctx):
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.option('-a', '--all', '--all-gadgets', "all_gadgets", is_flag=True, show_default=True, help="Get all gadgets and don't remove duplicates.")
 @click.option('-d', '--dir', '--directory', "directory", type=click.Path(exists=True, dir_okay=True), default=".", required=False, help="The directory to save files.")
+@click.option('-o', '--opcode', "opcode", type=str, default="", required=False, help="The opcode mode.")
 @click.option('-n', '--depth', '--count', "depth", type=int, default=-1, required=False, help="The depth of the gadgets.")
 @pass_environ
-def get_gadgets(ctx, filename, all_gadgets, directory, depth):
+def get_gadgets(ctx, filename, all_gadgets, directory, depth, opcode):
     """
     FILENAME: The binary file name.
     
@@ -35,31 +47,81 @@ def get_gadgets(ctx, filename, all_gadgets, directory, depth):
         ctx.abort(
             "gadget-command ---> No filename, please specify the binary file.")
 
+    ropper_path = which("ropper")
+    ropgadget_path = which("ROPgadget")
+    rp_path = which("rp-lin-x64")
+
+    if len(opcode) > 0:
+        opcode = opcode.strip()
+        opcode = opcode.strip("'")
+        opcode = opcode.strip("\"")
+
+        len_ = len(opcode)
+        if len_ > 0 and len_ % 2 == 0:
+            pass
+        else:
+            ctx.abort("gadget-command ---> The opcode is invalid.")
+
+        if rp_path:
+            n_ = ""
+            for i in range(0, len_, 2):
+                n_ += "\\x"
+                n_ += opcode[i:i+2]
+            opcode = n_
+            cmd = "rp-lin-x64 -f {} --search-hexa \"{}\"".format(
+                filename, opcode)
+        elif ropgadget_path:
+            cmd = "ROPgadget --binary {} --opcode {}".format(filename, opcode)
+        elif ropper_path:
+            cmd = "ropper -f {} --opcode {}".format(filename, opcode)
+        else:
+            ctx.abort(
+                "gadget-command ---> No rop tools exists, please install one.")
+        ctx.vlog("gadget-command ---> Exec cmd: {}".format(cmd))
+        os.system(cmd)
+        return
+
     if not os.path.isdir(directory):
         ctx.abort("gadget-command ---> The 'directory' is invalid.")
 
-    ropper_path = which("ropper")
-    ropgadget_path = which("ROPgadget")
-    if not ropper_path and not ropgadget_path:
-        ctx.verrlog(
-            "gadget-command ---> Cannot find ropper and ROPgadget in PATH, install them first.")
-        s = input("Now install ropper and ROPgadget through pip3? [y/n]")
-        if s.lower() == "y" or s.lower() == "yes":
-            os.system("pip3 install ropper ROPgadget")
-            ropper_path, ropgadget_path = 1, 1
-        else:
-            exit(-2)
+    if not rp_path:
+        res = input(
+            "Install rp-lin-x64 from https://github.com/0vercl0k/rp/releases/download/v2.0.2/rp-lin-x64? [y/n]")
+        if res.strip() == "y":
+            try:
+                wget("https://github.com/0vercl0k/rp/releases/download/v2.0.2/rp-lin-x64",
+                     timeout=300, save=True)
+                bin_path = "$HOME/.local/bin" if os.getuid() != 0 else "/usr/local/bin"
+
+                ctx.vlog(
+                    "gadget-command ---> Exec cmd: {}".format("chmod +x rp-lin-x64"))
+                os.system("chmod +x rp-lin-x64")
+                cmd = "mv rp-lin-x64 {}".format(bin_path)
+
+                ctx.vlog("gadget-command ---> Exec cmd: {}".format(cmd))
+                os.system(cmd)
+                if which("rp-lin-x64"):
+                    rp_path = 1
+                else:
+                    rp_path = 0
+            except:
+                ctx.verrlog("gadget-command ---> Download rp-lin-x64 error!")
     ps = []
-    if ropper_path:
-        cmd = "ropper -f {} --nocolor".format(filename)
-        if all_gadgets:
-            cmd += " --all"
+    if rp_path:
+        cmd = "rp-lin-x64 -f {} ".format(filename)
+        if not all_gadgets:
+            cmd += " --unique "
         if depth > 0:
-            cmd += " --inst-count {}".format(depth)
-        store_file = "{}".format(os.path.join(directory, "ropper_gadgets-" + os.path.split(ctx.get('filename'))[1]))
-        ctx.vlog("gadget-command ---> Exec cmd: {} and store in {}".format(cmd, store_file))
-        p = subprocess.Popen(shlex.split(cmd), stdout=open(store_file, "wt", encoding='utf-8', errors='ignore'))
-        ps.append(p)
+            cmd += " -r {} ".format(depth)
+        else:
+            cmd += " -r 6 "
+        store_file = "{}".format(os.path.join(
+            directory, "rp_gadgets-" + os.path.split(ctx.get('filename'))[1]))
+        ctx.vlog(
+            "gadget-command ---> Exec cmd: {} and store in {}".format(cmd, store_file))
+        p = subprocess.Popen(shlex.split(cmd), stdout=open(
+            store_file, "wt", encoding='utf-8', errors='ignore'))
+        # ps.append(p)
 
     if ropgadget_path:
         cmd = "ROPgadget --binary {}".format(filename)
@@ -67,15 +129,31 @@ def get_gadgets(ctx, filename, all_gadgets, directory, depth):
             cmd += " --all"
         if depth > 0:
             cmd += " --depth {}".format(depth)
-        store_file = "{}".format(os.path.join(directory, "ropgadget_gadgets-" + os.path.split(ctx.get('filename'))[1]))
-        ctx.vlog("gadget-command ---> Exec cmd: {} and store in {}".format(cmd, store_file))
-        p = subprocess.Popen(shlex.split(cmd), stdout=open(store_file, "wt", encoding='utf-8', errors='ignore'))
+        store_file = "{}".format(os.path.join(
+            directory, "ropgadget_gadgets-" + os.path.split(ctx.get('filename'))[1]))
+        ctx.vlog(
+            "gadget-command ---> Exec cmd: {} and store in {}".format(cmd, store_file))
+        p = subprocess.Popen(shlex.split(cmd), stdout=open(
+            store_file, "wt", encoding='utf-8', errors='ignore'))
+        # ps.append(p)
+
+    if ropper_path and (not ropgadget_path) and (not rp_path):
+        cmd = "ropper -f {} --nocolor".format(filename)
+        if all_gadgets:
+            cmd += " --all"
+        if depth > 0:
+            cmd += " --inst-count {}".format(depth)
+        store_file = "{}".format(os.path.join(
+            directory, "ropper_gadgets-" + os.path.split(ctx.get('filename'))[1]))
+        ctx.vlog(
+            "gadget-command ---> Exec cmd: {} and store in {}".format(cmd, store_file))
+        p = subprocess.Popen(shlex.split(cmd), stdout=open(
+            store_file, "wt", encoding='utf-8', errors='ignore'))
         ps.append(p)
-    
+
     for p in ps:
         p.wait()
         p.terminate()
-        
 
 
 @cli.command(name="setgdb", short_help="Copy gdbinit files from and set gdb-scripts for current user.")
@@ -98,7 +176,7 @@ def copy_gdbinit(ctx, generate_script):
 
     if generate_script:
         for name in ("pwndbg", "gef", "peda"):
-            _cur_path =os.path.join(predir ,"gdb-{}".format(name))
+            _cur_path = os.path.join(predir, "gdb-{}".format(name))
             write_data = "#!/bin/sh\n"
             write_data += 'cat > ~/.gdbinit << "EOF"\n'
             with open(gdbinit_file_path+name, "rt", encoding="utf-8", errors="ignore") as gdbinitf:
@@ -110,7 +188,6 @@ def copy_gdbinit(ctx, generate_script):
                 ctx.vlog(
                     "setgdb-command ---> Generate {} success.".format(_cur_path))
             os.system("chmod 755 {}".format(_cur_path))
-
 
 
 # add display struct info
@@ -156,7 +233,8 @@ def export_struct_info(ctx, filename, save_all, directory, name):
             if line.startswith("struct "):
                 struct_name.append(line)
 
-    name = ["struct " + n.strip() if not n.strip().startswith("struct") else n.strip() for n in name]
+    name = ["struct " + n.strip() if not n.strip().startswith("struct")
+            else n.strip() for n in name]
     for n in name:
         if n not in struct_name:
             ctx.abort(
@@ -245,17 +323,20 @@ def listen_(ctx, listen_one, listen_forever, port, timeout, executable, verbose)
     if timeout < 1:
         timeout = 300
         ctx.vlog("listen-command ---> timeout must be a positive.")
-    
+
     if executable:
         executable = executable.split()
         for exe_ in executable:
             if exe_:
                 if os.path.exists(exe_) and os.path.isfile(exe_) and os.access(exe_, os.X_OK):
-                    ctx.vlog2("listen-command ---> executable file check pass!.")
+                    ctx.vlog2(
+                        "listen-command ---> executable file check pass!.")
                 else:
-                    ctx.abort("listen-command ---> executable file check failed! path: {}".format(exe_))
-    if (listen_one and listen_forever) or (not listen_one and  not listen_forever):
-        ctx.abort("listen-command ---> listen_once and listen_forever cannot be specified or canceled at the same time")
+                    ctx.abort(
+                        "listen-command ---> executable file check failed! path: {}".format(exe_))
+    if (listen_one and listen_forever) or (not listen_one and not listen_forever):
+        ctx.abort(
+            "listen-command ---> listen_once and listen_forever cannot be specified or canceled at the same time")
     args = _Inner_Dict()
     args.listen_one = listen_one
     args.listen_forever = listen_forever
