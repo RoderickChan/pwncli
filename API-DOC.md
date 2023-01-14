@@ -82,6 +82,8 @@ print(hex(x), hex(y))
 
 ### recv_libc_addr
 
+功能：当接收到`/x7f`或`/xf7`时，根据设置的arch自动将包含"`/x7f`"在内的前3个字节/前6个字节解包为一个整数。
+
 功能：当接收到`/x7f`或`/xf7`时，根据设置的arch自动将包含`/x7f`或`/xf7`在内的前3个字节/前6个字节解包为一个整数
 
 参数：
@@ -418,6 +420,7 @@ print(hex(x), hex(y))
 
 
 
+>>>>>>> ea94feb... add example for API-DOC
 # cli_misc.py
 
 ## 常用函数
