@@ -76,7 +76,58 @@ print(hex(x), hex(y))
 # 0x61 0x6161
 ```
 
+### float_hexstr2int
 
+功能：
+
+
+
+### protect_ptr
+
+功能：将数据按`glibc2.32`的`tcache`加密规则（`safe-linking`）进行加密
+
+参数：
+
++ `address`：对应`size`的`tcachebin`头节点
++ `next`：想加密的数据
+
+示例：
+
+```python
+>>> protect_ptr(0xdeadbeef,0xbeefdead)
+3202495606
+```
+
+即：`(0xdeadbeef >> 12) ^ 0xbeefdead = 3202495606`
+
+### reveal_ptr
+
+功能：将数据按glibc2.32的tcache加密规则（safe-linking）进行解密，解出的是一个与加密前数据误差不大的值
+
+参数：
+
++ 一个需要解密的地址
+
+示例：
+
+```python
+>>> reveal_ptr(3202495606) 
+3202996971
+>>> hex(3202996971)
+'0xbee9daeb'
+```
+
+### pad_ljust
+
+
+
+### pad_rjust
+
+
+
+### p64_float
+
+### generate_payload_for_connect
 
 ## 数据接收
 
@@ -380,15 +431,29 @@ print(hex(x), hex(y))
 
 ### ldd_get_libc_path
 
+功能：获得参数对应文件的libc.so.6的绝对地址
 
+参数：
+
++ filepath：一个文件路径
 
 ### one_gadget
 
+功能：获得参数对应的libc.so的one_gadget
 
+参数：
+
++ condition：一个libc.so文件的路径或build-id
++ more：调整搜索one_gadget参数，从而获得更多one_gadget
 
 ### one_gadget_binary
 
+功能：获得参数对应的静态链接elf文件的one_gadget
 
+参数：
+
++ binary_path：elf文件路径
++ more：调整搜索one_gadget参数，从而获得更多one_gadget
 
 ## 堆记数相关
 
@@ -420,7 +485,6 @@ print(hex(x), hex(y))
 
 
 
->>>>>>> ea94feb... add example for API-DOC
 # cli_misc.py
 
 ## 常用函数
