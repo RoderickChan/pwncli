@@ -44,7 +44,6 @@ __all__ = [
     "int8",
     "int2",
     "int16_ex",
-    "int16_ex",
     "int8_ex",
     "int2_ex",
     "int_ex",
@@ -83,6 +82,8 @@ __all__ = [
     "p64_ex",
     "p32_float",
     "p64_float",
+    "pad_ljust",
+    "pad_rjust",
     "float_hexstr2int",
     "generate_payload_for_connect",
     "recv_libc_addr",
@@ -97,7 +98,9 @@ __all__ = [
     "calc_countaddr_tcache",
     "calc_entryaddr_tcache",
     "calc_countaddr_by_entryaddr_tcache",
-    "calc_entryaddr_by_countaddr_tcache"
+    "calc_entryaddr_by_countaddr_tcache",
+    "protect_ptr",
+    "reveal_ptr"
 ]
 
 int16 = functools.partial(int, base=16)
@@ -112,6 +115,19 @@ int_ex = lambda x: int(x.decode()) if isinstance(x, bytes) else int(x)
 
 flat_z = functools.partial(flat, filler=b"\x00")
 
+def protect_ptr(address, next) -> int:
+    return (address >> 12) ^ next
+
+def reveal_ptr(addr) -> int:
+    """
+    addr = addr1 ^ addr2
+    addr2 = addr1 + XXX 
+    calc the heap address
+    """
+    _res = addr
+    for i in range(3):
+        _res = (_res >> 12) ^ addr
+    return _res
 
 
 def get_callframe_info(depth:int=2):
@@ -286,7 +302,7 @@ def ldd_get_libc_path(filepath:str) -> str:
     try:
         out = subprocess.check_output(["ldd", filepath], encoding='utf-8').split()
         for o in out:
-            if "/libc.so" in o or "/libc-2." in o:
+            if "/libc" in o:
                 rp = os.path.realpath(o)
                 break
     except:
@@ -324,7 +340,7 @@ def one_gadget(condition:str, more=False, buildid=False):
         errlog_exit("Cannot exec one_gadget, maybe you don't install one_gadget or filename is wrong or buildid is wrong!")
 
 
-def one_gadget_binary(binary_path:str, more=False) -> int:
+def one_gadget_binary(binary_path:str, more=False):
     """Get all one_gadget about an elf binary file.
 
     """
@@ -336,7 +352,7 @@ def one_gadget_binary(binary_path:str, more=False) -> int:
         errlog_exit("Exec ldd {} fail!".format(binary_path))
 
 
-#--------------------------------usefule function------------------------------
+#--------------------------------useful function------------------------------
 def u16_ex(data: str or bytes) -> int:
     assert isinstance(data, (str, bytes)), "wrong data type!"
     length = len(data)
@@ -394,7 +410,7 @@ def p16_ex(num:int) -> bytes:
 def p24_ex(num: int) -> bytes:
     if num < 0:
         num += 1 << 24
-    num &= 0xffff
+    num &= 0xffffff
     return pack(num, word_size=24)
 
 def p32_ex(num:int) -> bytes:
@@ -428,6 +444,17 @@ def p64_float(num:float, endian="little") -> bytes:
     else:
         raise RuntimeError("Wrong endian!")
 
+def pad_ljust(payload, psz, filler="\x00") -> bytes:
+    len_ = len(payload)
+    comple = len_ % psz
+    if comple > 0:
+        return flat(payload, filler * (psz - comple))
+
+def pad_rjust(payload, psz, filler="\x00") -> bytes:
+    len_ = len(payload)
+    comple = len_ % psz
+    if comple > 0:
+        return flat(filler * (psz - comple), payload)
 
 def float_hexstr2int(data: str or bytes, hexstr=True, endian="little", bits=64) -> int:
     """float_hex2int('0x0.07f6d266e9fbp-1022') ---> 140106772946864"""
@@ -479,7 +506,7 @@ def generate_payload_for_connect(ip: str, port: int) -> bytes:
     return pack(2, word_size=16, endianness="little") + pack(port, word_size=16, endianness="big") + pack(int_ip, word_size=32, endianness="big") + pack(0, 64)
 
 
-def recv_libc_addr(io, *, bits=64, offset=0) -> int:
+def recv_libc_addr(io, *, bits=64, offset=0, timeout=5) -> int:
     """Calcuate libc-base addr while recv '\x7f' in amd64 or '\xf7' in i386.
 
     Args:
@@ -495,7 +522,7 @@ def recv_libc_addr(io, *, bits=64, offset=0) -> int:
     """
     assert bits == 32 or bits == 64
     contains = b"\x7f" if bits == 64 else b"\xf7"
-    m = io.recvuntil(contains)
+    m = io.recvuntil(contains, timeout=timeout)
     if contains not in m:
         raise RuntimeError("Cannot get libc addr")
     if bits == 32:
@@ -548,7 +575,7 @@ def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
     ld_flag = 0
 
     for r in res:
-        rc = re.compile(r"^([0123456789abcdef]{6,14})-([0123456789abcdef]{6,14})", re.S)
+        rc = re.compile(r"^([0-9a-f]{6,14})-([0-9a-f]{6,14})", re.S)
         rc = rc.findall(r)
         if len(rc) != 1 or len(rc[0]) != 2:
             continue
@@ -557,10 +584,10 @@ def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
         if (filename is not None) and (not code_flag) and filename in r:
             code_flag = 1
             _d['code'] = start_addr
-        elif (not libc_flag) and ("/libc-2." in r or "/libc.so" in r):
+        elif (not libc_flag) and ("/libc" in r):
             libc_flag = 1
             _d['libc'] = start_addr
-        elif (not ld_flag) and ("/ld-2." in r):
+        elif (not ld_flag) and ("/ld" in r):
             ld_flag = 1
             _d['ld'] = start_addr
         elif "heap" in r:

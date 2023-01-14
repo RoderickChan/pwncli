@@ -1,14 +1,25 @@
+#!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
+'''
+@File    : cli_misc.py
+@Time    : 2022/12/12 21:34:37
+@Author  : Roderick Chan
+@Email   : ch22166@163.com
+@Desc    : None
+'''
+
 
 import functools
 import os
+import subprocess
 from threading import Lock, Thread
 import time
 from pwncli.cli import gift
 from .misc import get_callframe_info, log_ex, log2_ex, errlog_exit, log_code_base_addr, log_libc_base_addr, \
     one_gadget_binary, one_gadget, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
-    get_flag_when_get_shell, ldd_get_libc_path
-from pwn import flat, asm, ELF, process, remote
-from .ropperbox import RopperBox, RopperArchType
+    get_flag_when_get_shell, ldd_get_libc_path, _in_tmux, _in_wsl
+from pwn import flat, asm, ELF, process, remote, context, atexit, wget, which, sleep
+from .gadgetbox import RopperBox, RopperArchType, RopgadgetBox
 from .decorates import deprecated
 from .syscall_num import SyscallNumber
 
@@ -38,8 +49,12 @@ __all__ = [
     "copy_current_io",
     "s", "sl", "sa", "sla", "st", "slt", "ru", "rl","rs",
     "rls", "rlc", "rle", "ra", "rr", "r", "rn", "ia", "ic", "cr",
-    "CurrentGadgets", "load_currentgadgets_background"
+    "CurrentGadgets", "load_currentgadgets_background",
+    "kill_heaptrace", "launch_heaptrace"
     ]
+
+
+
 
 def stop(enable=True):
     """Stop the program and print the caller's info
@@ -75,6 +90,99 @@ def stop(enable=True):
     input(" Press any key to continue......")
 
 S = stop
+
+_tmux_pane = None
+_gnome_pid = -1
+_heaptrace_pid = -100
+
+def _kill_heaptrace_in_tmux_pane():
+    global _tmux_pane, _heaptrace_pid
+    os.system("tmux send-keys -t {} C-c 2>/dev/null".format(_tmux_pane))
+    os.system("tmux kill-pane -t {} 2>/dev/null".format(_tmux_pane))
+
+def _kill_heaptrace_in_gnome():
+    # global _gnome_pid, _heaptrace_pid
+    # os.system("kill -SIGINT {} 2>/dev/null".format(_heaptrace_pid))
+    # os.system("kill -9 {} 2>/dev/null".format(_gnome_pid))
+    pass
+
+def _kill_heaptrace_in_wsl():
+    # global _heaptrace_pid
+    # os.system("kill -SIGINT {} 2>/dev/null".format(_heaptrace_pid))
+    pass
+
+def _launch_heaptrace_in_tmux():
+    global _tmux_pane, _heaptrace_pid
+    pid = gift.io.pid
+    _tmux_pane= subprocess.check_output(["tmux", "splitw", "-h", '-F#{session_name}:#{window_index}.#{pane_index}', "-P"]).decode().strip()
+    atexit.register(_kill_heaptrace_in_tmux_pane)
+    os.system("tmux send-keys -t {} 'heaptrace --attach {}' C-m".format(_tmux_pane, pid))
+    os.system("tmux select-pane -L")
+
+
+def _launch_heaptrace_in_wsl():
+    global _heaptrace_pid
+    pid = gift.io.pid
+    cmd = "cmd.exe /c start wt.exe wsl.exe -d {} bash -c \"{}\"".format(os.getenv("WSL_DISTRO_NAME"), "heaptrace --attach {}".format(pid))
+    os.system(cmd)
+
+
+def _launch_heaptrace_in_gnome():
+    global _gnome_pid, _heaptrace_pid
+    pid = gift.io.pid
+    p = subprocess.Popen(["gnome-terminal", "--", "sh", "-c", "heaptrace --attach {}".format(pid)])
+    global _gnome_pid
+    _gnome_pid = p.pid
+    atexit.register(_kill_heaptrace_in_gnome)
+
+
+def kill_heaptrace():
+    if gift.debug and gift.io and not gift.gdb_obj:
+        if _in_tmux():
+            _kill_heaptrace_in_tmux_pane()  
+        elif _in_wsl():
+            _kill_heaptrace_in_wsl()
+        elif which("gnome-terminal"):
+            _kill_heaptrace_in_gnome()
+
+
+def launch_heaptrace(stop_=True):
+    if gift.debug and gift.io and not gift.gdb_obj:
+        pass
+    else:
+        return
+    if not which("heaptrace"):
+        res = input("Install heaptrace from https://github.com/Arinerron/heaptrace/releases/download/2.2.8/heaptrace? [y/n]").strip()
+        if res != "y":
+            errlog_exit("Cannot find heaptrace!")
+        try:
+            wget("https://github.com/Arinerron/heaptrace/releases/download/2.2.8/heaptrace", save=True, timeout=300)
+            subprocess.check_output(["chmod", "+x", "heaptrace"])
+            bin_path = "$HOME/.local/bin" if os.getuid() != 0 else "/usr/local/bin"
+            subprocess.check_output(["mv", "heaptrace", bin_path])
+        except:
+            errlog_exit("Cannot download or install heaptrace!")
+    
+    if _in_tmux():
+        _launch_heaptrace_in_tmux()
+    elif _in_wsl() and which("wt.exe"):
+        _launch_heaptrace_in_wsl()
+        sleep(1)
+    elif which("gnome-terminal"):
+        _launch_heaptrace_in_gnome()
+    else:
+        errlog_exit("Don't know how to launch heaptrace!")
+    
+    # global _heaptrace_pid
+    # sleep(0.5)
+    # out_ = subprocess.check_output("ps aux | grep \"heaptrace --attach\"", shell=True).decode().splitlines()
+    # # print(out_)
+    # for i in out_:
+    #     if "heaptrace --attach" in i and "grep" not in i:
+    #         _heaptrace_pid = i.split()[1]
+    #         break
+    # print(_heaptrace_pid)
+    stop(stop_)
 
 #----------------------------useful function-------------------------
 def get_current_one_gadget_from_file(libc_base=0, more=False):
@@ -183,16 +291,15 @@ def tele_current_pie_content(offset:int, number=10):
 
 #-----------------other------------------------
 
-def recv_current_libc_addr(offset:int=0):
+def recv_current_libc_addr(offset:int=0, timeout=5):
     if not gift.get("elf", None):
         errlog_exit("Can not get current libc addr because of no elf.")
     if not gift.get('io', None):
         errlog_exit("Can not get current libc addr because of no io.")
     
-    return recv_libc_addr(gift['io'], bits=gift['elf'].bits, offset=offset)
+    return recv_libc_addr(gift['io'], bits=gift['elf'].bits, offset=offset, timeout=timeout)
 
 
-@deprecated
 def get_current_flag_when_get_shell(use_cat=True, start_str="flag{"):
     if not gift.get('io', None):
         errlog_exit("Can not get current libc addr because of no io.")
@@ -282,14 +389,14 @@ def set_remote_libc(libc_so_path: str) -> ELF:
 
 
 def copy_current_io():
-    """Only used for debug command"""
+    """Only used for debug/remote command"""
     io = None
     if gift.get('debug'):
-        io = process(gift.filename)
+        io = context.binary.process(gift.process_argv, timeout=gift.context_timeout, env=gift.process_env)
     elif gift.get('remote'):
-        io = remote(gift.io, gift.port)
+        io = remote(gift.ip, gift.port, timeout=gift.context_timeout)
     else:
-        raise RuntimeError()
+        raise RuntimeError("copy_current_io error, no debug and no remote!")
     return io
 
 #-----------------------------io------------------------
@@ -336,11 +443,11 @@ def ru(*args, **kwargs) -> bytes:
     if io:
         return io.recvuntil(*args, **kwargs)
 
-def rl() -> bytes:
+def rl(*args, **kwargs) -> bytes:
     """recvline"""
     io = gift.get("io", None)
     if io:
-        return io.recvline()
+        return io.recvline(*args, **kwargs)
 
 def rs(*args, **kwargs) -> list:
     """recvlines"""
@@ -411,7 +518,7 @@ def cr() -> bool:
 # ----------------------------------gadget----------------
 
 class CurrentGadgets:
-    __internal_libcbox = None
+    __internal_gadgetbox = None
     __elf = None
     __libc = None
     __arch = None
@@ -427,6 +534,11 @@ class CurrentGadgets:
         CurrentGadgets.__find_in_libc = find_in_libc
         if do_initial:
             CurrentGadgets._initial_ropperbox()
+
+    @staticmethod
+    def set_debug(debug):
+        CurrentGadgets._initial_ropperbox()
+        CurrentGadgets.__internal_gadgetbox.set_debug(debug)
 
     @staticmethod
     def _initial_ropperbox() -> bool:
@@ -456,8 +568,10 @@ class CurrentGadgets:
             log2_ex("Have closed both elf finder and libc finder.")
             CurrentGadgets._mutex.release()
             return False
-
-        CurrentGadgets.__internal_libcbox = RopperBox()
+        try:
+            CurrentGadgets.__internal_gadgetbox = RopgadgetBox()
+        except:
+            CurrentGadgets.__internal_gadgetbox = RopperBox()
 
         res = False
         if elf and CurrentGadgets.__find_in_elf:
@@ -465,14 +579,27 @@ class CurrentGadgets:
                 log2_ex("Unsupported arch, only for i386 and amd64.")
             else:
                 CurrentGadgets.__arch = elf.arch
-                CurrentGadgets.__internal_libcbox.add_file("elf", elf.path, __arch_mapping[elf.arch])
+
+                if CurrentGadgets.__internal_gadgetbox.box_name == "ropper":
+                    CurrentGadgets.__internal_gadgetbox.add_file("elf", elf.path, __arch_mapping[elf.arch])
+                elif CurrentGadgets.__internal_gadgetbox.box_name == "ropgadget":
+                    CurrentGadgets.__internal_gadgetbox.add_file("elf", elf.path, elf.arch)
+
+                if CurrentGadgets.__elf.pie:
+                    CurrentGadgets.__internal_gadgetbox.set_imagebase("elf", CurrentGadgets.__elf.address)
                 res = True
         if libc and CurrentGadgets.__find_in_libc:
             if libc.arch not in __arch_mapping:
                 log2_ex("Unsupported arch, only for i386 and amd64..")
             else:
                 CurrentGadgets.__arch = libc.arch
-                CurrentGadgets.__internal_libcbox.add_file("libc", libc.path, __arch_mapping[elf.arch])
+                if CurrentGadgets.__internal_gadgetbox.box_name == "ropper":
+                    CurrentGadgets.__internal_gadgetbox.add_file("libc", libc.path, __arch_mapping[elf.arch])
+                elif CurrentGadgets.__internal_gadgetbox.box_name == "ropgadget":
+                    CurrentGadgets.__internal_gadgetbox.add_file("libc", libc.path, elf.arch)
+
+                if CurrentGadgets.__libc.pie:
+                    CurrentGadgets.__internal_gadgetbox.set_imagebase("libc", CurrentGadgets.__libc.address)
                 res = True
         
         CurrentGadgets.__loaded = res
@@ -481,7 +608,7 @@ class CurrentGadgets:
 
     @staticmethod
     def reset():
-        CurrentGadgets.__internal_libcbox = None
+        CurrentGadgets.__internal_gadgetbox = None
         CurrentGadgets.__elf = None
         CurrentGadgets.__libc = None
         CurrentGadgets.__arch = None
@@ -494,20 +621,20 @@ class CurrentGadgets:
     def _internal_find(func_name):
         if not CurrentGadgets._initial_ropperbox(): 
             return 0
-        func = getattr(CurrentGadgets.__internal_libcbox, func_name)
+        func = getattr(CurrentGadgets.__internal_gadgetbox, func_name)
         if CurrentGadgets.__find_in_elf:
+            if CurrentGadgets.__elf.pie:
+                CurrentGadgets.__internal_gadgetbox.set_imagebase("elf", CurrentGadgets.__elf.address)
             try:
                 res = func('elf')
-                if CurrentGadgets.__elf.pie:
-                    res += CurrentGadgets.__elf.address
                 return res
             except:
                 pass
         
         if CurrentGadgets.__find_in_libc:
-            res = func('libc')
             if CurrentGadgets.__libc.pie:
-                res += CurrentGadgets.__libc.address
+                CurrentGadgets.__internal_gadgetbox.set_imagebase("libc", CurrentGadgets.__libc.address)
+            res = func('libc')
             return res
         
         if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
@@ -524,37 +651,27 @@ class CurrentGadgets:
         find = find_str
         if find_type == "asm":
             find = asm(find).hex()
-            func = getattr(CurrentGadgets.__internal_libcbox, "search_opcode")
+            func = getattr(CurrentGadgets.__internal_gadgetbox, "search_opcode")
         elif find_type == "opcode":
-            func = getattr(CurrentGadgets.__internal_libcbox, "search_opcode")
+            func = getattr(CurrentGadgets.__internal_gadgetbox, "search_opcode")
         elif find_type == "string":
-            func = getattr(CurrentGadgets.__internal_libcbox, "search_string")
+            func = getattr(CurrentGadgets.__internal_gadgetbox, "search_string")
         else:
             errlog_exit("Unsupported find_type, only: asm / opcode / string.")
         
         res = None
         if CurrentGadgets.__find_in_elf:
+            if CurrentGadgets.__elf.pie:
+                CurrentGadgets.__internal_gadgetbox.set_imagebase("elf", CurrentGadgets.__elf.address)
             try:
-                res = func(find ,'elf', get_list)
-                _base = 0
-                if CurrentGadgets.__elf.pie:
-                    _base = CurrentGadgets.__elf.address
-                if get_list:
-                    return [i + _base for i in res]
-                else:
-                    return _base + res
+                return func(find ,'elf', get_list)
             except:
                 pass
 
         if CurrentGadgets.__find_in_libc:
-            res = func(find ,'libc', get_list)
-            _base = 0
             if CurrentGadgets.__libc.pie:
-                _base = CurrentGadgets.__libc.address
-            if get_list:
-                return [i + _base for i in res]
-            else:
-                return _base + res
+                CurrentGadgets.__internal_gadgetbox.set_imagebase("libc", CurrentGadgets.__libc.address)
+            return func(find ,'libc', get_list)
 
         if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
             errlog_exit("Have closed both elf finder and libc finder.")
@@ -682,6 +799,7 @@ class CurrentGadgets:
             layout.append(CurrentGadgets.pop_rax_ret())
             layout.append(i386_num)
             layout.append(CurrentGadgets.syscall_ret())
+            return flat(layout)
 
         elif CurrentGadgets.__arch == "amd64":
             if para1 < 0:
@@ -700,8 +818,10 @@ class CurrentGadgets:
             layout.append(CurrentGadgets.pop_rax_ret())
             layout.append(syscall_num)
             layout.append(CurrentGadgets.syscall_ret())
+            return flat(layout)
         else:
             errlog_exit("Unsupported arch: {}".format(CurrentGadgets.__arch))
+        
 
     @staticmethod
     def syscall_chain(syscall_num, para1, para2=None, para3=None) -> bytes:
@@ -750,7 +870,7 @@ class CurrentGadgets:
             return None
         if CurrentGadgets.__arch == "amd64":
             return flat([
-                CurrentGadgets.find_gadget("pop rbx; pop rbp; pop r12; pop r13;"),
+                CurrentGadgets.find_gadget("5b5d415c415d415e415fc3", 'opcode'),
                 expected - ori if expected > ori else expected - ori + 0x100000000,
                 write_addr+0x3d, 0, 0, 0, 0,
                 CurrentGadgets.magic_gadget()

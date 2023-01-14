@@ -198,7 +198,7 @@ def del_():
   pass
 
 # api不再使用
-@unused
+@unused()
 def wtf():
   pass
 

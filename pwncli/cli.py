@@ -181,6 +181,7 @@ def cli(ctx, filename, verbose, extra_argv): # ctx: command property
     if ctx.fromcli:
         ctx.vlog("cli --> Use 'pwncli' from command line")
     else:
+        ctx.gift['from_script'] = True
         ctx.vlog("cli --> Use 'pwncli' from python script. Please run 'cli_script()' to enable cli.")
         ctx.gift['no_stop'] = False
     _set_filename(ctx, filename)
