@@ -574,7 +574,7 @@ class CurrentGadgets:
             CurrentGadgets.__internal_gadgetbox = RopperBox()
 
         res = False
-        if elf and CurrentGadgets.__find_in_elf:
+        if elf:
             if elf.arch not in __arch_mapping:
                 log2_ex("Unsupported arch, only for i386 and amd64.")
             else:
@@ -588,7 +588,7 @@ class CurrentGadgets:
                 if CurrentGadgets.__elf.pie:
                     CurrentGadgets.__internal_gadgetbox.set_imagebase("elf", CurrentGadgets.__elf.address)
                 res = True
-        if libc and CurrentGadgets.__find_in_libc:
+        if libc:
             if libc.arch not in __arch_mapping:
                 log2_ex("Unsupported arch, only for i386 and amd64..")
             else:

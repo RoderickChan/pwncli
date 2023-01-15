@@ -21,6 +21,9 @@ from typing import List, Union, Dict
 
 __all__ = ['RopperOptionType', 'RopperArchType', 'RopperBox', "RopgadgetBox"]
 
+class RopNotFoundException(Exception):
+    pass
+
 class _GadgetObj:
     def __init__(self, name, filepath, arch, imgbase) -> None:
         self.name = name
@@ -221,7 +224,7 @@ class RopgadgetBox(_GadgetBase):
                 res += allgadgets['asm'][search]
 
         if len(res) == 0:
-            return None
+            raise RopNotFoundException()
         if get_list:
             return res
         return res[0]
@@ -249,9 +252,9 @@ class RopgadgetBox(_GadgetBase):
                     continue
                 res.append(int(item.split(":")[0], base=16) + curobj.imgbase)
         if len(res) == 0:
-            return None
+            raise 
         if get_list:
-            return res
+            return RopNotFoundException()
         return res[0]
 
     @functools.lru_cache(maxsize=128, typed=True)
@@ -278,7 +281,7 @@ class RopgadgetBox(_GadgetBase):
                 res.append(int(item.split(":")[0], base=16) + curobj.imgbase)
 
         if len(res) == 0:
-            return None
+            raise RopNotFoundException()
         if get_list:
             return res
         return res[0]

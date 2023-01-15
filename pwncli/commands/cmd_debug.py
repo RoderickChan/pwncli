@@ -14,6 +14,7 @@ import click
 from pwn import context, which, ELF, pause
 from pwnlib.atexit import register
 from pwnlib.gdb import attach
+from pwnlib.util.safeeval import expr
 import os
 import re
 import string
@@ -436,21 +437,13 @@ int %s()
 
     # set base+XXX breakpoints
     if "####" in script:
-        _pattern = "####([\d\w\+]+)####"
+        _pattern = "####([\d\w\+\-\*/]+)####"
         _script = script
         _result = ""
         for _match in re.finditer(_pattern, script, re.I):
             _expr = _match.groups()[0]
-            _sym, _off = _expr.split("+")
-
-            if _off.startswith(("0x", "0X")):
-                _off = int(_off, base=16)
-            elif _off.isdigit():
-                _off = int(_off, base=10)
-            elif all(c in string.hexdigits for c in _off):
-                _off = int(_off, base=16)
-            else:
-                _off = 0
+            _sym, _off = _expr.split("+", 1)
+            _off = int(expr(_off))
 
             # libc is always PIE enabled...
             if _sym in ctx.gift.libc.sym:
@@ -469,7 +462,9 @@ int %s()
                             ctx.gift.elf.sym[_sym] + _off + ctx.gift['_elf_base'])
                 else:
                     _result = hex(ctx.gift.elf.sym[_sym] + _off)
-
+            else:
+                ctx.verrlog("debug-command --> cannot find symbol '{}' in libc and elf, so the breakpoint will not be set.".format(_sym))
+            
             _script = _script.replace("####{}####".format(_expr), _result)
         script = _script
 
@@ -478,22 +473,15 @@ int %s()
         if not ctx.gift['elf'].pie:
             ctx.vlog2(
                 "debug-command --> set base-format breakpoints while current binary's PIE not enable")
-        _pattern = "###\(([0-9a-fx]+)\)"
+        _pattern = "###\(([0-9a-fx\+\-\*/]+)\)"
         _script = script
         for _match in re.finditer(_pattern, script, re.I):
-            _num = _match.groups()[0]
+            _epxr = _match.groups()[0]
+            _num = int(expr(_epxr))
             _result = ""
-            if _num.startswith(("0x", "0X")):
-                _result = hex(ctx.gift['_elf_base'] + int(_num, base=16))
-            elif _num.isdigit():
-                _result = hex(ctx.gift['_elf_base'] + int(_num, base=10))
-            elif all(c in string.hexdigits for c in _num):
-                _result = hex(ctx.gift['_elf_base'] + int(_num, base=16))
-            else:
-                ctx.verrlog(
-                    msg="debug-command 'set gdbscript' --> Not a valid address in gdbscript: {}.".format(_num))
-
-            _script = _script.replace("###({})".format(_num), _result)
+            _result = hex(ctx.gift['_elf_base'] + _num)
+        
+            _script = _script.replace("###({})".format(_epxr), _result)
         script = _script
 
     if script:
