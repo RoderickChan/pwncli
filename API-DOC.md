@@ -91,6 +91,8 @@ print(hex(x), hex(y))
 + `address`：对应`size`的`tcachebin`头节点
 + `next`：想加密的数据
 
+返回值：一个整数
+
 示例：
 
 ```python
@@ -107,6 +109,8 @@ print(hex(x), hex(y))
 参数：
 
 + 一个需要解密的地址
+
+返回值：一个整数
 
 示例：
 
@@ -141,7 +145,7 @@ print(hex(x), hex(y))
 
 + io(tube)：一般会默认设置好的进程号，默认为通过pwncli de/re ./pwnfile 命令行起得进程
 + bits(int, optional):一般会默认设置好的架构位数。32位架构与64位架构选其一
-+ offset(int, optional)：打包后的整数要减去的偏移
++ offset(int, optional)：解包后的整数要减去的偏移
 
 返回值： 一个整数
 
@@ -437,6 +441,8 @@ print(hex(x), hex(y))
 
 + filepath：一个文件路径
 
+返回值：文件所链接的libc.so.6的绝对地址
+
 ### one_gadget
 
 功能：获得参数对应的libc.so的one_gadget
@@ -446,6 +452,8 @@ print(hex(x), hex(y))
 + condition：一个libc.so文件的路径或build-id
 + more：调整搜索one_gadget参数，从而获得更多one_gadget
 
+返回值：参数对应的libc.so中的one_gadget偏移
+
 ### one_gadget_binary
 
 功能：获得参数对应的静态链接elf文件的one_gadget
@@ -454,6 +462,8 @@ print(hex(x), hex(y))
 
 + binary_path：elf文件路径
 + more：调整搜索one_gadget参数，从而获得更多one_gadget
+
+返回值：参数对应的静态链接elf文件的one_gadget偏移
 
 ## 堆记数相关
 
@@ -491,49 +501,119 @@ print(hex(x), hex(y))
 
 ### get_current_one_gadget_from_file
 
+功能：获得当前运行的文件的one_gadget
 
+参数：
+
++ libc_base：使搜索后的one_gadget都加上该值
++ more：调整搜索one_gadget参数，从而获得更多one_gadget
+
+返回值：包含当前运行文件的所有one_gadget的一个列表
+
+示例：无
 
 ### get_current_one_gadget
 
-
+与get_current_one_gadget_from_file使用一致
 
 ### get_current_codebase_addr
 
+功能：获得当前运行文件（进程）的代码段基地址
 
+参数：
+
++ use_cache：默认true
+
+返回值：一个代表代码段基地址的整数
+
+示例：无
 
 ### get_current_libcbase_addr
 
+功能：获得当前运行文件（进程）的libc段基地址
 
+参数：
+
++ use_cache：
+
+返回值：一个代表libc段基地址的整数
+
+示例：无
 
 ### get_current_stackbase_addr
 
+功能：获得当前运行文件（进程）的栈段基地址
 
+参数：
+
++ use_cache：
+
+返回值：一个代表栈段基地址的整数
+
+示例：无
 
 ### get_current_heapbase_addr
 
+功能：获得当前运行文件（进程）的堆段基地址
 
+参数：
+
++ use_cache：
+
+返回值：一个代表堆段基地址的整数
+
+示例：无
 
 ## gdb相关
 
 ### kill_current_gdb
 
+功能：运行到该函数时关闭gdb调试器
 
+参数：
 
-### send_signal2current_gdbprocess
++ 无
 
+返回值：无
 
+示例：无
 
 ### execute_cmd_in_current_gdb
 
+功能：运行到该函数时在gdb调试器中执行命令
 
+参数：
+
++ str：要执行的命令，用";"或者"\n"分割多个命令
+
+返回值：无
+
+示例：无
 
 ### set_current_pie_breakpoints
 
+功能：运行到该函数时通过传入偏移对开了pie的程序下断点（自动加上代码段基地址）
 
+参数：
+
++ offset：要下断点的偏移
+
+返回值：无
+
+示例：无
 
 ### tele_current_pie_content
 
+功能：：运行到该函数时查看开了pie的程序的数据
 
+参数：
+
++ offset：要观察的地址
++ nember：显示数据的行数
+
+返回值：无
+
+示例：无
 
 ## 其他
 
@@ -566,3 +646,25 @@ print(hex(x), hex(y))
 
 
 ### copy_current_io
+
+
+
+# io_file.py
+
+## io_file_attack
+
+### house_of_apple2_execmd_when_exit
+
+
+
+### house_of_apple2_stack_pivoting_when_exit
+
+功能：
+
+参数：
+
++ 
+
+返回值：
+
+示例：
