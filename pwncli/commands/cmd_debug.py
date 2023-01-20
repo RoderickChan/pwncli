@@ -62,30 +62,26 @@ def _parse_env(ctx, env: str):
     length = len(env)
     # little check
     if (("=" not in env) and (':' not in env)) or (length < 3):
-        ctx.abort(msg="debug-command --> Env is invalid, check your env input.")
+        ctx.abort(msg="debug-command --> Env is invalid, no '=' or ':' in envs, check your env input.")
 
     # use two points
     res = {}
-    first, second = 0, 1
-    key, val = None, None
-    while second < length:
-        if env[second] in ('=', ':'):
-            key = env[first: second].strip().upper()  # 大写
-            first = second + 1
-            second += 2
-        elif env[second] in (',', ';') or (key and second == length - 1):
-            if second == length - 1 and (env[second] not in (';', ',')):
-                second += 1
-            # print(f"first: {first}, second: {second}")
-            var = env[first: second].strip()
-            if key == "PRE":
-                key = "LD_PRELOAD"
+    key, var = None, None
+    groups = re.split(",|;", env)
+    for g in groups:
+        if "=" in g or ':' in g:
+            if '=' in g:
+                two = g.split("=", 1)
+            else:
+                two = g.split(":", 1)
+            if len(two) != 2:
+                ctx.abort(msg="debug-command --> Env is invalid, wrong format env, check your env input.")
+            key, var = two
+            key = key.strip()
+            var = var.strip()
             res[key] = var
-            key, var = None, None
-            first = second + 1
-            second += 2
         else:
-            second += 1
+            ctx.abort(msg="debug-command --> Env is invalid, no '=' or ':' in current env, check your env input.")
 
     if res:
         ctx.vlog('debug-command --> Set env: {}'.format(res))
