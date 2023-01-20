@@ -137,7 +137,7 @@ def get_gadgets(ctx, filename, all_gadgets, directory, depth, opcode):
             store_file, "wt", encoding='utf-8', errors='ignore'))
         # ps.append(p)
 
-    if ropper_path and (not ropgadget_path) and (not rp_path):
+    if ropper_path and (not ropgadget_path):
         cmd = "ropper -f {} --nocolor".format(filename)
         if all_gadgets:
             cmd += " --all"
@@ -313,7 +313,7 @@ def listen_(ctx, listen_one, listen_forever, port, timeout, executable, verbose)
     pwncli misc listen -L
     pwncli misc listen -l -p 10001
     pwncli misc listen -l -vv -p 10001
-    pwncli misc listen -l -vv -p 10001 -e /bin/bash
+    pwncli misc listen -l -vv -p 10001 -e /bin/bash # socat tcp-l:10001,fork exec:/bin/bash
 
     pwncli m l -l
     """
