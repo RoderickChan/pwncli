@@ -278,4 +278,4 @@ def payload_replace(payload: str or bytes, rpdict:dict=None, filler="\x00"):
 
         for i, d in enumerate(data):
             output[off+i] = d
-        return bytes(output)
+    return bytes(output)
