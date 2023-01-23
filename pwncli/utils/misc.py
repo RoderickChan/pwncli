@@ -449,12 +449,14 @@ def pad_ljust(payload, psz, filler="\x00") -> bytes:
     comple = len_ % psz
     if comple > 0:
         return flat(payload, filler * (psz - comple))
+    return payload
 
 def pad_rjust(payload, psz, filler="\x00") -> bytes:
     len_ = len(payload)
     comple = len_ % psz
     if comple > 0:
         return flat(filler * (psz - comple), payload)
+    return payload
 
 def float_hexstr2int(data: str or bytes, hexstr=True, endian="little", bits=64) -> int:
     """float_hex2int('0x0.07f6d266e9fbp-1022') ---> 140106772946864"""
