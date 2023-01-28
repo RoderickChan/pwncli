@@ -274,6 +274,7 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
         else:
             _script = gdb_script.strip().split(";")
             for _statement in _script:
+                _statement = _statement.strip()
                 if _statement.startswith("b") and " " in _statement:
                     _left, _right = _statement.split(" ", 1)
                     if "breakpoint".startswith(_left):
