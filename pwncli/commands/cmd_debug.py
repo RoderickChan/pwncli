@@ -315,17 +315,16 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
     script += script_s
     # if gdb_script is file, then open it
     if is_file:
-        if script:
-            tmp_fd, tmp_gdb_script = tempfile.mkstemp(text=True)
-            ctx.vlog(
-                "debug-command --> Create a tempfile used for gdb_script, file path: {}".format(tmp_gdb_script))
-            os.close(tmp_fd)
-            register(lambda x: os.unlink(x), tmp_gdb_script)
-            with open(tmp_gdb_script, 'wt', encoding='utf-8') as f:
-                with open(gdb_script, "rt", encoding='utf-8') as f2:
-                    script += f2.read()
-                f.write(script + "\n")
-            gdb_script = tmp_gdb_script
+        tmp_fd, tmp_gdb_script = tempfile.mkstemp(text=True)
+        ctx.vlog(
+            "debug-command --> Create a tempfile used for gdb_script, file path: {}".format(tmp_gdb_script))
+        os.close(tmp_fd)
+        register(lambda x: os.unlink(x), tmp_gdb_script)
+        with open(tmp_gdb_script, 'wt', encoding='utf-8') as f:
+            with open(gdb_script, "rt", encoding='utf-8') as f2:
+                script += f2.read()
+            f.write(script + "\n")
+        gdb_script = tmp_gdb_script
 
     if env:
         env = _parse_env(ctx, env)
