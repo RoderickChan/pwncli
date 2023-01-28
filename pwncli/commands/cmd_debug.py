@@ -266,12 +266,25 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
     # process gdb-scripts
     is_file = False
     script = ''
+    script_s = ''
 
     if gdb_script:
         if os.path.isfile(gdb_script) and os.path.exists(gdb_script):
             is_file = True
         else:
-            script = gdb_script.strip().replace(';', '\n') + '\n'
+            _script = gdb_script.strip().split(";")
+            for _statement in _script:
+                if _statement.startswith("b") and " " in _statement:
+                    _left, _right = _statement.split(" ", 1)
+                    if "breakpoint".startswith(_left):
+                        gdb_breakpoint.append(_right)
+                        continue
+                    elif "tbreakpoint".startswith(_left):
+                        gdb_tbreakpoint.append(_right)
+                        continue
+                
+                script_s += _statement + "\n"
+            script_s += '\n'
 
     _prefix = ["break"] * len(gdb_breakpoint) + \
         ["tbreak"] * len(gdb_tbreakpoint)
@@ -298,7 +311,8 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
                 script += " *####{}####\n".format(gb)
             else:
                 script += ' {}\n'.format(gb)
-
+    
+    script += script_s
     # if gdb_script is file, then open it
     if is_file:
         if script:
@@ -569,6 +583,9 @@ def cli(ctx, verbose, filename, argv, env, gdb_tbreakpoint,
     if verbose:
         ctx.vlog("debug-command --> Open 'verbose' mode")
 
+    gdb_breakpoint = list(gdb_breakpoint)
+    gdb_tbreakpoint = list(gdb_tbreakpoint)
+    hook_function = list(hook_function)
     args = _Inner_Dict()
     args.filename = filename
     args.argv = argv

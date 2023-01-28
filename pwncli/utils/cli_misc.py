@@ -18,7 +18,7 @@ from pwncli.cli import gift
 from .misc import get_callframe_info, log_ex, log2_ex, errlog_exit, log_code_base_addr, log_libc_base_addr, \
     one_gadget_binary, one_gadget, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
     get_flag_when_get_shell, ldd_get_libc_path, _in_tmux, _in_wsl
-from pwn import flat, asm, ELF, process, remote, context, atexit, wget, which, sleep
+from pwn import flat, asm, ELF, process, remote, context, atexit, wget, which, sleep, attach
 from .gadgetbox import RopperBox, RopperArchType, RopgadgetBox
 from .decorates import deprecated
 from .syscall_num import SyscallNumber
@@ -50,7 +50,7 @@ __all__ = [
     "s", "sl", "sa", "sla", "st", "slt", "ru", "rl","rs",
     "rls", "rlc", "rle", "ra", "rr", "r", "rn", "ia", "ic", "cr",
     "CurrentGadgets", "load_currentgadgets_background",
-    "kill_heaptrace", "launch_heaptrace"
+    "kill_heaptrace", "launch_heaptrace", "launch_gdb"
     ]
 
 
@@ -150,6 +150,7 @@ def launch_heaptrace(stop_=True):
     if gift.debug and gift.io and not gift.gdb_obj:
         pass
     else:
+        log2_ex("call launch_heaptrace failed because current process has been ptraced!")
         return
     if not which("heaptrace"):
         res = input("Install heaptrace from https://github.com/Arinerron/heaptrace/releases/download/2.2.8/heaptrace? [y/n]").strip()
@@ -182,6 +183,15 @@ def launch_heaptrace(stop_=True):
     #         _heaptrace_pid = i.split()[1]
     #         break
     # print(_heaptrace_pid)
+    stop(stop_)
+
+def launch_gdb(script: str, stop_=True):
+    if gift.debug and gift.io:
+        attach(gift.io, gdbscript=script)
+    else:
+        log2_ex("call launch_heaptrace failed because current process has been ptraced!")
+        return
+    
     stop(stop_)
 
 #----------------------------useful function-------------------------
