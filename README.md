@@ -247,9 +247,29 @@ io.interactive()
 不难发现，库模式与命令模式的使用区别：去掉`cli_script()`即可。需要注意，库模式下的脚本就是一个普通的`python`脚本，并不能解析命令行参数。
 
 # 教程
-视频教程请戳[VIDEO](https://www.youtube.com/watch?v=QFemxI3rnC8)。
+视频教程如下：
+[![pwncli tutorial](https://res.cloudinary.com/marcomontalbano/image/upload/v1674919945/video_to_markdown/images/youtube--QFemxI3rnC8-c05b58ac6eb4c4700831b2b3070cd403.jpg)](https://www.youtube.com/watch?v=QFemxI3rnC8 "pwncli tutorial")
 
-以下为最简易的教程。
+
+`asciinema`版本教程依次如下：
+- [pwncli tutorial (1)](https://asciinema.org/a/555250)
+- [pwncli tutorial (2)](https://asciinema.org/a/555251)
+- [pwncli tutorial (3)](https://asciinema.org/a/555252)
+- [pwncli tutorial (4)](https://asciinema.org/a/555313)
+
+
+[![asciicast](https://asciinema.org/a/555250.svg)](https://asciinema.org/a/555250)
+
+
+[![asciicast](https://asciinema.org/a/555251.svg)](https://asciinema.org/a/555251) 
+
+[![asciicast](https://asciinema.org/a/555252.svg)](https://asciinema.org/a/555252)
+
+
+[![asciicast](https://asciinema.org/a/555313.svg)](https://asciinema.org/a/555313)
+
+
+以下为简易的文字版教程。
 
 在使用`pwncli`之前，建议掌握`gdb/tmux`的基本命令，确保已安装了`pwndbg/gef/peda`等其中一个或多个插件。
 
