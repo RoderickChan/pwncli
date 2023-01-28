@@ -341,6 +341,9 @@ gdb-multiarch ./vmlinux \\
     -ex "add-symbol-file ./{} 0xffffffffc0002000"
 """.format(ko_name))
     
+    os.chmod("debug-gef.sh", 0o755)
+    os.chmod("debug-pwndbg.sh", 0o755)
+    
     if cpio_prefix:
         ctx.vlog("template-command --> Do cpio operations.")
         os.makedirs(cpio_prefix, exist_ok=True)
