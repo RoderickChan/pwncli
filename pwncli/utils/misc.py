@@ -37,6 +37,7 @@ import functools
 import subprocess
 import struct
 from pwn import unpack, pack, flat, ELF, context, which
+from .decorates import unused
 import click
 
 __all__ = [
@@ -532,7 +533,7 @@ def recv_libc_addr(io, *, bits=64, offset=0, timeout=5) -> int:
     else:
         return u64_ex(m[-6:]) - offset
 
-
+@unused("Remove since 1.4")
 def get_flag_when_get_shell(io, use_cat:bool=True, start_str:str="flag{", timeout=10):
     """Get flag while get a shell
 
@@ -550,6 +551,7 @@ def get_flag_when_get_shell(io, use_cat:bool=True, start_str:str="flag{", timeou
     else:
         errlog_ex_highlight("Cannot get flag")
 
+@unused("Remove since 1.4")
 def get_flag_by_recv(io, flag_reg: str="flag{", timeout=10):
     get_flag_when_get_shell(io,use_cat=False, start_str=flag_reg, timeout=timeout)
 

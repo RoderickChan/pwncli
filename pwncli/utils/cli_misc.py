@@ -20,7 +20,7 @@ from .misc import get_callframe_info, log_ex, log2_ex, errlog_exit, log_code_bas
     get_flag_when_get_shell, ldd_get_libc_path, _in_tmux, _in_wsl
 from pwn import flat, asm, ELF, process, remote, context, atexit, wget, which, sleep, attach
 from .gadgetbox import RopperBox, RopperArchType, RopgadgetBox
-from .decorates import deprecated
+from .decorates import deprecated, unused
 from .syscall_num import SyscallNumber
 
 
@@ -265,7 +265,7 @@ def _check_current_gdb():
     if not gift.get('gdb_pid', None):
         errlog_exit("cannot get gdb_obj, you don't launch gdb?")
 
-
+@unused("Remove since 1.4")
 def kill_current_gdb():
     """Kill current gdb process."""
     _check_current_gdb()
@@ -274,25 +274,25 @@ def kill_current_gdb():
     except:
         kill_gdb(gift['gdb_pid'])
 
-
+@unused("Remove since 1.4")
 def send_signal2current_gdbprocess(sig_val:int=2):
     _check_current_gdb()
     os.system("kill -{} {}".format(sig_val, gift['gdb_pid']))
     time.sleep(0.2)
 
-
+@unused("Remove since 1.4")
 def execute_cmd_in_current_gdb(cmd:str):
     """Execute commands in current gdb, split commands by ';' or \\n."""
     _check_current_gdb()
     execute_cmd_in_gdb(gift["gdb_obj"], cmd)
     
-
+@unused("Remove since 1.4")
 def set_current_pie_breakpoints(offset:int):
     """Set breakpoints by offset when binary's PIE enabled. Only support for `pwndbg'."""
     _check_current_gdb()
     set_pie_breakpoints(gift["gdb_obj"], offset)
 
-
+@unused("Remove since 1.4")
 def tele_current_pie_content(offset:int, number=10):
     """Telescope current content by offset when binary's PIE enabled. Only support for 'pwndbg'."""
     tele_pie_content(gift["gdb_obj"], offset, number)
@@ -309,7 +309,7 @@ def recv_current_libc_addr(offset:int=0, timeout=5):
     
     return recv_libc_addr(gift['io'], bits=gift['elf'].bits, offset=offset, timeout=timeout)
 
-
+@unused("Remove since 1.4")
 def get_current_flag_when_get_shell(use_cat=True, start_str="flag{"):
     if not gift.get('io', None):
         errlog_exit("Can not get current libc addr because of no io.")
