@@ -267,6 +267,7 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
     is_file = False
     script = ''
     script_s = ''
+    decomp2dbg_statement = ""
 
     if gdb_script:
         if os.path.isfile(gdb_script) and os.path.exists(gdb_script):
@@ -283,6 +284,9 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
                     elif "tbreakpoint".startswith(_left):
                         gdb_tbreakpoint.append(_right)
                         continue
+                elif _statement.startswith("decompiler ") and len(decomp2dbg_statement) == 0:
+                    decomp2dbg_statement = _statement + "\n"
+                    continue
                 
                 script_s += _statement + "\n"
             script_s += '\n'
@@ -313,6 +317,7 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
             else:
                 script += ' {}\n'.format(gb)
     
+    script = decomp2dbg_statement + script
     script += script_s
     # if gdb_script is file, then open it
     if is_file:
