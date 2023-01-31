@@ -532,8 +532,8 @@ class CurrentGadgets:
     __elf = None
     __libc = None
     __arch = None
-    __find_in_elf = True
-    __find_in_libc = True
+    __find_in_elf = None
+    __find_in_libc = None
     __loaded = False
 
     _mutex = Lock()
@@ -574,10 +574,6 @@ class CurrentGadgets:
             CurrentGadgets._mutex.release()
             return False
 
-        if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
-            log2_ex("Have closed both elf finder and libc finder.")
-            CurrentGadgets._mutex.release()
-            return False
         try:
             CurrentGadgets.__internal_gadgetbox = RopgadgetBox()
         except:
@@ -622,8 +618,8 @@ class CurrentGadgets:
         CurrentGadgets.__elf = None
         CurrentGadgets.__libc = None
         CurrentGadgets.__arch = None
-        CurrentGadgets.__find_in_elf = True
-        CurrentGadgets.__find_in_libc = True
+        CurrentGadgets.__find_in_elf = None
+        CurrentGadgets.__find_in_libc = None
         CurrentGadgets.__loaded = False
         CurrentGadgets._initial_ropperbox()
 
@@ -632,7 +628,7 @@ class CurrentGadgets:
         if not CurrentGadgets._initial_ropperbox(): 
             return 0
         func = getattr(CurrentGadgets.__internal_gadgetbox, func_name)
-        if CurrentGadgets.__find_in_elf:
+        if CurrentGadgets.__find_in_elf or (CurrentGadgets.__find_in_elf is None and (CurrentGadgets.__elf.address or CurrentGadgets.__elf.statically_linked)):
             if CurrentGadgets.__elf.pie:
                 CurrentGadgets.__internal_gadgetbox.set_imagebase("elf", CurrentGadgets.__elf.address)
             try:
@@ -641,14 +637,14 @@ class CurrentGadgets:
             except:
                 pass
         
-        if CurrentGadgets.__find_in_libc:
+        if CurrentGadgets.__find_in_libc or (CurrentGadgets.__find_in_libc is None and CurrentGadgets.__libc.address):
             if CurrentGadgets.__libc.pie:
                 CurrentGadgets.__internal_gadgetbox.set_imagebase("libc", CurrentGadgets.__libc.address)
             res = func('libc')
             return res
         
         if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
-            errlog_exit("Have closed both elf finder and libc finder.")
+            log2_ex("Have closed both elf finder and libc finder.")
         errlog_exit("Cannot find gadget using '{}'.".format(func_name))
 
 
