@@ -143,9 +143,9 @@ print(hex(x), hex(y))
 
 参数：
 
-+ io(tube)：一般会默认设置好的进程号，默认为通过pwncli de/re ./pwnfile 命令行起得进程
-+ bits(int, optional):一般会默认设置好的架构位数。32位架构与64位架构选其一
-+ offset(int, optional)：解包后的整数要减去的偏移
++ `io(tube)`：一般会默认设置好的进程号，默认为通过pwncli de/re ./pwnfile 命令行起得进程
++ `bits(int, optional)`：一般会默认设置好的架构位数。32位架构与64位架构选其一
++ `offset(int, optional)`：解包后的整数要减去的偏移
 
 返回值： 一个整数
 
@@ -159,7 +159,7 @@ print(hex(x), hex(y))
 
 参数：
 
-+ msg：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
++ `msg`：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
 
 返回值：无
 
@@ -188,7 +188,7 @@ print(hex(x), hex(y))
 
 参数：
 
-+ msg：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
++ `msg`：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
 
 返回值：无
 
@@ -202,7 +202,7 @@ print(hex(x), hex(y))
 
 参数：
 
-+ msg：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
++ `msg`：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
 
 返回值：无
 
@@ -231,7 +231,7 @@ print(hex(x), hex(y))
 
 参数：
 
-+ msg：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
++ `msg`：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
 
 返回值：无
 
@@ -245,7 +245,7 @@ print(hex(x), hex(y))
 
 参数：
 
-+ msg：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
++ `msg`：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
 
 返回值：无
 
@@ -262,7 +262,7 @@ print(hex(x), hex(y))
 
 参数：
 
-+ msg：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
++ `msg`：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
 
 返回值：无
 
@@ -274,7 +274,7 @@ print(hex(x), hex(y))
 
 参数：
 
-+ msg：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
++ `msg`：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
 
 返回值：无
 
@@ -291,7 +291,7 @@ print(hex(x), hex(y))
 
 参数：
 
-+ msg：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
++ `msg`：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
 
 返回值：无
 
@@ -303,7 +303,7 @@ print(hex(x), hex(y))
 
 参数：
 
-+ msg：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
++ `msg`：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
 
 返回值：无
 
@@ -315,7 +315,7 @@ print(hex(x), hex(y))
 
 参数：
 
-+ msg：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
++ `msg`：要输出内容, 可利用格式化字符串。如果需要输出多个内容，则需要用括号将参数括起来
 
 返回值：无
 
@@ -327,8 +327,8 @@ print(hex(x), hex(y))
 
 参数：
 
-+ desc(str)：对address参数的描述
-+ address(int)：一个整数，打印出来时为16进制
++ `desc(str)`：对address参数的描述
++ `address(int)`：一个整数，打印出来时为16进制
 
 返回值：无
 
@@ -346,8 +346,8 @@ print(hex(x), hex(y))
 
 参数：
 
-+ variable_name（str)：变量名
-+ depth (int)：默认是2。若该函数被封装n次，则为2+n
++ `variable_name(str)`：变量名
++ `depth (int)`：默认是2。若该函数被封装n次，则为2+n
 
 返回值：无
 
@@ -364,8 +364,8 @@ print(hex(x), hex(y))
 
 参数：
 
-+ variable (int)：变量
-+ depth (int)：默认是2。若该函数被封装n次，则为2+n
++ `variable (int)`：变量
++ `depth (int)`：默认是2。若该函数被封装n次，则为2+n
 
 返回值：无
 
@@ -379,11 +379,11 @@ print(hex(x), hex(y))
 
 ### log_libc_base_addr
 
-功能：打印libc的基地址至终端标准输出
+功能：打印`libc`的基地址至终端标准输出
 
 参数：
 
-+ address(int)：一个代表libc的基地址的整数
++ `address(int)`：一个代表libc的基地址的整数
 
 返回值：无
 
@@ -397,11 +397,11 @@ print(hex(x), hex(y))
 
 ### log_heap_base_addr
 
-功能：打印heap的基地址至终端标准输出
+功能：打印`heap`的基地址至终端标准输出
 
 参数：
 
-+ address(int)：一个代表heap的基地址的整数
++ `address(int)`：一个代表heap的基地址的整数
 
 返回值：无
 
@@ -419,7 +419,7 @@ print(hex(x), hex(y))
 
 参数：
 
-+ address(int)：一个代表程序基地址的整数
++ `address(int)`：一个代表程序基地址的整数
 
 返回值：无
 
@@ -435,22 +435,22 @@ print(hex(x), hex(y))
 
 ### ldd_get_libc_path
 
-功能：获得参数对应文件的libc.so.6的绝对地址
+功能：获得参数对应文件的`libc.so.6`的绝对地址
 
 参数：
 
-+ filepath：一个文件路径
++ `filepath`：一个文件路径
 
-返回值：文件所链接的libc.so.6的绝对地址
+返回值：文件所链接的`libc.so.6`的绝对地址
 
 ### one_gadget
 
-功能：获得参数对应的libc.so的one_gadget
+功能：获得参数对应的`libc.so`的`one_gadget`
 
 参数：
 
-+ condition：一个libc.so文件的路径或build-id
-+ more：调整搜索one_gadget参数，从而获得更多one_gadget
++ `condition`：一个libc.so文件的路径或build-id
++ `more`：调整搜索one_gadget参数，从而获得更多one_gadget
 
 返回值：参数对应的libc.so中的one_gadget偏移
 
@@ -511,10 +511,6 @@ print(hex(x), hex(y))
 返回值：包含当前运行文件的所有one_gadget的一个列表
 
 示例：无
-
-### get_current_one_gadget
-
-与get_current_one_gadget_from_file使用一致
 
 ### get_current_codebase_addr
 
@@ -619,35 +615,113 @@ print(hex(x), hex(y))
 
 ### recv_current_libc_addr
 
+功能：接收io所代表的进程的数据到`/x7f`或`/xf7`时，根据设置的arch自动将包含"`/x7f`"在内的前3个字节/前6个字节解包为一个整数
 
+参数：
+
++ offset：打包后要减去的整数，默认为0
++ timeout：等待时间，默认为5
+
+返回值：一个整数
+
+示例：无
 
 ### get_current_flag_when_get_shell
 
+功能：当攻击成功获得shell的时候，进行获得flag操作
 
+参数：
+
++ use_cat：使用cat /flag操作，默认为true
++ start_str：flag前缀，默认为flag{
+
+返回值：flag字符串
+
+示例：无
 
 ### set_current_libc_base
 
+功能：设置libc的基地址，使得libc.sym.xxx操作会自动加上基地址
 
+参数：
+
++ addr：获取到的libc地址，默认为0
++ offset：代表需要减去的值，可为函数名或整数
+
+返回值：一个代表libc基地址的整数
+
+示例：无
 
 ### set_current_libc_base_and_log
 
+功能：设置libc的基地址并打印出该地址，并且使得libc.sym.xxx操作会自动加上基地址
 
+参数：
+
++ addr：获取到的libc地址
++ offset：代表需要减去的值，可为函数名或整数
+
+返回值：一个代表libc基地址的整数
+
+示例：无
 
 ### set_current_code_base
 
+功能：设置elf的基地址，使得elf.sym.xxx操作会自动加上基地址
 
+参数：
+
++ addr：获取到的elf地址
++ offset：代表需要减去的值，可为函数名或整数
+
+返回值：一个代表elf基地址的整数
+
+示例：无
 
 ### set_current_code_base_and_log
 
+功能：设置elf的基地址并打印出该地址，并且使得elf.sym.xxx操作会自动加上基地址
 
+参数：
+
++ addr：获取到的elf地址
++ offset：代表需要减去的值，可为函数名或整数
+
+返回值：一个代表elf基地址的整数
+
+示例：无
 
 ### set_remote_libc
 
+功能：设置攻击远程需要使用到的libc库
 
+参数：
+
++ libc_so_patch：需要设置的libc库的地址
+
+返回值：无
+
+示例：无
 
 ### copy_current_io
 
+功能：多用于爆破，将当前io fork，返回一个新的进程号
 
+参数：
+
++ 无
+
+返回值：新的进程号
+
+示例：
+
+```python
+for i in range(0x10):
+    try:
+        new_func()
+    except (EOFError):
+        gift.io = copy_current_io()
+```
 
 # io_file.py
 
@@ -655,16 +729,75 @@ print(hex(x), hex(y))
 
 ### house_of_apple2_execmd_when_exit
 
+功能：生成进行house of apple2攻击以便getshell的payload，详情见：
 
-
-### house_of_apple2_stack_pivoting_when_exit
-
-功能：
+https://www.roderickchan.cn/post/house-of-apple-%E4%B8%80%E7%A7%8D%E6%96%B0%E7%9A%84glibc%E4%B8%ADio%E6%94%BB%E5%87%BB%E6%96%B9%E6%B3%95-2/
 
 参数：
 
-+ 
++ standard_FILE_addr：要确保该参数为`_IO_2_1_stdin_/_IO_2_1_stdout_/_IO_2_1_stderr_`其中一个的地址。若没办法，则该参数-0x30和-0x18处要为0
++ _IO_wfile_jumps_addr：_IO_wfile_jumps_的地址，一般设为 libc.sym._IO_wfile_jumps即可
++ system_addr：system函数的地址，一般设为libc.sym.system
++ cmd：要执行的shell指令，默认为sh
 
-返回值：
+返回值：进行house of apple2攻击以便getshell的payload
+
+示例：无
+
+### house_of_apple2_stack_pivoting_when_exit
+
+功能：生成house of apple2 栈迁移攻击的payload，详情见：
+
+https://www.roderickchan.cn/post/house-of-apple-%E4%B8%80%E7%A7%8D%E6%96%B0%E7%9A%84glibc%E4%B8%ADio%E6%94%BB%E5%87%BB%E6%96%B9%E6%B3%95-2/
+
+参数：
+
++ `standard_FILE_addr`：要确保该参数为`_IO_2_1_stdin_/_IO_2_1_stdout_/_IO_2_1_stderr_`其中一个的地址。若没办法，则该参数-0x30和-0x18处要为0
++ `_IO_wfile_jumps_addr`：_IO_wfile_jumps_的地址，一般设为 libc.sym._IO_wfile_jumps即可
++ `leave_ret_addr`：代表leave_ret汇编指令的地址
++ `pop_rbp_addr`：代表poo rbp; ret汇编指令的地址
++ `fake_rbp_addr`：代表要迁移过去的地址 + 8（因为是通过leave;ret迁移）
+
+返回值：`house of apple2` 栈迁移攻击的`payload`
 
 示例：
+
+```python
+data = IO_FILE_plus_struct().house_of_apple2_stack_pivoting_when_exit(libc.sym._IO_2_1_stderr_,
+                                                                      libc.sym._IO_wfile_jumps,
+                                                                      libc.search(asm("leave; ret")).__next__(),
+                                                                      libc.search(asm("pop rbp; ret")).__next__(),
+                                                                      libc.sym._IO_2_1_stderr_ + 0xe0-8)
+```
+
+
+
+### payload_replace
+
+功能：对数据对应偏移进行替换
+
+参数：
+
++ `payload`：要进行替换的数据
++ `rpdict`：用`flat`生成的`payload`
+
+返回值：替换好的数据
+
+示例：
+
+```python
+data = IO_FILE_plus_struct().house_of_apple2_stack_pivoting_when_do_IO_operation(
+    standard_FILE_addr=libc.sym._IO_2_1_stdout_,
+    _IO_wfile_jumps_addr=libc.sym._IO_wfile_jumps,
+    leave_ret_addr=lbs + 0x000000000004ae07,
+    pop_rbp_addr=lbs + 0x0000000000023730,
+    fake_rbp_addr=0xdeadbeef
+)
+
+data = payload_replace(data, {
+    0x38: 0x7ffff7f957b0,
+    0x10: mov_rdx2rsp,
+    0x68: lbs + 0x00000000000f5d27
+})
+```
+
