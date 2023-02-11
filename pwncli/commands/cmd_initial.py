@@ -173,12 +173,15 @@ def _download_and_patch(ctx, info):
         curld = "./" + info.ldfile
         curfile = "./" + info.elffile
         if curlibc not in lddoutput or curld not in lddoutput:
+            # backup
+            cmd = "cp {} {}.bk".format(curfile, curfile)
+            getstatusoutput(cmd)
             cmd = "patchelf --replace-needed libc.so.6 {} {}".format(
                 curlibc, curfile)
             getstatusoutput(cmd)
             ctx.vlog(_left_str("Exec cmd") + " --->    {}".format(cmd))
 
-            cmd = "patchelf --set-interpreter {} ./{}".format(curld, curfile)
+            cmd = "patchelf --set-interpreter {} {}".format(curld, curfile)
             getstatusoutput(cmd)
             ctx.vlog(_left_str("Exec cmd") + " --->    {}".format(cmd))
 
@@ -193,5 +196,5 @@ def cli(ctx):
     _collect_info(ctx, info)
     _detect_file(ctx, info)
     _download_and_patch(ctx, info)
-    print(repr(info))
+    #print(repr(info))
     _make_template_exit()
