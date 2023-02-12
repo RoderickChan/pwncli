@@ -38,6 +38,7 @@ import subprocess
 import struct
 from pwn import unpack, pack, flat, ELF, context, which
 import click
+import time
 
 __all__ = [
     "int16",
@@ -100,7 +101,8 @@ __all__ = [
     "calc_countaddr_by_entryaddr_tcache",
     "calc_entryaddr_by_countaddr_tcache",
     "protect_ptr",
-    "reveal_ptr"
+    "reveal_ptr",
+    "step_split"
 ]
 
 int16 = functools.partial(int, base=16)
@@ -112,9 +114,29 @@ int8_ex = lambda x: int8(x.decode()) if isinstance(x, bytes) else int8(x)
 int2_ex = lambda x: int2(x.decode()) if isinstance(x, bytes) else int2(x)
 int_ex = lambda x: int(x.decode()) if isinstance(x, bytes) else int(x)
 
-
 flat_z = functools.partial(flat, filler=b"\x00")
 
+
+def step_split(s: str or bytes, step_len: int):
+    """
+    step_split("12345678", 4) -> "1234", "5678"
+    step_split("1234567", 4) -> "1234", "567"
+    """
+    assert step_len > 0, "wrong step length!"
+    start = 0
+    end = start + step_len
+    var = None
+    while True:
+        var = s[start:end]
+        if len(var) != step_len:
+            if len(var) != 0:
+                yield var
+            break
+        yield var
+        start = end
+        end = start + step_len
+
+        
 def protect_ptr(address, next) -> int:
     return (address >> 12) ^ next
 
@@ -449,12 +471,14 @@ def pad_ljust(payload, psz, filler="\x00") -> bytes:
     comple = len_ % psz
     if comple > 0:
         return flat(payload, filler * (psz - comple))
+    return payload
 
 def pad_rjust(payload, psz, filler="\x00") -> bytes:
     len_ = len(payload)
     comple = len_ % psz
     if comple > 0:
         return flat(filler * (psz - comple), payload)
+    return payload
 
 def float_hexstr2int(data: str or bytes, hexstr=True, endian="little", bits=64) -> int:
     """float_hex2int('0x0.07f6d266e9fbp-1022') ---> 140106772946864"""
@@ -530,7 +554,7 @@ def recv_libc_addr(io, *, bits=64, offset=0, timeout=5) -> int:
     else:
         return u64_ex(m[-6:]) - offset
 
-
+#@unused("Remove since 1.4")
 def get_flag_when_get_shell(io, use_cat:bool=True, start_str:str="flag{", timeout=10):
     """Get flag while get a shell
 
@@ -548,6 +572,7 @@ def get_flag_when_get_shell(io, use_cat:bool=True, start_str:str="flag{", timeou
     else:
         errlog_ex_highlight("Cannot get flag")
 
+#@unused("Remove since 1.4")
 def get_flag_by_recv(io, flag_reg: str="flag{", timeout=10):
     get_flag_when_get_shell(io,use_cat=False, start_str=flag_reg, timeout=timeout)
 

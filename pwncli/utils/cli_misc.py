@@ -18,9 +18,9 @@ from pwncli.cli import gift
 from .misc import get_callframe_info, log_ex, log2_ex, errlog_exit, log_code_base_addr, log_libc_base_addr, \
     one_gadget_binary, one_gadget, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
     get_flag_when_get_shell, ldd_get_libc_path, _in_tmux, _in_wsl
-from pwn import flat, asm, ELF, process, remote, context, atexit, wget, which, sleep
+from pwn import flat, asm, ELF, process, remote, context, atexit, wget, which, sleep, attach
 from .gadgetbox import RopperBox, RopperArchType, RopgadgetBox
-from .decorates import deprecated
+from .decorates import deprecated, unused
 from .syscall_num import SyscallNumber
 
 
@@ -50,7 +50,7 @@ __all__ = [
     "s", "sl", "sa", "sla", "st", "slt", "ru", "rl","rs",
     "rls", "rlc", "rle", "ra", "rr", "r", "rn", "ia", "ic", "cr",
     "CurrentGadgets", "load_currentgadgets_background",
-    "kill_heaptrace", "launch_heaptrace"
+    "kill_heaptrace", "launch_heaptrace", "launch_gdb"
     ]
 
 
@@ -150,6 +150,7 @@ def launch_heaptrace(stop_=True):
     if gift.debug and gift.io and not gift.gdb_obj:
         pass
     else:
+        log2_ex("call launch_heaptrace failed because current process has been ptraced!")
         return
     if not which("heaptrace"):
         res = input("Install heaptrace from https://github.com/Arinerron/heaptrace/releases/download/2.2.8/heaptrace? [y/n]").strip()
@@ -182,6 +183,15 @@ def launch_heaptrace(stop_=True):
     #         _heaptrace_pid = i.split()[1]
     #         break
     # print(_heaptrace_pid)
+    stop(stop_)
+
+def launch_gdb(script: str, stop_=True):
+    if gift.debug and gift.io:
+        attach(gift.io, gdbscript=script)
+    else:
+        log2_ex("call launch_heaptrace failed because current process has been ptraced!")
+        return
+    
     stop(stop_)
 
 #----------------------------useful function-------------------------
@@ -255,7 +265,7 @@ def _check_current_gdb():
     if not gift.get('gdb_pid', None):
         errlog_exit("cannot get gdb_obj, you don't launch gdb?")
 
-
+@unused("Remove since 1.4")
 def kill_current_gdb():
     """Kill current gdb process."""
     _check_current_gdb()
@@ -264,25 +274,25 @@ def kill_current_gdb():
     except:
         kill_gdb(gift['gdb_pid'])
 
-
+@unused("Remove since 1.4")
 def send_signal2current_gdbprocess(sig_val:int=2):
     _check_current_gdb()
     os.system("kill -{} {}".format(sig_val, gift['gdb_pid']))
     time.sleep(0.2)
 
-
+@unused("Remove since 1.4")
 def execute_cmd_in_current_gdb(cmd:str):
     """Execute commands in current gdb, split commands by ';' or \\n."""
     _check_current_gdb()
     execute_cmd_in_gdb(gift["gdb_obj"], cmd)
     
-
+@unused("Remove since 1.4")
 def set_current_pie_breakpoints(offset:int):
     """Set breakpoints by offset when binary's PIE enabled. Only support for `pwndbg'."""
     _check_current_gdb()
     set_pie_breakpoints(gift["gdb_obj"], offset)
 
-
+@unused("Remove since 1.4")
 def tele_current_pie_content(offset:int, number=10):
     """Telescope current content by offset when binary's PIE enabled. Only support for 'pwndbg'."""
     tele_pie_content(gift["gdb_obj"], offset, number)
@@ -299,7 +309,7 @@ def recv_current_libc_addr(offset:int=0, timeout=5):
     
     return recv_libc_addr(gift['io'], bits=gift['elf'].bits, offset=offset, timeout=timeout)
 
-
+@unused("Remove since 1.4")
 def get_current_flag_when_get_shell(use_cat=True, start_str="flag{"):
     if not gift.get('io', None):
         errlog_exit("Can not get current libc addr because of no io.")
@@ -522,8 +532,8 @@ class CurrentGadgets:
     __elf = None
     __libc = None
     __arch = None
-    __find_in_elf = True
-    __find_in_libc = True
+    __find_in_elf = None
+    __find_in_libc = None
     __loaded = False
 
     _mutex = Lock()
@@ -564,17 +574,13 @@ class CurrentGadgets:
             CurrentGadgets._mutex.release()
             return False
 
-        if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
-            log2_ex("Have closed both elf finder and libc finder.")
-            CurrentGadgets._mutex.release()
-            return False
         try:
             CurrentGadgets.__internal_gadgetbox = RopgadgetBox()
         except:
             CurrentGadgets.__internal_gadgetbox = RopperBox()
 
         res = False
-        if elf and CurrentGadgets.__find_in_elf:
+        if elf:
             if elf.arch not in __arch_mapping:
                 log2_ex("Unsupported arch, only for i386 and amd64.")
             else:
@@ -588,7 +594,7 @@ class CurrentGadgets:
                 if CurrentGadgets.__elf.pie:
                     CurrentGadgets.__internal_gadgetbox.set_imagebase("elf", CurrentGadgets.__elf.address)
                 res = True
-        if libc and CurrentGadgets.__find_in_libc:
+        if libc:
             if libc.arch not in __arch_mapping:
                 log2_ex("Unsupported arch, only for i386 and amd64..")
             else:
@@ -612,8 +618,8 @@ class CurrentGadgets:
         CurrentGadgets.__elf = None
         CurrentGadgets.__libc = None
         CurrentGadgets.__arch = None
-        CurrentGadgets.__find_in_elf = True
-        CurrentGadgets.__find_in_libc = True
+        CurrentGadgets.__find_in_elf = None
+        CurrentGadgets.__find_in_libc = None
         CurrentGadgets.__loaded = False
         CurrentGadgets._initial_ropperbox()
 
@@ -622,7 +628,7 @@ class CurrentGadgets:
         if not CurrentGadgets._initial_ropperbox(): 
             return 0
         func = getattr(CurrentGadgets.__internal_gadgetbox, func_name)
-        if CurrentGadgets.__find_in_elf:
+        if CurrentGadgets.__find_in_elf or (CurrentGadgets.__find_in_elf is None and (CurrentGadgets.__elf.address or CurrentGadgets.__elf.statically_linked)):
             if CurrentGadgets.__elf.pie:
                 CurrentGadgets.__internal_gadgetbox.set_imagebase("elf", CurrentGadgets.__elf.address)
             try:
@@ -631,14 +637,14 @@ class CurrentGadgets:
             except:
                 pass
         
-        if CurrentGadgets.__find_in_libc:
+        if CurrentGadgets.__find_in_libc or (CurrentGadgets.__find_in_libc is None and CurrentGadgets.__libc.address):
             if CurrentGadgets.__libc.pie:
                 CurrentGadgets.__internal_gadgetbox.set_imagebase("libc", CurrentGadgets.__libc.address)
             res = func('libc')
             return res
         
         if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
-            errlog_exit("Have closed both elf finder and libc finder.")
+            log2_ex("Have closed both elf finder and libc finder.")
         errlog_exit("Cannot find gadget using '{}'.".format(func_name))
 
 

@@ -14,6 +14,7 @@ import click
 from pwn import context, which, ELF, pause
 from pwnlib.atexit import register
 from pwnlib.gdb import attach
+from pwnlib.util.safeeval import expr
 import os
 import re
 import string
@@ -61,30 +62,26 @@ def _parse_env(ctx, env: str):
     length = len(env)
     # little check
     if (("=" not in env) and (':' not in env)) or (length < 3):
-        ctx.abort(msg="debug-command --> Env is invalid, check your env input.")
+        ctx.abort(msg="debug-command --> Env is invalid, no '=' or ':' in envs, check your env input.")
 
     # use two points
     res = {}
-    first, second = 0, 1
-    key, val = None, None
-    while second < length:
-        if env[second] in ('=', ':'):
-            key = env[first: second].strip().upper()  # 大写
-            first = second + 1
-            second += 2
-        elif env[second] in (',', ';') or (key and second == length - 1):
-            if second == length - 1 and (env[second] not in (';', ',')):
-                second += 1
-            # print(f"first: {first}, second: {second}")
-            var = env[first: second].strip()
-            if key == "PRE":
-                key = "LD_PRELOAD"
+    key, var = None, None
+    groups = re.split(",|;", env)
+    for g in groups:
+        if "=" in g or ':' in g:
+            if '=' in g:
+                two = g.split("=", 1)
+            else:
+                two = g.split(":", 1)
+            if len(two) != 2:
+                ctx.abort(msg="debug-command --> Env is invalid, wrong format env, check your env input.")
+            key, var = two
+            key = key.strip()
+            var = var.strip()
             res[key] = var
-            key, var = None, None
-            first = second + 1
-            second += 2
         else:
-            second += 1
+            ctx.abort(msg="debug-command --> Env is invalid, no '=' or ':' in current env, check your env input.")
 
     if res:
         ctx.vlog('debug-command --> Set env: {}'.format(res))
@@ -269,12 +266,30 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
     # process gdb-scripts
     is_file = False
     script = ''
+    script_s = ''
+    decomp2dbg_statement = ""
 
     if gdb_script:
         if os.path.isfile(gdb_script) and os.path.exists(gdb_script):
             is_file = True
         else:
-            script = gdb_script.strip().replace(';', '\n') + '\n'
+            _script = gdb_script.strip().split(";")
+            for _statement in _script:
+                _statement = _statement.strip()
+                if _statement.startswith("b") and " " in _statement:
+                    _left, _right = _statement.split(" ", 1)
+                    if "breakpoint".startswith(_left):
+                        gdb_breakpoint.append(_right)
+                        continue
+                    elif "tbreakpoint".startswith(_left):
+                        gdb_tbreakpoint.append(_right)
+                        continue
+                elif _statement.startswith("decompiler ") and len(decomp2dbg_statement) == 0:
+                    decomp2dbg_statement = _statement + "\n"
+                    continue
+                
+                script_s += _statement + "\n"
+            script_s += '\n'
 
     _prefix = ["break"] * len(gdb_breakpoint) + \
         ["tbreak"] * len(gdb_tbreakpoint)
@@ -301,20 +316,21 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
                 script += " *####{}####\n".format(gb)
             else:
                 script += ' {}\n'.format(gb)
-
+    
+    script = decomp2dbg_statement + script
+    script += script_s
     # if gdb_script is file, then open it
     if is_file:
-        if script:
-            tmp_fd, tmp_gdb_script = tempfile.mkstemp(text=True)
-            ctx.vlog(
-                "debug-command --> Create a tempfile used for gdb_script, file path: {}".format(tmp_gdb_script))
-            os.close(tmp_fd)
-            register(lambda x: os.unlink(x), tmp_gdb_script)
-            with open(tmp_gdb_script, 'wt', encoding='utf-8') as f:
-                with open(gdb_script, "rt", encoding='utf-8') as f2:
-                    script += f2.read()
-                f.write(script + "\n")
-            gdb_script = tmp_gdb_script
+        tmp_fd, tmp_gdb_script = tempfile.mkstemp(text=True)
+        ctx.vlog(
+            "debug-command --> Create a tempfile used for gdb_script, file path: {}".format(tmp_gdb_script))
+        os.close(tmp_fd)
+        register(lambda x: os.unlink(x), tmp_gdb_script)
+        with open(tmp_gdb_script, 'wt', encoding='utf-8') as f:
+            with open(gdb_script, "rt", encoding='utf-8') as f2:
+                script += f2.read()
+            f.write(script + "\n")
+        gdb_script = tmp_gdb_script
 
     if env:
         env = _parse_env(ctx, env)
@@ -436,21 +452,13 @@ int %s()
 
     # set base+XXX breakpoints
     if "####" in script:
-        _pattern = "####([\d\w\+]+)####"
+        _pattern = "####([\d\w\+\-\*/]+)####"
         _script = script
         _result = ""
         for _match in re.finditer(_pattern, script, re.I):
             _expr = _match.groups()[0]
-            _sym, _off = _expr.split("+")
-
-            if _off.startswith(("0x", "0X")):
-                _off = int(_off, base=16)
-            elif _off.isdigit():
-                _off = int(_off, base=10)
-            elif all(c in string.hexdigits for c in _off):
-                _off = int(_off, base=16)
-            else:
-                _off = 0
+            _sym, _off = _expr.split("+", 1)
+            _off = int(expr(_off))
 
             # libc is always PIE enabled...
             if _sym in ctx.gift.libc.sym:
@@ -469,7 +477,9 @@ int %s()
                             ctx.gift.elf.sym[_sym] + _off + ctx.gift['_elf_base'])
                 else:
                     _result = hex(ctx.gift.elf.sym[_sym] + _off)
-
+            else:
+                ctx.verrlog("debug-command --> cannot find symbol '{}' in libc and elf, so the breakpoint will not be set.".format(_sym))
+            
             _script = _script.replace("####{}####".format(_expr), _result)
         script = _script
 
@@ -478,22 +488,15 @@ int %s()
         if not ctx.gift['elf'].pie:
             ctx.vlog2(
                 "debug-command --> set base-format breakpoints while current binary's PIE not enable")
-        _pattern = "###\(([0-9a-fx]+)\)"
+        _pattern = "###\(([0-9a-fx\+\-\*/]+)\)"
         _script = script
         for _match in re.finditer(_pattern, script, re.I):
-            _num = _match.groups()[0]
+            _epxr = _match.groups()[0]
+            _num = int(expr(_epxr))
             _result = ""
-            if _num.startswith(("0x", "0X")):
-                _result = hex(ctx.gift['_elf_base'] + int(_num, base=16))
-            elif _num.isdigit():
-                _result = hex(ctx.gift['_elf_base'] + int(_num, base=10))
-            elif all(c in string.hexdigits for c in _num):
-                _result = hex(ctx.gift['_elf_base'] + int(_num, base=16))
-            else:
-                ctx.verrlog(
-                    msg="debug-command 'set gdbscript' --> Not a valid address in gdbscript: {}.".format(_num))
-
-            _script = _script.replace("###({})".format(_num), _result)
+            _result = hex(ctx.gift['_elf_base'] + _num)
+        
+            _script = _script.replace("###({})".format(_epxr), _result)
         script = _script
 
     if script:
@@ -585,6 +588,9 @@ def cli(ctx, verbose, filename, argv, env, gdb_tbreakpoint,
     if verbose:
         ctx.vlog("debug-command --> Open 'verbose' mode")
 
+    gdb_breakpoint = list(gdb_breakpoint)
+    gdb_tbreakpoint = list(gdb_tbreakpoint)
+    hook_function = list(hook_function)
     args = _Inner_Dict()
     args.filename = filename
     args.argv = argv

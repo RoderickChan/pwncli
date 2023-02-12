@@ -41,7 +41,8 @@ __all__  = [
     "show_name",
     "always_success",
     "only_debug",
-    "only_remote"
+    "only_remote",
+    "call_limit"
     ]
 
 
@@ -75,11 +76,27 @@ def unused(msg: str=""):
     def wrapper1(func):
         @functools.wraps(func)
         def wrapper2(*args, **kwargs):
-            warn_ex_highlight("This function: {} is unused. {}".format(func.__name__, msg))
+            warn_ex_highlight("This function: {} is unused and it would be removed in later version. {}".format(func.__name__, msg))
             return None
         return wrapper2
     return wrapper1
 
+def call_limit(times: int=1, warn_=True):
+    _tmp = 0
+    def wrapper1(func):
+        @functools.wraps(func)
+        def wrapper2(*args, **kwargs):
+            nonlocal _tmp
+            if _tmp < times:
+                res = func(*args, **kwargs)
+                _tmp += 1
+            else:
+                res = None
+                if warn_:
+                    warn_ex_highlight("This function {} has beed called for {} times, so it cannot be called any more.".format(func.__name__, times))
+            return res
+        return wrapper2
+    return wrapper1
 
 def smart_decorator(decorator):
     """Make a function to be a decorator.
@@ -326,7 +343,7 @@ def only_debug(show_warn=True):
     def wrapper1(func_call):
         @functools.wraps(func_call)
         def wrapper2(*args, **kwargs):
-            if gift.debug:
+            if gift.debug and not gift.remote and gift.io:
                 res = func_call(*args, **kwargs)
             else:
                 if show_warn:
@@ -342,7 +359,7 @@ def only_remote(show_warn=True):
     def wrapper1(func_call):
         @functools.wraps(func_call)
         def wrapper2(*args, **kwargs):
-            if gift.debug:
+            if gift.remote and not gift.debug and gift.io:
                 res = func_call(*args, **kwargs)
             else:
                 if show_warn:

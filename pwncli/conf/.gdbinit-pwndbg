@@ -4,6 +4,8 @@ source ~/Pwngdb/angelheap/gdbinit.py
 
 # don't skip repeat value when use telescope
 set telescope-skip-repeating-val off
+# show flags
+set show-flags on
 
 # show LR in aarch64
 set show-retaddr-reg on
@@ -11,13 +13,14 @@ set show-retaddr-reg on
 # don't stop the process when catch alarm signal
 handle SIGALRM nostop print
 
-# set follow-fork-mode parent
+
 # don't detach when fork is called 
+# set follow-fork-mode parent
 set detach-on-fork off
 
 # set sourcecode directory
-# directory /usr/src/glibc/glibc-2.27/stdio-common
-# directory /usr/src/glibc/glibc-2.27/malloc
+# directory /usr/src/glibc/glibc-2.xx/stdio-common
+# directory /usr/src/glibc/glibc-2.xx/malloc
 
 # show content of address using offset when PIE is enabled
 define sbase
