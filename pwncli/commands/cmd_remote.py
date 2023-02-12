@@ -77,19 +77,33 @@ def do_setproxy(ctx, proxy_mode):
         return s
 
 
-def do_remote(ctx, filename, target, ip, port, proxy_mode):
-    # detect filename and target
-    if filename and target:
-        if os.path.exists(target):
-            filename, target = target, filename
-    elif filename or target:
-        temp = filename or target
-        if os.path.exists(temp):
-            filename = temp
-            target = None
+def do_remote(ctx, filename, target, ip, port, proxy_mode, tport):
+    # detect filename and target and tport
+    # f ip port
+    if filename and target and tport:
+        ip = target
+        port = int(tport)
+    elif filename and target:
+        # f ip:port
+        if ":" in target:
+            ip, port = target.split(":")
+            ip = ip.strip()
+            port = int(port)
+            if not os.path.exists(filename):
+                ctx.abort("remote-command --> File `{}' not exists!".format(filename))
         else:
-            target = temp
+            # ip port
+            ip = filename.strip()
+            port = int(target)
             filename = None
+    elif filename:
+        target = filename
+        filename = None
+        if ":" not in target:
+            ctx.abort("remote-command --> Wrong target, should be ip:port!")
+        ip, port = target.split(":")
+        ip = ip.strip()
+        port = int(port)
     elif ip is None or port is None or len(ip) == 0 or port <= 0: # little check
             ctx.abort("remote-command --> Cannot get the victim host!")
 
@@ -109,14 +123,8 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode):
     else:
         ctx.vlog2("remote-command --> Filename is None, so maybe you need to set context manually.")
     
-    if target:
-        if ":" not in target: # little check
-            ctx.abort("remote-command --> {} is a wrong 'target' format, should be 'ip:port'".format(target))
-        ip, port = target.strip().split(':')
-        ip = ip.strip()
-        port = int(port)
-        ctx.vlog("remote-command --> Get 'target': {}".format(target))
-    elif ip and port:
+
+    if ip and port:
         ctx.vlog("remote-command --> Get 'ip': {}".format(ip))
         ctx.vlog("remote-command --> Get 'port': {}".format(port))
     else:
@@ -146,6 +154,7 @@ _proxy_mode_list = ['undefined', 'notset', 'default', 'primitive']
 @click.command(name='remote', short_help="Pwn remote host.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.argument("target", required=False, nargs=1, default=None, type=str)
+@click.argument("tport", required=False, nargs=1, default=None, type=str)
 @click.option('-i', '--ip', default=None, show_default=True, type=str, nargs=1, help='The remote ip addr.')
 @click.option('-p', '--port', default=None, show_default=True, type=int, nargs=1, help='The remote port.')
 @click.option('-P', '-up', '--use-proxy', is_flag=True, show_default=True, help="Use proxy or not.")
@@ -153,7 +162,7 @@ _proxy_mode_list = ['undefined', 'notset', 'default', 'primitive']
 @click.option('-n', '-nl', '--no-log', is_flag=True, show_default=True, help="Disable context.log or not.")
 @click.option('-v', '--verbose', count=True, help="Show more info or not.")
 @pass_environ
-def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, no_log):
+def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, no_log, tport):
     """FILENAME: ELF filename.\n
     TARGET: Target victim.
 
@@ -192,7 +201,7 @@ def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, no_log)
     context.update(log_level=ll)
     ctx.vlog("remote-command --> Set 'context.log_level': {}".format(ll))
 
-    do_remote(ctx, filename, target, ip, port, proxy_mode)
+    do_remote(ctx, filename, target, ip, port, proxy_mode, tport)
 
 
     
