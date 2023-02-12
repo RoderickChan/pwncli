@@ -519,11 +519,11 @@ def ic():
     if io:
         io.close()
 
-def cr() -> bool:
+def cr(timeout=0) -> bool:
     """can_recv"""
     io = gift.get("io", None)
     if io:
-        return io.can_recv()
+        return io.can_recv(timeout)
 
 # ----------------------------------gadget----------------
 
