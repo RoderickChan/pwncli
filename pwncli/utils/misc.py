@@ -342,9 +342,12 @@ def one_gadget(condition:str, more=False, buildid=False):
     Yields:
         int: Address of each one_gadget.
     """
-    cmd_list = ["one_gadget"]
+    cmd_list = ["one_gadget", "--raw"]
     if buildid:
         cmd_list.extend(["--build-id"])
+    elif not os.path.exists(condition):
+        errlog_exit("Cannot exec one_gadget, file `{}' not exists!".format(condition))
+
     
     cmd_list.extend([condition])
 
@@ -352,12 +355,8 @@ def one_gadget(condition:str, more=False, buildid=False):
         cmd_list.append("-l")
         cmd_list.append("2")
     try:
-        res = []
-        out = subprocess.check_output(cmd_list, encoding='utf-8').split("\n")
-        for o in out:
-            if "exec" in o and "/bin/sh" in o:
-                res.append(int16(o.split()[0]))
-        return res
+        res = subprocess.check_output(cmd_list, encoding='utf-8').split()
+        return [int(i) for i in res]
     except:
         errlog_exit("Cannot exec one_gadget, maybe you don't install one_gadget or filename is wrong or buildid is wrong!")
 
