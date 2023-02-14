@@ -81,9 +81,10 @@ class LibcBox:
 
 
     def __post_to_find(self):
-        r = requests.post(url="https://libc.rip/api/find", data=json.dumps(self._data), headers={'Content-Type': 'application/json'})
+        url = "https://libc.roderickchan.cn/api/find"
+        r = requests.post(url=url, data=json.dumps(self._data), headers={'Content-Type': 'application/json'})
         if r.status_code != 200:
-            errlog_exit("Error status_code: {}".format(r.status_code))
+            errlog_exit("Error status_code: {} from {}".format(r.status_code, url))
         self._res = json.loads(r.text)
     
 
