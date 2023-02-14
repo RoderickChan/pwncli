@@ -174,7 +174,7 @@ io = process("./pwn")
 libc_box = LibcBox()
 libc_box.add_symbol("system", 0x640)
 libc_box.add_symbol("puts", 0x810)
-libc_box.search(download_symbols=False, download_so=False, download_libs=True) # 是否下载到本地
+libc_box.search(download_symbols=False, download_so=False, download_deb=True) # 是否下载到本地
 read_offset = libc_box.dump("read")
 
 # 根据pid获取程序的libc基地址
