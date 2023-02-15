@@ -167,7 +167,7 @@ def shellcode2unicode(shellcode: str or bytes) -> str:
     """
     assert isinstance(shellcode, (str, bytes))
     if isinstance(shellcode, str):
-        shellcode = shellcode.encode()
+        shellcode = shellcode.encode('latin-1')
     shellcode = shellcode.hex()
     res = ""
     for i in range(0, len(shellcode), 2):

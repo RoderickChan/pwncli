@@ -379,7 +379,7 @@ def u16_ex(data: str or bytes) -> int:
     length = len(data)
     assert length <= 2, "len(data) > 2!"
     if isinstance(data, str):
-        data = data.encode('utf-8')
+        data = data.encode('latin-1')
     data = data.ljust(2, b"\x00")
     return unpack(data, 16)
 
@@ -389,7 +389,7 @@ def u24_ex(data: str or bytes) -> int:
     length = len(data)
     assert length <= 3, "len(data) > 3!"
     if isinstance(data, str):
-        data = data.encode('utf-8')
+        data = data.encode('latin-1')
     data = data.ljust(3, b"\x00")
     return unpack(data, 24)
 
@@ -399,7 +399,7 @@ def u32_ex(data: str or bytes) -> int:
     length = len(data)
     assert length <= 4, "len(data) > 4!"
     if isinstance(data, str):
-        data = data.encode('utf-8')
+        data = data.encode('latin-1')
     data = data.ljust(4, b"\x00")
     return unpack(data, 32)
     
@@ -409,7 +409,7 @@ def u64_ex(data: str or bytes) -> int:
     assert length <= 8, "len(data) > 8!"
     assert isinstance(data, (str, bytes)), "wrong data type!"
     if isinstance(data, str):
-        data = data.encode('utf-8')
+        data = data.encode('latin-1')
     data = data.ljust(8, b"\x00")
     return unpack(data, 64)
 
