@@ -181,6 +181,8 @@ def copy_gdbinit(ctx, generate_script):
             write_data += 'cat > ~/.gdbinit << "EOF"\n'
             with open(gdbinit_file_path+name, "rt", encoding="utf-8", errors="ignore") as gdbinitf:
                 write_data += gdbinitf.read()
+            if os.path.isfile(os.path.join(os.getenv('HOME'), ".d2d.py")):
+                write_data += "\nsource ~/.d2d.py\n"
             write_data += '\nEOF\n'
             write_data += "\nexec gdb \"$@\"\n"
             with open(_cur_path, "wt", encoding="utf-8", errors="ignore") as file:
