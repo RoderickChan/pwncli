@@ -87,7 +87,10 @@ def stop(enable=True):
     if pid != -1:
         msg += '  local pid: {}'.format(pid)
     log2_ex(msg)
-    input(" Press any key to continue......")
+    _timeout = context.timeout
+    context.update(timeout=600)
+    input("👉 Press any key to continue......")
+    context.update(timeout=_timeout)
 
 S = stop
 

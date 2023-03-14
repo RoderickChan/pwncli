@@ -20,7 +20,7 @@ CurrentGadgets.set_find_area(find_in_elf=True, find_in_libc=False, do_initial=Tr
 
 log_ex("To send name.")
 io.sendafter("read your name: \n", "roderick")
-stop(0)
+stop()
 msg = rl().decode()
 log_ex("Msg recv: %r" % msg)
 
