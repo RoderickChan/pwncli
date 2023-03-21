@@ -19,7 +19,7 @@ from .misc import get_callframe_info, log_ex, log2_ex, errlog_exit, log_code_bas
     one_gadget_binary, one_gadget, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
     get_flag_when_get_shell, ldd_get_libc_path, _in_tmux, _in_wsl
 from pwn import flat, asm, ELF, process, remote, context, atexit, wget, which, sleep, attach
-from .gadgetbox import RopperBox, RopperArchType, RopgadgetBox
+from .gadgetbox import RopperBox, RopperArchType, RopgadgetBox, ElfGadgetBox
 from .decorates import deprecated, unused
 from .syscall_num import SyscallNumber
 
@@ -546,15 +546,15 @@ class CurrentGadgets:
         CurrentGadgets.__find_in_elf = find_in_elf
         CurrentGadgets.__find_in_libc = find_in_libc
         if do_initial:
-            CurrentGadgets._initial_ropperbox()
+            CurrentGadgets._initial_gadgetbox()
 
     @staticmethod
     def set_debug(debug):
-        CurrentGadgets._initial_ropperbox()
+        CurrentGadgets._initial_gadgetbox()
         CurrentGadgets.__internal_gadgetbox.set_debug(debug)
 
     @staticmethod
-    def _initial_ropperbox() -> bool:
+    def _initial_gadgetbox() -> bool:
         """Get gadget from current elf and libc"""
         if CurrentGadgets._mutex.acquire(blocking=True):
             CurrentGadgets._mutex.locked()
@@ -580,7 +580,10 @@ class CurrentGadgets:
         try:
             CurrentGadgets.__internal_gadgetbox = RopgadgetBox()
         except:
-            CurrentGadgets.__internal_gadgetbox = RopperBox()
+            try:
+                CurrentGadgets.__internal_gadgetbox = RopperBox()
+            except:
+                CurrentGadgets.__internal_gadgetbox = ElfGadgetBox()
 
         res = False
         if elf:
@@ -591,7 +594,7 @@ class CurrentGadgets:
 
                 if CurrentGadgets.__internal_gadgetbox.box_name == "ropper":
                     CurrentGadgets.__internal_gadgetbox.add_file("elf", elf.path, __arch_mapping[elf.arch])
-                elif CurrentGadgets.__internal_gadgetbox.box_name == "ropgadget":
+                else:
                     CurrentGadgets.__internal_gadgetbox.add_file("elf", elf.path, elf.arch)
 
                 if CurrentGadgets.__elf.pie:
@@ -604,8 +607,8 @@ class CurrentGadgets:
                 CurrentGadgets.__arch = libc.arch
                 if CurrentGadgets.__internal_gadgetbox.box_name == "ropper":
                     CurrentGadgets.__internal_gadgetbox.add_file("libc", libc.path, __arch_mapping[elf.arch])
-                elif CurrentGadgets.__internal_gadgetbox.box_name == "ropgadget":
-                    CurrentGadgets.__internal_gadgetbox.add_file("libc", libc.path, elf.arch)
+                else:
+                    CurrentGadgets.__internal_gadgetbox.add_file("libc", libc.path, libc.arch)
 
                 if CurrentGadgets.__libc.pie:
                     CurrentGadgets.__internal_gadgetbox.set_imagebase("libc", CurrentGadgets.__libc.address)
@@ -624,11 +627,11 @@ class CurrentGadgets:
         CurrentGadgets.__find_in_elf = None
         CurrentGadgets.__find_in_libc = None
         CurrentGadgets.__loaded = False
-        CurrentGadgets._initial_ropperbox()
+        CurrentGadgets._initial_gadgetbox()
 
     @staticmethod
     def _internal_find(func_name):
-        if not CurrentGadgets._initial_ropperbox(): 
+        if not CurrentGadgets._initial_gadgetbox(): 
             return 0
         func = getattr(CurrentGadgets.__internal_gadgetbox, func_name)
         if CurrentGadgets.__find_in_elf or (CurrentGadgets.__find_in_elf is None and (CurrentGadgets.__elf.address or CurrentGadgets.__elf.statically_linked)):
@@ -647,7 +650,7 @@ class CurrentGadgets:
             return res
         
         if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
-            log2_ex("Have closed both elf finder and libc finder.")
+            log2_ex("Have closed both elf finder and libc finder, please call CurrentGadgets.set_find_area to set a finder.")
         errlog_exit("Cannot find gadget using '{}'.".format(func_name))
 
 
@@ -655,7 +658,7 @@ class CurrentGadgets:
     @functools.lru_cache(maxsize=128, typed=True)
     def find_gadget(find_str : str, find_type='asm', get_list=False) -> int:
         """ type: asm / opcode / string """
-        if not CurrentGadgets._initial_ropperbox(): 
+        if not CurrentGadgets._initial_gadgetbox(): 
             return 0
         find = find_str
         if find_type == "asm":
@@ -789,7 +792,7 @@ class CurrentGadgets:
 
     @staticmethod
     def __inner_chain(i386_num, syscall_num, para1, para2=None, para3=None) -> bytes:
-        if not CurrentGadgets._initial_ropperbox():
+        if not CurrentGadgets._initial_gadgetbox():
             return None
         if CurrentGadgets.__arch == "i386":
             if para1 < 0:
@@ -875,7 +878,7 @@ class CurrentGadgets:
 
     @staticmethod
     def write_by_magic(write_addr: int, ori: int, expected: int) -> bytes:
-        if not CurrentGadgets._initial_ropperbox():
+        if not CurrentGadgets._initial_gadgetbox():
             return None
         if CurrentGadgets.__arch == "amd64":
             return flat([
