@@ -72,6 +72,7 @@ __all__ = [
     "ldd_get_libc_path",
     "one_gadget",
     "one_gadget_binary",
+    "u8_ex",
     "u16_ex",
     "u24_ex",
     "u32_ex",
@@ -374,6 +375,15 @@ def one_gadget_binary(binary_path:str, more=False):
 
 
 #--------------------------------useful function------------------------------
+def u8_ex(data: str or bytes) -> int:
+    assert isinstance(data, (str, bytes)), "wrong data type!"
+    length = len(data)
+    assert length <= 1, "len(data) > 1!"
+    if isinstance(data, str):
+        data = data.encode('latin-1')
+    data = data.ljust(1, b"\x00")
+    return unpack(data, 8)
+
 def u16_ex(data: str or bytes) -> int:
     assert isinstance(data, (str, bytes)), "wrong data type!"
     length = len(data)
