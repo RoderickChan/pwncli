@@ -133,3 +133,4 @@ test/
 
 .gdb_history
 core
+.vscode
