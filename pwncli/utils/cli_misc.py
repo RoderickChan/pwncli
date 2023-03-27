@@ -39,6 +39,10 @@ __all__ = [
     "execute_cmd_in_current_gdb",
     "set_current_pie_breakpoints",
     "tele_current_pie_content",
+    "send_continue2current_gdbprocess",
+    "add_struct2current_gdb_by_member",
+    "add_struct2current_gdb_by_file",
+    "add_show_struct_command2current_gdb",
     "recv_current_libc_addr",
     "get_current_flag_when_get_shell",
     "set_current_libc_base", 
@@ -268,7 +272,6 @@ def _check_current_gdb():
     if not gift.get('gdb_pid', None):
         errlog_exit("cannot get gdb_obj, you don't launch gdb?")
 
-@unused("Remove since 1.4")
 def kill_current_gdb():
     """Kill current gdb process."""
     _check_current_gdb()
@@ -277,30 +280,45 @@ def kill_current_gdb():
     except:
         kill_gdb(gift['gdb_pid'])
 
-@unused("Remove since 1.4")
 def send_signal2current_gdbprocess(sig_val:int=2):
     _check_current_gdb()
     os.system("kill -{} {}".format(sig_val, gift['gdb_pid']))
     time.sleep(0.2)
 
-@unused("Remove since 1.4")
+def send_continue2current_gdbprocess():
+    _check_current_gdb()
+    execute_cmd_in_gdb(gift["gdb_obj"], "continue")
+    
+
 def execute_cmd_in_current_gdb(cmd:str):
     """Execute commands in current gdb, split commands by ';' or \\n."""
     _check_current_gdb()
     execute_cmd_in_gdb(gift["gdb_obj"], cmd)
     
-@unused("Remove since 1.4")
+
 def set_current_pie_breakpoints(offset:int):
     """Set breakpoints by offset when binary's PIE enabled. Only support for `pwndbg'."""
     _check_current_gdb()
     set_pie_breakpoints(gift["gdb_obj"], offset)
 
-@unused("Remove since 1.4")
 def tele_current_pie_content(offset:int, number=10):
     """Telescope current content by offset when binary's PIE enabled. Only support for 'pwndbg'."""
+    _check_current_gdb()
     tele_pie_content(gift["gdb_obj"], offset, number)
 
+def add_struct2current_gdb_by_member(struct_name, add_show_cmd=False, *struct_mems, **struct_memskw):
+    _check_current_gdb()
+    add_struct_by_member(gift["gdb_obj"], struct_name, add_show_cmd, *struct_mems, **struct_memskw)
 
+
+def add_struct2current_gdb_by_file(file_content, add_show_cmd=False, *struct_names):
+    _check_current_gdb()
+    add_struct_by_file(gift["gdb_obj"], file_content, add_show_cmd, *struct_names)
+
+
+def add_show_struct_command2current_gdb(*struct_names):
+    _check_current_gdb()
+    add_show_struct_command(gift["gdb_obj"], *struct_names)
 
 #-----------------other------------------------
 
@@ -312,7 +330,7 @@ def recv_current_libc_addr(offset:int=0, timeout=5):
     
     return recv_libc_addr(gift['io'], bits=gift['elf'].bits, offset=offset, timeout=timeout)
 
-@unused("Remove since 1.4")
+
 def get_current_flag_when_get_shell(use_cat=True, start_str="flag{"):
     if not gift.get('io', None):
         errlog_exit("Can not get current libc addr because of no io.")
