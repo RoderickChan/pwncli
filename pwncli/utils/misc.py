@@ -72,6 +72,7 @@ __all__ = [
     "ldd_get_libc_path",
     "one_gadget",
     "one_gadget_binary",
+    "u8_ex",
     "u16_ex",
     "u24_ex",
     "u32_ex",
@@ -105,17 +106,12 @@ __all__ = [
     "step_split"
 ]
 
-int16 = functools.partial(int, base=16)
-int8 = functools.partial(int, base=8)
-int2 = functools.partial(int, base=2)
-
-int16_ex = lambda x: int16(x.decode()) if isinstance(x, bytes) else int16(x)
-int8_ex = lambda x: int8(x.decode()) if isinstance(x, bytes) else int8(x)
-int2_ex = lambda x: int2(x.decode()) if isinstance(x, bytes) else int2(x)
-int_ex = lambda x: int(x.decode()) if isinstance(x, bytes) else int(x)
+int16_ex = int16 = functools.partial(int, base=16)
+int8_ex = int8 = functools.partial(int, base=8)
+int2_ex = int2 = functools.partial(int, base=2)
+int_ex = int
 
 flat_z = functools.partial(flat, filler=b"\x00")
-
 
 def step_split(s: str or bytes, step_len: int):
     """
@@ -143,7 +139,9 @@ def protect_ptr(address, next) -> int:
 def reveal_ptr(addr) -> int:
     """
     addr = addr1 ^ addr2
-    addr2 = addr1 + XXX 
+    
+    addr2 = addr1 + XXX
+    
     calc the heap address
     """
     _res = addr
@@ -325,7 +323,11 @@ def ldd_get_libc_path(filepath:str) -> str:
         out = subprocess.check_output(["ldd", filepath], encoding='utf-8').split()
         for o in out:
             if "/libc" in o:
-                rp = os.path.realpath(o)
+                filedir = os.path.dirname(filepath)
+                if o.startswith("/"):
+                    rp = o
+                else:
+                    rp = os.path.realpath(os.path.join(filedir, o))
                 break
     except:
         pass
@@ -343,6 +345,10 @@ def one_gadget(condition:str, more=False, buildid=False):
         int: Address of each one_gadget.
     """
     cmd_list = ["one_gadget", "--raw"]
+    if re.match(r"[0-9a-f]+",condition, re.I):
+        buildid = True
+    else:
+        buildid = False
     if buildid:
         cmd_list.extend(["--build-id"])
     elif not os.path.exists(condition):
@@ -358,7 +364,7 @@ def one_gadget(condition:str, more=False, buildid=False):
         res = subprocess.check_output(cmd_list, encoding='utf-8').split()
         return [int(i) for i in res]
     except:
-        errlog_exit("Cannot exec one_gadget, maybe you don't install one_gadget or filename is wrong or buildid is wrong!")
+        errlog_exit("Cannot exec one_gadget, maybe you don't install one_gadget or filename is wrong or buildid is wrong! cmd: {}".format(" ".join(cmd_list)))
 
 
 def one_gadget_binary(binary_path:str, more=False):
@@ -374,6 +380,15 @@ def one_gadget_binary(binary_path:str, more=False):
 
 
 #--------------------------------useful function------------------------------
+def u8_ex(data: str or bytes) -> int:
+    assert isinstance(data, (str, bytes)), "wrong data type!"
+    length = len(data)
+    assert length <= 1, "len(data) > 1!"
+    if isinstance(data, str):
+        data = data.encode('latin-1')
+    data = data.ljust(1, b"\x00")
+    return unpack(data, 8)
+
 def u16_ex(data: str or bytes) -> int:
     assert isinstance(data, (str, bytes)), "wrong data type!"
     length = len(data)

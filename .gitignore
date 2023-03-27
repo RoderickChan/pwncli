@@ -5,6 +5,8 @@ __pycache__/
 .idea/
 # C extensions
 *.so
+!libc-2.31.so
+!ld-2.31.so
 
 # Distribution / packaging
 .Python
