@@ -20,9 +20,13 @@ def get_pypi_pwncli_info(ctx):
 
 @click.command(name='update', short_help="Update pwncli.")
 @click.option('-d', '--dir', "directory", default="", type=str, nargs=1, help="The directory of pwncli repository, it's used to execuate `git pull' command.")
+@click.option('-v', '--verbose', count=True, help="Show more info or not.")
 @pass_environ
-def cli(ctx, directory):
-    ctx.verbose = 1
+def cli(ctx, directory, verbose):
+    if not ctx.verbose:
+        ctx.verbose = verbose
+    if verbose:
+        ctx.vlog("remote-command --> Open 'verbose' mode")
     install_from_git = False
     pwncli_install_from = subprocess.check_output("python3 -m pip freeze | grep pwncli", shell=True).decode()
     if "egg=pwncli" in pwncli_install_from:
@@ -41,19 +45,21 @@ def cli(ctx, directory):
         
         cmd = "cd %s && git pull" % directory
         status, out = subprocess.getstatusoutput(cmd)
+        ctx.vlog("update-command --> Execuate cmd '%s' to update pwncli.", cmd)
         if status:
-            ctx.abort("update-command --> Execuate cmd: '%s' error, output: %s" % (cmd, out))
+            ctx.abort("update-command --> Execuate cmd error, output: %s" % out)
         else:
-            ctx.vlog("update-command --> Update pwncli success!")
+            ctx.vlog("update-command --> Update pwncli success!\n%s", out)
     else:
         remote_version = get_pypi_pwncli_info(ctx)
         local_version = pwncli_install_from.split("==")[1]
         if local_version < remote_version:
             cmd = "python3 -m pip install pwncli --upgrade"
             status, out = subprocess.getstatusoutput(cmd)
+            ctx.vlog("update-command --> Execuate cmd '%s' to update pwncli.", cmd)
             if status:
-                ctx.abort("update-command --> Execuate cmd: '%s' error, output: %s" % (cmd, out))
+                ctx.abort("update-command --> Execuate cmd error, output: %s" % out)
             else:
-                ctx.vlog("update-command --> Update pwncli success!")
+                ctx.vlog("update-command --> Update pwncli success!\n%s", out)
         else:
             ctx.vlog("update-command --> Noneed to update pwncli, local version: %s, remote version: %s", local_version, remote_version)
