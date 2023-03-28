@@ -1,16 +1,20 @@
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
+
+with open("README.md", "r") as fh:
+    long_description = fh.read()
 
 setup(
     name="pwncli",
-    version="1.4",
+    version="1.5",
     author="roderick chan",
     author_email="ch22166@163.com",
     description="pwncli, do pwn quickly.",
-    long_description="pwncli is a tool for pwner, let you pwn quickly and more effeciently.",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     packages=find_packages(),
     include_package_data=True,
-    install_requires=["click", "pwntools", "ropper"],
+    install_requires=["click", "pwntools"],
     entry_points="""
         [console_scripts]
         pwncli=pwncli.cli:cli
