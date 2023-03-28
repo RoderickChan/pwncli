@@ -9,13 +9,14 @@
 '''
 
 import os
-from .exceptions import PwncliTodoException
-from .misc import _in_tmux
-from .decorates import call_limit, always_success
-from subprocess import check_output
 import tempfile
 import time
+from subprocess import check_output
+
 from pwnlib.atexit import register
+
+from .decorates import always_success, cache_nonresult, call_limit
+from .misc import _in_tmux
 
 __all__ = [
     "kill_gdb",
@@ -39,16 +40,13 @@ def _unlink_files(*fs):
 def _sleep_0_2():
     time.sleep(0.2)
 
-_TMUX_INFO = ""
+@cache_nonresult
 def _get_tmux_info():
-    global _TMUX_INFO
     if _in_tmux():
-        if _TMUX_INFO:
-            return _TMUX_INFO
         o = check_output("tmux display-message -p '#S:#I'", shell=True).strip()
-        _TMUX_INFO =  o.decode() + ".1"
-        return _TMUX_INFO
+        return o.decode() + ".1"
     return None
+
 
 def kill_gdb(gdb_ins):
     """Kill gdb process."""
@@ -66,7 +64,7 @@ def execute_cmd_in_gdb(gdb_obj, cmd:str):
         if x:
             if _get_tmux_info():
                 _sleep_0_2()
-                os.system("tmux send -t {} \"{}\" Enter".format(_TMUX_INFO, x))
+                os.system("tmux send -t {} \"{}\" Enter".format(_get_tmux_info(), x))
                 time.sleep(0.1)
             else:
                 gdb_obj.execute(x)

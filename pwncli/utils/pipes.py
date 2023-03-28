@@ -1,10 +1,11 @@
 import os
 import time
 from stat import S_ISFIFO
-from pwn import hexdump
-from .decorates import stopwatch
-import click
 
+import click
+from pwn import hexdump
+
+from .decorates import bomber
 
 __all__ = ["NamedPipePair"]
 
@@ -54,7 +55,7 @@ class NamedPipePair:
             data = data.encode('latin-1')
         assert timeout > 0, "Wrong timeout!"
         
-        @stopwatch(timeout)
+        @bomber(timeout)
         def _inner(data):
             return os.write(self._wfd, data)
         

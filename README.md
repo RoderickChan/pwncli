@@ -193,7 +193,7 @@ def add():
     pass
 
 # 若该函数10s内都没有运行结束，就会抛出异常
-@stopwatch(10)
+@bomber(10)
 def del_():
   pass
 

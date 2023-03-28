@@ -12,17 +12,22 @@
 import functools
 import os
 import subprocess
-from threading import Lock, Thread
 import time
-from pwncli.cli import gift
-from .misc import get_callframe_info, log_ex, log2_ex, errlog_exit, log_code_base_addr, log_libc_base_addr, \
-    one_gadget_binary, one_gadget, get_segment_base_addr_by_proc_maps, recv_libc_addr, \
-    get_flag_when_get_shell, ldd_get_libc_path, _in_tmux, _in_wsl
-from pwn import flat, asm, ELF, process, remote, context, atexit, wget, which, sleep, attach
-from .gadgetbox import RopperBox, RopperArchType, RopgadgetBox, ElfGadgetBox
-from .decorates import deprecated, unused
-from .syscall_num import SyscallNumber
+from threading import Lock, Thread
 
+from pwn import (ELF, asm, atexit, attach, context, flat, process, remote,
+                 sleep, wget, which)
+
+from pwncli.cli import gift
+
+from .decorates import deprecated, unused
+from .gadgetbox import ElfGadgetBox, RopgadgetBox, RopperArchType, RopperBox
+from .misc import (_in_tmux, _in_wsl, errlog_exit, get_callframe_info,
+                   get_flag_when_get_shell, get_segment_base_addr_by_proc_maps,
+                   ldd_get_libc_path, log2_ex, log_code_base_addr, log_ex,
+                   log_libc_base_addr, one_gadget, one_gadget_binary,
+                   recv_libc_addr, warn_ex)
+from .syscall_num import SyscallNumber
 
 __all__ = [
     "stop",
@@ -53,12 +58,79 @@ __all__ = [
     "copy_current_io",
     "s", "sl", "sa", "sla", "st", "slt", "ru", "rl","rs",
     "rls", "rlc", "rle", "ra", "rr", "r", "rn", "ia", "ic", "cr",
-    "CurrentGadgets", "load_currentgadgets_background",
-    "kill_heaptrace", "launch_heaptrace", "launch_gdb"
+    "CurrentGadgets", "load_currentgadgets_background", "CG",
+    "kill_heaptrace", "launch_heaptrace", "launch_gdb",
+    "only_debug", "only_gdb", "only_remote", "only_nogdb"
     ]
 
+#-------------------------------------------------------------------------------------
+
+# only call when debug command is used
+def only_debug(show_warn=True):
+    def wrapper1(func_call):
+        @functools.wraps(func_call)
+        def wrapper2(*args, **kwargs):
+            if gift.debug and not gift.remote and gift.io:
+                res = func_call(*args, **kwargs)
+            else:
+                if show_warn:
+                    warn_ex(
+                        "'{}' will not be called because debug mode is not enabled.".format(func_call.__name__))
+                res = None
+            return res
+        return wrapper2
+    return wrapper1
 
 
+# only call when debug command is used and gdb is used
+def only_gdb(show_warn=True):
+    def wrapper1(func_call):
+        @functools.wraps(func_call)
+        def wrapper2(*args, **kwargs):
+            if gift.debug and not gift.remote and gift.io and gift.gdb_obj:
+                res = func_call(*args, **kwargs)
+            else:
+                if show_warn:
+                    warn_ex(
+                        "'{}' will not be called because debug mode and gdb are not enabled.".format(func_call.__name__))
+                res = None
+            return res
+        return wrapper2
+    return wrapper1
+
+# only call when debug command is used and gdb is not used
+def only_nogdb(show_warn=True):
+    def wrapper1(func_call):
+        @functools.wraps(func_call)
+        def wrapper2(*args, **kwargs):
+            if gift.debug and not gift.remote and gift.io and not gift.gdb_obj and not gift.gdb_pid:
+                res = func_call(*args, **kwargs)
+            else:
+                if show_warn:
+                    warn_ex(
+                        "'{}' will not be called because gdb is enabled.".format(func_call.__name__))
+                res = None
+            return res
+        return wrapper2
+    return wrapper1
+
+# only call when gift.remote is True
+def only_remote(show_warn=True):
+    def wrapper1(func_call):
+        @functools.wraps(func_call)
+        def wrapper2(*args, **kwargs):
+            if gift.remote and not gift.debug and gift.io:
+                res = func_call(*args, **kwargs)
+            else:
+                if show_warn:
+                    warn_ex(
+                        "'{}' will not be called because remote mode is not enabled.".format(func_call.__name__))
+                res = None
+            return res
+        return wrapper2
+    return wrapper1
+
+#-------------------------------------------------------------------------------------
 
 def stop(enable=True):
     """Stop the program and print the caller's info
@@ -142,23 +214,17 @@ def _launch_heaptrace_in_gnome():
     _gnome_pid = p.pid
     atexit.register(_kill_heaptrace_in_gnome)
 
-
+@only_nogdb()
 def kill_heaptrace():
-    if gift.debug and gift.io and not gift.gdb_obj:
-        if _in_tmux():
-            _kill_heaptrace_in_tmux_pane()  
-        elif _in_wsl():
-            _kill_heaptrace_in_wsl()
-        elif which("gnome-terminal"):
-            _kill_heaptrace_in_gnome()
+    if _in_tmux():
+        _kill_heaptrace_in_tmux_pane()  
+    elif _in_wsl():
+        _kill_heaptrace_in_wsl()
+    elif which("gnome-terminal"):
+        _kill_heaptrace_in_gnome()
 
-
+@only_nogdb()
 def launch_heaptrace(stop_=True):
-    if gift.debug and gift.io and not gift.gdb_obj:
-        pass
-    else:
-        log2_ex("call launch_heaptrace failed because current process has been ptraced!")
-        return
     if not which("heaptrace"):
         res = input("Install heaptrace from https://github.com/Arinerron/heaptrace/releases/download/2.2.8/heaptrace? [y/n]").strip()
         if res != "y":
@@ -180,25 +246,11 @@ def launch_heaptrace(stop_=True):
         _launch_heaptrace_in_gnome()
     else:
         errlog_exit("Don't know how to launch heaptrace!")
-    
-    # global _heaptrace_pid
-    # sleep(0.5)
-    # out_ = subprocess.check_output("ps aux | grep \"heaptrace --attach\"", shell=True).decode().splitlines()
-    # # print(out_)
-    # for i in out_:
-    #     if "heaptrace --attach" in i and "grep" not in i:
-    #         _heaptrace_pid = i.split()[1]
-    #         break
-    # print(_heaptrace_pid)
     stop(stop_)
 
+@only_nogdb()
 def launch_gdb(script: str, stop_=True):
-    if gift.debug and gift.io:
-        attach(gift.io, gdbscript=script)
-    else:
-        log2_ex("call launch_heaptrace failed because current process has been ptraced!")
-        return
-    
+    attach(gift.io, gdbscript=script)
     stop(stop_)
 
 #----------------------------useful function-------------------------
@@ -244,22 +296,22 @@ def __get_current_segment_base_addr(use_cache=True) -> dict:
     else:
         errlog_exit("get_current_segment_base_addr failed! No pid!")
 
-
+@only_debug()
 def get_current_codebase_addr(use_cache=True) -> int:
     r = __get_current_segment_base_addr(use_cache)
     return r['code']
 
-
+@only_debug()
 def get_current_libcbase_addr(use_cache=True) -> int:
     r = __get_current_segment_base_addr(use_cache)
     return r['libc']
 
-
+@only_debug()
 def get_current_stackbase_addr(use_cache=True) -> int:
     r = __get_current_segment_base_addr(use_cache)
     return r['stack']
 
-
+@only_debug()
 def get_current_heapbase_addr(use_cache=True) -> int:
     r = __get_current_segment_base_addr(use_cache)
     return r['heap']
@@ -268,56 +320,50 @@ def get_current_heapbase_addr(use_cache=True) -> int:
 #----------------------------gdb related-------------------------
 from pwncli.utils.gdb_helper import *
 
-def _check_current_gdb():
-    if not gift.get('gdb_pid', None):
-        errlog_exit("cannot get gdb_obj, you don't launch gdb?")
 
+@only_gdb()
 def kill_current_gdb():
     """Kill current gdb process."""
-    _check_current_gdb()
     try:
         kill_gdb(gift['gdb_obj'])
     except:
         kill_gdb(gift['gdb_pid'])
 
+@only_gdb()
 def send_signal2current_gdbprocess(sig_val:int=2):
-    _check_current_gdb()
     os.system("kill -{} {}".format(sig_val, gift['gdb_pid']))
     time.sleep(0.2)
 
+@only_gdb()
 def send_continue2current_gdbprocess():
-    _check_current_gdb()
     execute_cmd_in_gdb(gift["gdb_obj"], "continue")
     
 
+@only_gdb()
 def execute_cmd_in_current_gdb(cmd:str):
     """Execute commands in current gdb, split commands by ';' or \\n."""
-    _check_current_gdb()
     execute_cmd_in_gdb(gift["gdb_obj"], cmd)
     
-
+@only_gdb()
 def set_current_pie_breakpoints(offset:int):
     """Set breakpoints by offset when binary's PIE enabled. Only support for `pwndbg'."""
-    _check_current_gdb()
     set_pie_breakpoints(gift["gdb_obj"], offset)
 
+@only_gdb()
 def tele_current_pie_content(offset:int, number=10):
     """Telescope current content by offset when binary's PIE enabled. Only support for 'pwndbg'."""
-    _check_current_gdb()
     tele_pie_content(gift["gdb_obj"], offset, number)
 
+@only_gdb()
 def add_struct2current_gdb_by_member(struct_name, add_show_cmd=False, *struct_mems, **struct_memskw):
-    _check_current_gdb()
     add_struct_by_member(gift["gdb_obj"], struct_name, add_show_cmd, *struct_mems, **struct_memskw)
 
-
+@only_gdb()
 def add_struct2current_gdb_by_file(file_content, add_show_cmd=False, *struct_names):
-    _check_current_gdb()
     add_struct_by_file(gift["gdb_obj"], file_content, add_show_cmd, *struct_names)
 
-
+@only_gdb()
 def add_show_struct_command2current_gdb(*struct_names):
-    _check_current_gdb()
     add_show_struct_command(gift["gdb_obj"], *struct_names)
 
 #-----------------other------------------------
@@ -912,3 +958,6 @@ class CurrentGadgets:
 
 def load_currentgadgets_background(find_in_elf=True, find_in_libc=True):
     Thread(target=CurrentGadgets.set_find_area, args=(find_in_elf, find_in_libc, True),daemon=True).start()
+    
+
+CG = CurrentGadgets

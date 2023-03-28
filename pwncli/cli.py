@@ -7,12 +7,14 @@ pwncli is "Just pwn, don't waste time on preparing exp".
 Example of click is https://github.com/pallets/click/tree/main/examples/complex
 Thanks fo click, it's a wonderful python-cli tool.
 """
-import click
 import os
 import sys
 from collections import OrderedDict
-from pwncli.utils.config import read_ini, try_get_config_data_by_key
-from pwncli.utils.misc import log_ex, log2_ex, errlog_ex
+
+import click
+
+from .utils.config import read_ini, try_get_config_data_by_key
+from .utils.misc import errlog_ex, log2_ex, log_ex
 
 __all__ = ['gift', 'cli_script']
 

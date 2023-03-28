@@ -9,16 +9,18 @@
 '''
 
 import atexit
+import json
+import os
 import re
 import shutil
 import tempfile
-from time import sleep, time
-import requests
-import json
 import threading
-import os
+from time import sleep, time
+
+import requests
+
+from .gadgetbox import RopgadgetBox, RopperBox
 from .misc import errlog_exit, log_ex, one_gadget
-from .gadgetbox import RopperBox, RopgadgetBox
 
 __all__ = ["LibcBox"]
 

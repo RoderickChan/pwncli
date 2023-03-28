@@ -9,7 +9,7 @@
 '''
 
 
-from pwn import FileStructure, error, context, pack, unpack, flat
+from pwn import FileStructure, context, error, flat, pack, unpack
 
 __all__ = [
     "IO_FILE_plus_struct",

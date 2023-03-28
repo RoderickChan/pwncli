@@ -30,15 +30,16 @@ doctest for these functions
 
 
 
-import sys
+import functools
 import os
 import re
-import functools
-import subprocess
 import struct
-from pwn import unpack, pack, flat, ELF, context, which
-import click
+import subprocess
+import sys
 import time
+
+import click
+from pwn import ELF, context, flat, pack, unpack, which
 
 __all__ = [
     "int16",

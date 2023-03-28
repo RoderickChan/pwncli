@@ -10,11 +10,13 @@
 
 
 
+import typing
+from string import printable
+
 from pwnlib.util.hashes import *
 from pwnlib.util.iters import bruteforce, mbruteforce
+
 from .misc import errlog_exit
-from string import printable
-import typing
 
 __all__ = [
     "bruteforce_hash_prefixstr",

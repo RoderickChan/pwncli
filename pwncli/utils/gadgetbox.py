@@ -9,15 +9,18 @@
 '''
 
 import functools
+import os
 import subprocess
 from enum import Enum, unique
-from .misc import errlog_exit, log_ex, _get_elf_arch_info
-import os
-from typing import List, Union, Dict
+from typing import Dict, List, Union
+
 from pwn import ELF, asm
 
+from .misc import _get_elf_arch_info, errlog_exit, log_ex
+
 __all__ = [
-    'RopperOptionType', 'RopperArchType', 'RopperBox', "RopgadgetBox",
+    'RopperOptionType', 'RopperArchType', 
+    'RopperBox', "RopgadgetBox",
     "ElfGadgetBox"
 ]
 
@@ -309,7 +312,7 @@ class RopgadgetBox(_GadgetBase):
 
 
 try:
-    from ropper import RopperService, RopperError, Gadget
+    from ropper import Gadget, RopperError, RopperService
 except:
     pass
 
