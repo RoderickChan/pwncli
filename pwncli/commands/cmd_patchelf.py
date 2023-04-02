@@ -9,13 +9,17 @@
 '''
 
 
-import click
-import re
 import os
-from pwncli.cli import pass_environ
+import re
+import sys
+
+import click
 from pwn import which, yesno
+
+from pwncli.cli import pass_environ
 from pwncli.utils.config import try_get_config_data_by_key
 from pwncli.utils.misc import _get_elf_arch_info
+
 
 def get_arch_info_from_file(ctx, filepath):
     arch = _get_elf_arch_info(filepath)
@@ -88,7 +92,7 @@ def cli(ctx, filename, libc_version, back_up, filter_string, verbose, libc_so):
             ctx.vlog2("patchelf-command --> Execute cmd: git clone https://github.com/matrix1001/glibc-all-in-one.git ~/ success!")
             libc_dirname = os.path.join(os.environ['HOME'],"glibc-all-in-one/libs")
         else:
-            exit(0)
+            sys.exit(1)
     
     if not libc_dirname.endswith("glibc-all-in-one/libs"):
         ctx.abort("patchelf-command --> Unsupported libc_dirname, must end with glibc-all-in-one/libs.")

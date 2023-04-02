@@ -1,10 +1,12 @@
 import os
 import re
+import sys
+from subprocess import getstatusoutput
 
 import click
-from pwncli.cli import pass_environ, _Inner_Dict
 from pwn import ELF, wget
-from subprocess import getstatusoutput
+
+from pwncli.cli import _Inner_Dict, pass_environ
 
 
 def _is_elf_file(filepath):
@@ -23,7 +25,7 @@ def _left_str(s):
 
 def _make_template_exit():
     os.system("pwncli template cli")
-    exit(0)
+    sys.exit(0)
 
 
 def _collect_info(ctx, info):

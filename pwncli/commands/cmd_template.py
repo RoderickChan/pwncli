@@ -10,6 +10,7 @@
 
 
 import os
+import sys
 import click
 import subprocess
 import shutil
@@ -66,7 +67,7 @@ ia()
         res = input("[*] {} exists, continue to overwrite? [y/n] ".format(exp_path))
         if res.lower().strip() != "y":
             ctx.vlog("template-command --> Stop creating the file: {}".format(exp_path))
-            exit(0)
+            sys.exit(0)
 
     set_remote_file = None
     for file in os.listdir(directory):
@@ -152,7 +153,7 @@ ia()
         res = input("[*] {} exists, continue to overwrite? [y/n] ".format(exp_path))
         if res.lower().strip() != "y":
             ctx.vlog("template-command --> Stop creating the file: {}".format(exp_path))
-            exit(0)
+            sys.exit(0)
 
     libc_file = ""
     elf_file = ""
@@ -264,7 +265,7 @@ ia()
         res = input("[*] {} exists, continue to overwrite? [y/n] ".format(exp_path))
         if res.lower().strip() != "y":
             ctx.vlog("template-command --> Stop creating the file: {}".format(exp_path))
-            exit(0)
+            sys.exit(0)
 
     libc_file = ""
     elf_file = ""

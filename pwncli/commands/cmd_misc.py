@@ -10,6 +10,7 @@
 
 
 import os
+import sys
 import tempfile
 
 import click
@@ -115,7 +116,7 @@ def export_struct_info(ctx, filename, save_all, directory, name):
         res = input(
             "[*] No struct name is given, display all struct info in {}, continue? [y/n]".format(filename)).strip().lower()
         if res != "y":
-            exit(0)
+            sys.exit(0)
         name = struct_name
 
     # step 2: show info
