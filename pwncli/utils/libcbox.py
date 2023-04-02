@@ -19,13 +19,13 @@ from time import sleep, time
 
 import requests
 
-from .gadgetbox import RopgadgetBox, RopperBox
+from .gadgetbox import RopgadgetBox, RopperBox, ElfGadgetBox
 from .misc import errlog_exit, log_ex, one_gadget
 
 __all__ = ["LibcBox"]
 
 class LibcBox:
-    def __init__(self, debug=False, wait_time=45):
+    def __init__(self, search_url="https://libc.rip/api/find", debug=False, wait_time=45):
         self._data = dict() # post data, is a dict
         self._res = None # post res, is a dict
         self._symbols = None
@@ -34,6 +34,10 @@ class LibcBox:
 
         self.debug = debug # open debug or not
         self._wait_time = wait_time
+        self._search_url = search_url
+        self._search_url_list = ["https://libc.roderickchan.cn/api/find", "https://libc.rip/api/find"]
+        if search_url:
+            self._search_url_list.insert(0, search_url)
 
         self._rb = None # RopperBox
         self._tmp_dir = tempfile.mkdtemp()
@@ -83,9 +87,16 @@ class LibcBox:
 
 
     def __post_to_find(self):
-        url = "https://libc.roderickchan.cn/api/find"
-        r = requests.post(url=url, data=json.dumps(self._data), headers={'Content-Type': 'application/json'})
-        if r.status_code != 200:
+        get_data = False
+        for url in self._search_url_list:
+            try:
+                r = requests.post(url=url, data=json.dumps(self._data), headers={'Content-Type': 'application/json'})
+                if r.status_code == 200:
+                    get_data =True
+                    break
+            except:
+                pass
+        if not get_data:
             errlog_exit("Error status_code: {} from {}".format(r.status_code, url))
         self._res = json.loads(r.text)
     
@@ -240,7 +251,7 @@ class LibcBox:
             while not self._finish_so:
                 sleep(0.1)
             self._log("start to load gadget...")
-            threading.Thread(target=self.get_ropperbox, args=(False,), daemon=True).start()
+            threading.Thread(target=self.get_gadgetbox, args=(False,), daemon=True).start()
         
         self._lock.release()
 
@@ -371,17 +382,20 @@ class LibcBox:
         return res
 
 
-    def get_ropperbox(self, debug=False) -> RopgadgetBox:
+    def get_gadgetbox(self, debug=False) -> RopgadgetBox:
         if not self._rb:
             if not self._call_searcher:
-                errlog_exit("Please call search before you get_ropperbox!")
+                errlog_exit("Please call search before you get_gadgetbox!")
             self.__time_count(self._wait_time, True, "_finish_so")
             name = self._res['download_url'].split("/")[-1]
             fn   = os.path.join(self._tmp_dir, name)
             try:
                 self._rb = RopgadgetBox(debug=debug)
             except:
-                self._rb = RopperBox(debug=debug)
+                try:
+                    self._rb = RopperBox(debug=debug)
+                except:
+                    self._rb = ElfGadgetBox(debug=debug)
             self._rb.add_file("libc", fn, None)
         
         return self._rb
