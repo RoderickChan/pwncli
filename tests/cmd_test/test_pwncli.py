@@ -1,11 +1,12 @@
 import os
 import pytest
 
+@pytest.mark.first
 def test_version():
     assert os.system("pwncli --version") == 0
     assert os.system("pwncli -V") == 0
 
-@pytest.mark.skip()
+@pytest.mark.last
 def test_allcmd():
     #[[master, sub]]
     cmds = [
@@ -13,7 +14,9 @@ def test_allcmd():
         ["remote"],
         ["config", "list", "set"],
         ["initial"],
-        ["misc", "gadget", "setgdb", "dstruct", "listen"],
+        ["gadget"],
+        ["listen"],
+        ["misc", "setgdb", "dstruct"],
         ["qemu"],
         ["template"],
         ["patchelf"]
