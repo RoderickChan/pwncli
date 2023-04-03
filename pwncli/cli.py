@@ -8,6 +8,7 @@ Example of click is https://github.com/pallets/click/tree/main/examples/complex
 Thanks fo click, it's a wonderful python-cli tool.
 """
 import os
+import pathlib
 import sys
 from collections import OrderedDict
 
@@ -97,7 +98,7 @@ class CommandsAliasedGroup(click.Group):
                 raise
             return mod.cli
         else:
-            ctx.fail('\033[31mcli --> Too many matches: %s\033[0m' % ', '.join(sorted(matches)))
+            ctx.fail('\033[31mpwncli --> Too many matches: %s\033[0m' % ', '.join(sorted(matches)))
         
         
 
@@ -118,7 +119,7 @@ class Environment:
             msg = "EXIT!"
         if args:
             msg %= args
-        click.secho("[---] Abort: {}".format(msg), fg='black', bg='red', err=1)
+        click.secho("[---] Abort: {}".format(msg), fg='red', err=1)
         raise click.Abort()
 
     def vlog(self, msg, *args):
@@ -142,16 +143,17 @@ class Environment:
 pass_environ = click.make_pass_decorator(Environment, ensure=True)
 
 def _set_filename(ctx, filename, msg=None):
-    if filename is not None:
+    if filename:
         # set filename and check
-        if os.path.isfile(filename):
-            ctx.gift['filename'] = os.path.abspath(filename)
+        fileptah = pathlib.Path(filename)
+        if fileptah.exists() and fileptah.is_file():
+            ctx.gift.filename = filename
             if not msg:
-                ctx.vlog("cli --> Set 'filename': {}".format(filename))
+                ctx.vlog("pwncli --> Set 'filename': {}".format(filename))
             else:
                 ctx.vlog(msg)
         else:
-            ctx.abort("cli --> Wrong 'filename'!")
+            ctx.abort("pwncli --> Wrong filename: {}!".format(filename))
 
 
 @click.command(cls=CommandsAliasedGroup, context_settings=_CONTEXT_SETTINGS)
@@ -178,22 +180,22 @@ def cli(ctx, filename, verbose, extra_argv): # ctx: command property
     ctx.pwncli_path = _PWNCLI_DIR_NAME
     ctx.platform = sys.platform
     if verbose:
-        ctx.vlog("cli --> Open 'verbose' mode")
+        ctx.vlog("pwncli --> Open 'verbose' mode")
 
     if ctx.fromcli:
-        ctx.vlog("cli --> Use 'pwncli' from command line")
+        ctx.vlog("pwncli --> Use 'pwncli' from command line")
     else:
         ctx.gift['from_script'] = True
-        ctx.vlog("cli --> Use 'pwncli' from python script. Please run 'cli_script()' to enable cli.")
+        ctx.vlog("pwncli --> Use 'pwncli' from python script. Please run 'cli_script()' to enable cli.")
         ctx.gift['no_stop'] = False
     _set_filename(ctx, filename)
 
     # init config file
     ctx.config_data = read_ini(os.path.expanduser('~/.pwncli.conf'))
     if ctx.config_data:
-        ctx.vlog("cli --> Read config data from ~/.pwncli.conf success!")
+        ctx.vlog("pwncli --> Read config data from ~/.pwncli.conf success!")
     else:
-        ctx.vlog2("cli --> Cannot read config data from ~/.pwncli.conf!")
+        ctx.vlog2("pwncli --> Cannot read config data from ~/.pwncli.conf!")
     
     # read config data and set for debug and remote
     to = try_get_config_data_by_key(ctx.config_data, 'context', 'timeout')
@@ -209,6 +211,7 @@ def cli(ctx, filename, verbose, extra_argv): # ctx: command property
 
     # extra argv for this script
     ctx.gift['extra_argv'] = extra_argv
+    
 
 def cli_script():
     cli.main(standalone_mode=False)

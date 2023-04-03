@@ -163,10 +163,7 @@ def stop(enable=True):
     if pid != -1:
         msg += '  local pid: {}'.format(pid)
     log2_ex(msg)
-    _timeout = context.timeout
-    context.update(timeout=600)
     input("👉 Press any key to continue......")
-    context.update(timeout=_timeout)
 
 S = stop
 
@@ -280,21 +277,20 @@ def get_current_one_gadget_from_libc(more=False):
     return res
 
 _cache_segment_base_addr = None
+@only_debug()
 def __get_current_segment_base_addr(use_cache=True) -> dict:
     global _cache_segment_base_addr
     """Get current process's segments' base address."""
     if use_cache and _cache_segment_base_addr is not None:
         return _cache_segment_base_addr
-    # try to get pid
-    if gift.get('io', None) and gift.get('debug', None):
-        pid = gift['io'].proc.pid
-        filename = gift.get('filename', None)
-        if filename is not None:
-            filename = os.path.split(os.path.abspath(filename))[1]
-        _cache_segment_base_addr = get_segment_base_addr_by_proc_maps(pid, filename)
-        return _cache_segment_base_addr
-    else:
-        errlog_exit("get_current_segment_base_addr failed! No pid!")
+
+    pid = gift.io.proc.pid
+    filename = gift.filename
+    if filename is not None:
+        filename = os.path.split(os.path.abspath(filename))[1]
+    _cache_segment_base_addr = get_segment_base_addr_by_proc_maps(pid, filename)
+    return _cache_segment_base_addr
+
 
 @only_debug()
 def get_current_codebase_addr(use_cache=True) -> int:

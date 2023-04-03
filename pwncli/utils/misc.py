@@ -606,17 +606,19 @@ def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
     assert isinstance(pid, int), "error type!"
     res = None
     try:
-        res = subprocess.check_output(["cat", "/proc/{}/maps".format(pid)]).decode().split("\n")
+        res = subprocess.check_output(["cat", "/proc/{}/maps".format(pid)]).decode().lower()
         if "/libc" not in res or "/ld" not in res: # again
             # wait for ld load libc
             time.sleep(1)
             try:
-                res = subprocess.check_output(["cat", "/proc/{}/maps".format(pid)]).decode().split("\n")
+                res = subprocess.check_output(["cat", "/proc/{}/maps".format(pid)]).decode().lower()
             except:
                 errlog_exit("cat /proc/{}/maps faild!".format(pid))
 
     except:
         errlog_exit("cat /proc/{}/maps faild!".format(pid))
+    
+    res = res.split("\n")
     _d = {}
     code_flag = 0
     libc_flag = 0

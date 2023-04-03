@@ -15,7 +15,7 @@ import signal
 import time
 from enum import Enum, unique
 
-from pwn import ELF, context, process, remote, tube
+from pwn import ELF, process, remote, tube
 
 try:
     from collections.abc import Iterable
@@ -24,7 +24,7 @@ except:
 
 from inspect import signature
 from itertools import product
-from typing import List
+from typing import List, Callable
 
 from .exceptions import PwncliExit
 from .misc import errlog_exit, ldd_get_libc_path, log_ex, warn_ex_highlight
@@ -47,7 +47,14 @@ __all__  = [
     "cache_nonresult"
     ]
 
-def add_prompt(msg):
+def add_prompt(msg: str):
+    """A decorator.
+
+    Print message before call function.
+    
+    Args:
+        msg (str): Message to stdout
+    """
     def wrapper1(func):
         @functools.wraps(func)
         def wrapper2(*args, **kwargs):
@@ -59,6 +66,15 @@ def add_prompt(msg):
 
 
 def always_success(show_err=False):
+    """A decorator.
+
+    Catch exception when call func. 
+    
+    Noye: Cannot deal with sys.exit.
+    
+    Args:
+        show_err (bool, optional): Show error info or not. Defaults to False.
+    """
     def wrapper1(func):
         @functools.wraps(func)
         def wrapper2(*args, **kwargs):
@@ -74,6 +90,13 @@ def always_success(show_err=False):
 
 
 def deprecated(msg: str=""):
+    """A decorator.
+
+    Mark the function as deprecate and show message. 
+
+    Args:
+        msg (str, optional): Message to show. Defaults to "".
+    """
     def wrapper1(func):
         @functools.wraps(func)
         def wrapper2(*args, **kwargs):
@@ -85,6 +108,13 @@ def deprecated(msg: str=""):
 
 
 def unused(msg: str=""):
+    """A decorator.
+
+    Mark the function as unused and show message. 
+
+    Args:
+        msg (str, optional): Message to show. Defaults to "".
+    """
     def wrapper1(func):
         @functools.wraps(func)
         def wrapper2(*args, **kwargs):
@@ -93,7 +123,17 @@ def unused(msg: str=""):
         return wrapper2
     return wrapper1
 
+
 def call_limit(times: int=1, warn_=True):
+    """A decorator.
+    
+    Limite the times of calling a function.
+
+    Args:
+        times (int, optional): Times. Defaults to 1.
+        warn_ (bool, optional): Show warn info or not. Defaults to True.
+
+    """
     _tmp = 0
     def wrapper1(func):
         @functools.wraps(func)
@@ -110,7 +150,14 @@ def call_limit(times: int=1, warn_=True):
         return wrapper2
     return wrapper1
 
-def cache_result(func):
+
+def cache_result(func: Callable):
+    """A decorator.
+    
+    Cache func's return value.
+    
+    That means the first return value will return when func is called again.
+    """
     _res = None
     _flag = 0xdeadbeef
     @functools.wraps(func)
@@ -122,7 +169,15 @@ def cache_result(func):
         return _res
     return wrapper2
 
-def cache_nonresult(func):
+
+def cache_nonresult(func: Callable):
+    """A decorator.
+    
+    Only cache not None result.
+    
+    Once func returns Not None value, next call func will return cache value. 
+
+    """
     _res = None
     _flag = 0xdeadbeef
     @functools.wraps(func)
@@ -150,7 +205,11 @@ def smart_decorator(decorator):
     return wrapper1
 
 
-def show_name(func):
+def show_name(func: Callable):
+    """A decorator.
+
+    Show function's name when call a function.
+    """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         args_str = ""
@@ -168,7 +227,9 @@ def show_name(func):
 
 
 def timer(func):
-    """Count the time-consuming of a function
+    """A decorator.
+    
+    Count the time-consuming of a function
 
     Args:
         func ([type]): Func
@@ -186,11 +247,17 @@ def timer(func):
     return wrapper
 
 
-def bomber(seconds, callback=None):
+def bomber(seconds: int, callback=None):
+    """A decorator.
+    
+    If the function does not finish running within the specified time, the program will exit and raise a TimeoutError.
+
+    Args:
+        seconds (int): Seconds to raise TimeoutError when timeout
+        callback (Callable, optional): Callback when timeout. Defaults to None.
     """
-    seconds: seconds to raise TimeoutError when timeout
-    callback: callback when timeout
-    """
+    
+
     def wrapper1(func):
         @functools.wraps(func)
         def wrapper2(*args, **kwargs):
