@@ -104,7 +104,8 @@ __all__ = [
     "calc_entryaddr_by_countaddr_tcache",
     "protect_ptr",
     "reveal_ptr",
-    "step_split"
+    "step_split",
+    "get_func_signature_str"
 ]
 
 int16_ex = int16 = functools.partial(int, base=16)
@@ -113,6 +114,19 @@ int2_ex = int2 = functools.partial(int, base=2)
 int_ex = int
 
 flat_z = functools.partial(flat, filler=b"\x00")
+
+def get_func_signature_str(func_name: str, *args, **kwargs):
+    args_str = ""
+    kwargs_str = ""
+    if args:
+        args_str = ", ".join(str(x) for x in args)
+    if kwargs:
+        if args_str:
+            args_str += ", "
+        kwargs_str = ", ".join("{}={}".format(_k, _v) for _k, _v in kwargs.items())
+    return "{}({}{})".format(func_name, args_str, kwargs_str)
+
+
 
 def step_split(s: str or bytes, step_len: int):
     """
@@ -760,6 +774,7 @@ def calc_entryaddr_by_countaddr_tcache(tcache_perthread_addr: int, countaddr: in
     idx = dis // sizeofcount
     start_addr = tcache_perthread_addr + sizeofcount * 64
     return idx * (bits >> 3) + start_addr
+
 
 #-------------------------------private-------------------------------
 def _get_elf_arch_info(filename):

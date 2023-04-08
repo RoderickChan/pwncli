@@ -12,6 +12,7 @@
 import functools
 import os
 import signal
+import sys
 import time
 from enum import Enum, unique
 
@@ -24,13 +25,13 @@ except:
 
 from inspect import signature
 from itertools import product
-from typing import List, Callable
+from typing import Callable, List
 
 from .exceptions import PwncliExit
-from .misc import errlog_exit, ldd_get_libc_path, log_ex, warn_ex_highlight
+from .misc import (errlog_exit, get_func_signature_str, ldd_get_libc_path,
+                   log_ex, warn_ex_highlight)
 
 __all__  = [
-    'smart_decorator', 
     'timer', 
     'sleep_call_before', 
     "sleep_call_after", 
@@ -41,11 +42,37 @@ __all__  = [
     "unused",
     "show_name",
     "always_success",
-    "call_limit",
+    "limit_calls",
     "add_prompt",
     "cache_result",
-    "cache_nonresult"
+    "cache_nonresult",
+    "signature2name",
+    "call_multimes",
+    "count_calls"
     ]
+
+
+def count_calls(show=True):
+    def _wrapper(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            wrapper._num_calls += 1
+            if show:
+                print("Call {} of {}".format(wrapper._num_calls, func.__name__))
+            return func(*args, **kwargs)
+        wrapper._num_calls = 0
+        return wrapper
+    return _wrapper
+
+
+def signature2name(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        sig = get_func_signature_str(func.__name__, *args, **kwargs)
+        wrapper.__name__ = sig
+        return func(*args, **kwargs)
+    return wrapper
+
 
 def add_prompt(msg: str):
     """A decorator.
@@ -56,9 +83,12 @@ def add_prompt(msg: str):
         msg (str): Message to stdout
     """
     def wrapper1(func):
+        
         @functools.wraps(func)
+        @signature2name
         def wrapper2(*args, **kwargs):
-            warn_ex_highlight("[call {}] prompt info --> {}".format(func.__name__, msg))
+            sig = get_func_signature_str(func.__name__, *args, **kwargs)
+            warn_ex_highlight("[call {}] prompt info --> {}".format(sig, msg))
             res = func(*args, **kwargs)
             return res
         return wrapper2
@@ -124,7 +154,7 @@ def unused(msg: str=""):
     return wrapper1
 
 
-def call_limit(times: int=1, warn_=True):
+def limit_calls(times: int=1, warn_=True):
     """A decorator.
     
     Limite the times of calling a function.
@@ -146,6 +176,25 @@ def call_limit(times: int=1, warn_=True):
                 res = None
                 if warn_:
                     warn_ex_highlight("This function {} has beed called for {} times, so it cannot be called any more.".format(func.__name__, times))
+            return res
+        return wrapper2
+    return wrapper1
+
+def call_multimes(times: int=1):
+    """A decorator.
+    
+    Loop x times to call function 
+
+    Args:
+        times (int, optional): Times. Defaults to 1.
+    """
+
+    def wrapper1(func):
+        @functools.wraps(func)
+        def wrapper2(*args, **kwargs):
+            res = None
+            for _ in range(times):
+                res = func(*args, **kwargs)
             return res
         return wrapper2
     return wrapper1
@@ -175,7 +224,7 @@ def cache_nonresult(func: Callable):
     
     Only cache not None result.
     
-    Once func returns Not None value, next call func will return cache value. 
+    Once func returns Not None value, all next func calls will always return cache value. 
 
     """
     _res = None
@@ -190,20 +239,6 @@ def cache_nonresult(func: Callable):
         return _res
     return wrapper2
 
-def smart_decorator(decorator):
-    """Make a function to be a decorator.
-
-    Args:
-        decorator (Callable): Callable object.
-    """
-    def wrapper1(func=None, *args, **kwargs):
-        if func is not None:
-            return decorator(func=func, *args, **kwargs)
-        def wrapper2(func):
-            return decorator(func=func, *args, **kwargs)
-        return wrapper2
-    return wrapper1
-
 
 def show_name(func: Callable):
     """A decorator.
@@ -212,15 +247,8 @@ def show_name(func: Callable):
     """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        args_str = ""
-        kwargs_str = ""
-        if args:
-            args_str = ", ".join(str(x) for x in args)
-        if kwargs:
-            if args_str:
-                args_str += ", "
-            kwargs_str = ", ".join("{}={}".format(_k, _v) for _k, _v in kwargs.items())
-        log_ex("call func: {}({}{})".format(func.__name__, args_str, kwargs_str))
+        sig = get_func_signature_str(func.__name__, *args, **kwargs)
+        log_ex("call {}".format(sig))
         res = func(*args, **kwargs)
         return res
     return wrapper
@@ -237,12 +265,11 @@ def timer(func):
     """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        print('=' * 50)
-        print('function #{}# start...'.format(func.__name__))
         start = time.time()
         res = func(*args, **kwargs)
         end = time.time()
-        print('function #{}# end...execute time: {} s | {} min'.format(func.__name__, end - start, (end - start) / 60))
+        sig = get_func_signature_str(func.__name__, *args, **kwargs)
+        print('call {} execute time: {} s({} min)'.format(sig, end - start, (end - start) / 60))
         return res
     return wrapper
 
@@ -254,26 +281,26 @@ def bomber(seconds: int, callback=None):
 
     Args:
         seconds (int): Seconds to raise TimeoutError when timeout
-        callback (Callable, optional): Callback when timeout. Defaults to None.
+        callback (Callable, optional): Callback when timeout, if callback is not None, return callback's retval. Defaults to None.
     """
-    
-
     def wrapper1(func):
         @functools.wraps(func)
         def wrapper2(*args, **kwargs):
             def handler(n, f):
                 raise TimeoutError()
+            sig = get_func_signature_str(func.__name__, *args, **kwargs)
             signal.signal(signal.SIGALRM, handler)
             signal.alarm(seconds)
             try:
                 res = func(*args, **kwargs)
                 signal.alarm(0)
             except TimeoutError:
+                warn_ex_highlight("call %s Timeout!", sig)
                 res = None
                 if callback:
                     res = callback()
                 else:
-                    errlog_exit("Timeout!")
+                    sys.exit(2)
             return res
         return wrapper2
     return wrapper1
@@ -339,7 +366,6 @@ def _call_func_invoke(call_func, libc_path, loop_time, loop_list, tube_func, *tu
                 break
             except KeyboardInterrupt:
                 errlog_exit("KeyboardInterrupt!")
-                pass
             except:
                 pass
             finally:

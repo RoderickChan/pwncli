@@ -27,18 +27,18 @@ class TestDebug:
             filename = file.name
             cmd = "tmux send-keys -t %s:0.0 'pwncli de ./pwn' C-m" % session_name
             os.system(cmd)
-            time.sleep(2)
+            time.sleep(1)
             cmd = "tmux send-keys -t %s:0.0 admin C-m" % session_name
             os.system(cmd)
-            time.sleep(0.5)
+            time.sleep(1)
             cmd = "tmux send-keys -t %s:0.0 ' ' C-m" % session_name
             os.system(cmd)
             cmd = "tmux capture-pane -pS -10000 -t %s:0.0 > %s" % (session_name, filename)
             os.system(cmd)
-            
+            time.sleep(1)
             # close tmux
             os.system("tmux kill-session -t %s" % session_name)
-
+            time.sleep(1)
             data = file.read()
             assert "flag{4f9861ef-1743-4cec-8b51-66f43d7099a2}" in data
         
@@ -60,13 +60,15 @@ class TestDebug:
             cmd = "tmux send-keys -t %s:0.1 'set logging on' C-m" % session_name
             os.system(cmd)
             cmd = "tmux send-keys -t %s:0.1 'info registers' C-m" % session_name
-            time.sleep(0.5)
+            time.sleep(1)
             os.system(cmd)
             cmd = "tmux send-keys -t %s:0.1 'set logging off' C-m" % session_name
             os.system(cmd)
+            time.sleep(1)
             
             # close tmux
             os.system("tmux kill-session -t %s" % session_name)
+            time.sleep(1)
 
             data = file.read()
             assert "rax" in data

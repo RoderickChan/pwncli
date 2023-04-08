@@ -15,7 +15,7 @@ from subprocess import check_output
 
 from pwnlib.atexit import register
 
-from .decorates import always_success, cache_nonresult, call_limit
+from .decorates import always_success, cache_nonresult, limit_calls
 from .misc import _in_tmux
 
 __all__ = [
@@ -36,7 +36,7 @@ def _unlink_files(*fs):
     for f in fs:
         _unlink_file(f)
 
-@call_limit(1, False)
+@limit_calls(1, False)
 def _sleep_0_2():
     time.sleep(0.2)
 

@@ -18,7 +18,7 @@ from datetime import datetime
 from pwn import which, wget
 from pwncli.cli import pass_environ
 from ..utils.misc import one_gadget
-from ..utils.decorates import call_limit
+from ..utils.decorates import limit_calls
 
 
 def generate_cli_exp(ctx, directory):
