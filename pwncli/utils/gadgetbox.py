@@ -314,6 +314,16 @@ class RopgadgetBox(_GadgetBase):
 try:
     from ropper import Gadget, RopperError, RopperService
 except:
+    class Gadget:
+        def __init__(self, *args, **kwargs):
+            raise RuntimeError("Please install ropper before use Gadget.")
+    class RopperError:
+        def __init__(self, *args, **kwargs):
+            raise RuntimeError("Please install ropper before use RopperError.")
+
+    class RopperService:
+        def __init__(self, *args, **kwargs):
+            raise RuntimeError("Please install ropper before use RopperService.")
     pass
 
 
