@@ -620,12 +620,12 @@ def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
     assert isinstance(pid, int), "error type!"
     res = None
     try:
-        res = subprocess.check_output(["cat", "/proc/{}/maps".format(pid)]).decode().lower()
+        res = subprocess.check_output(["cat", "/proc/{}/maps".format(pid)]).decode()
         if "/libc" not in res or "/ld" not in res: # again
             # wait for ld load libc
             time.sleep(1)
             try:
-                res = subprocess.check_output(["cat", "/proc/{}/maps".format(pid)]).decode().lower()
+                res = subprocess.check_output(["cat", "/proc/{}/maps".format(pid)]).decode()
             except:
                 errlog_exit("cat /proc/{}/maps faild!".format(pid))
 
@@ -645,7 +645,7 @@ def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
             continue
         start_addr = int(rc[0][0], base=16)
         end_addr = int(rc[0][1], base=16)
-        if (filename is not None) and (not code_flag) and filename in r:
+        if (filename is not None) and (not code_flag) and r.endswith(filename):
             code_flag = 1
             _d['code'] = start_addr
         elif (not libc_flag) and ("/libc" in r):
