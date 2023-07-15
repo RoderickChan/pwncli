@@ -38,6 +38,10 @@
 
 如果你觉得`pwncli`好用，请介绍给周围的`pwner`。如果你还有任何疑问，请提交`issue`或联系我`roderickchan@foxmail.com`，我将非常乐意与你讨论交流。如果你有好的想法，或者发现新的`bug`，欢迎提交`pull requests`。
 
+🏴🏴🏴 欢迎各位师傅关注我的个人博客，以下两个博客网站内容相同，互为备份。前者为`github page`，后者部署在国内阿里云服务器上。博客持续更新中~
+- https://roderickchan.github.io
+- https://www.roderickchan.cn
+
 # 简介
 [EN](https://github.com/RoderickChan/pwncli/blob/main/README-EN.md) | [ZH](https://github.com/RoderickChan/pwncli/blob/main/README.md) | [API](https://github.com/RoderickChan/pwncli/blob/main/API-DOC.md) | [VIDEO](https://www.youtube.com/watch?v=QFemxI3rnC8)
 
