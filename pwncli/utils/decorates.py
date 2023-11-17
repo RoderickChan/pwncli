@@ -4,7 +4,7 @@
 @File    : decorates.py
 @Time    : 2021/11/23 23:48:12
 @Author  : Roderick Chan
-@Email   : ch22166@163.com
+@Email   : roderickchan@foxmail.com
 @Desc    : Decorators
 '''
 

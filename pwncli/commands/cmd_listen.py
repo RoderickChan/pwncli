@@ -4,7 +4,7 @@
 @File    : cmd_listen.py
 @Time    : 2023/03/28 14:00:18
 @Author  : Roderick Chan
-@Email   : ch22166@163.com
+@Email   : roderickchan@foxmail.com
 @Desc    : listen command
 '''
 

@@ -4,7 +4,7 @@
 @File    : cmd_remote.py
 @Time    : 2021/11/23 23:50:34
 @Author  : Roderick Chan
-@Email   : ch22166@163.com
+@Email   : roderickchan@foxmail.com
 @Desc    : remote subcommand
 '''
 

@@ -4,7 +4,7 @@
 @File    : cmd_patchelf.py
 @Time    : 2021/11/23 23:50:09
 @Author  : Roderick Chan
-@Email   : ch22166@163.com
+@Email   : roderickchan@foxmail.com
 @Desc    : patchelf subcommand
 '''
 

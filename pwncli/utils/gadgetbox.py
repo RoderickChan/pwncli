@@ -4,7 +4,7 @@
 @File    : gadgetbox.py
 @Time    : 2021/11/23 12:33:55
 @Author  : Roderick Chan
-@Email   : ch22166@163.com
+@Email   : roderickchan@foxmail.com
 @Desc    : Construct gadget box form ropgadget/ropper/pwntools.elf
 '''
 

@@ -4,7 +4,7 @@
 @File    : cmd_config.py
 @Time    : 2021/11/23 23:49:28
 @Author  : Roderick Chan
-@Email   : ch22166@163.com
+@Email   : roderickchan@foxmail.com
 @Desc    : config subcommand
 '''
 

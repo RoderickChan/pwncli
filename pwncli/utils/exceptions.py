@@ -4,7 +4,7 @@
 @File    : exceptions.py
 @Time    : 2021/11/23 23:47:51
 @Author  : Roderick Chan
-@Email   : ch22166@163.com
+@Email   : roderickchan@foxmail.com
 @Desc    : Exception
 '''
 

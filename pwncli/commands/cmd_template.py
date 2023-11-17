@@ -4,7 +4,7 @@
 @File    : cmd_template.py
 @Time    : 2022/09/25 21:45:48
 @Author  : Roderick Chan
-@Email   : ch22166@163.com
+@Email   : roderickchan@foxmail.com
 @Desc    : subcommand template
 '''
 

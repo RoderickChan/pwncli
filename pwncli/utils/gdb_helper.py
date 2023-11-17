@@ -4,7 +4,7 @@
 @File    : gdb_helper.py
 @Time    : 2021/11/23 23:47:26
 @Author  : Roderick Chan
-@Email   : ch22166@163.com
+@Email   : roderickchan@foxmail.com
 @Desc    : Use gdb by python api when debugging
 '''
 

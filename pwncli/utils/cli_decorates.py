@@ -4,7 +4,7 @@
 @File    : cli_decorates.py
 @Time    : 2023/03/28 13:00:56
 @Author  : Roderick Chan
-@Email   : ch22166@163.com
+@Email   : roderickchan@foxmail.com
 @Desc    : cli_decorator
 '''
 

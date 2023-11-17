@@ -4,7 +4,7 @@
 @File    : cmd_debug.py
 @Time    : 2021/11/23 23:49:55
 @Author  : Roderick Chan
-@Email   : ch22166@163.com
+@Email   : roderickchan@foxmail.com
 @Desc    : debug subcommand
 '''
 

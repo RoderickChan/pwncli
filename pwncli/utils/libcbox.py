@@ -4,7 +4,7 @@
 @File    : libcbox.py
 @Time    : 2021/11/23 23:46:27
 @Author  : Roderick Chan
-@Email   : ch22166@163.com
+@Email   : roderickchan@foxmail.com
 @Desc    : Find libc by web api from https://github.com/niklasb/libc-database/tree/master/searchengine
 '''
 

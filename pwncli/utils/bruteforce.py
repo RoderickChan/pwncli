@@ -4,7 +4,7 @@
 @File    : bruteforce.py
 @Time    : 2021/11/23 23:48:49
 @Author  : Roderick Chan
-@Email   : ch22166@163.com
+@Email   : roderickchan@foxmail.com
 @Desc    : bruteforce methods
 '''
 

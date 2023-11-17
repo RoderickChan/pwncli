@@ -4,7 +4,7 @@
 @File    : io_file.py
 @Time    : 2021/11/23 23:46:48
 @Author  : Roderick Chan
-@Email   : ch22166@163.com
+@Email   : roderickchan@foxmail.com
 @Desc    : Extension for FileStructure in pwntools and define useful IO_FILE related methods
 '''
 

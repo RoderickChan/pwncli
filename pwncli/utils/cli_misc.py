@@ -4,7 +4,7 @@
 @File    : cli_misc.py
 @Time    : 2022/12/12 21:34:37
 @Author  : Roderick Chan
-@Email   : ch22166@163.com
+@Email   : roderickchan@foxmail.com
 @Desc    : None
 '''
 
