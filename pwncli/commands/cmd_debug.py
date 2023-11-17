@@ -134,7 +134,7 @@ def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file,
                     'debug-command --> Cannot get distro name in wsl, please check your env!')
 
             if not re.search("ubuntu-\d\d.\d\d", distro_name, re.I):
-                ctx.abort('debug-command --> Only support Ubuntu-XX.XX system!')
+                ctx.vlog2('debug-command --> Warn: The distribution name is not Ubuntu-XX.XX.')
 
             ctx.vlog2(
                 "debug-command --> Find wsl distro, name '{}'".format(distro_name))
