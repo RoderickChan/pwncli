@@ -8,13 +8,14 @@ setup(
     name="pwncli",
     version="1.5",
     author="roderick chan",
-    author_email="ch22166@163.com",
+    author_email="roderickchan@foxmail.com",
     description="pwncli, do pwn quickly.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=find_packages(),
     include_package_data=True,
     install_requires=["click", "pwntools"],
+    package_data={"pwncli": ["conf/*"]},
     entry_points="""
         [console_scripts]
         pwncli=pwncli.cli:cli
