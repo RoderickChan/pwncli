@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="pwncli",
-    version="1.5",
+    version="1.6",
     author="roderick chan",
     author_email="roderickchan@foxmail.com",
     description="pwncli, do pwn quickly.",

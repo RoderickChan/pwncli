@@ -160,7 +160,7 @@ def _set_filename(ctx, filename, msg=None):
 @click.option('-f', '--filename', type=str, default=None, show_default=True, help="Elf file path to pwn.")
 @click.option('-v', '--verbose', count=True, help="Show more info or not.")
 @click.option('-E', '-ea', '--extra-argv', "extra_argv", type=str, default="", required=False, show_default=True, help="The extra argv for this script, sometimes it's useful for bruteforce.")
-@click.version_option('1.5', "-V", "--version", prog_name='pwncli', message="%(prog)s: version %(version)s\nauthor: roderick chan\ngithub: https://github.com/RoderickChan/pwncli")
+@click.version_option('1.6', "-V", "--version", prog_name='pwncli', message="%(prog)s: version %(version)s\nauthor: roderick chan\ngithub: https://github.com/RoderickChan/pwncli")
 @pass_environ
 def cli(ctx, filename, verbose, extra_argv): # ctx: command property
     """pwncli tools for pwner!
