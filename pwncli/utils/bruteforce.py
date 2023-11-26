@@ -19,8 +19,8 @@ from pwnlib.util.iters import bruteforce, mbruteforce
 from .misc import errlog_exit
 
 __all__ = [
-    "bruteforce_hash_prefixstr",
-    "mbruteforce_hash_prefixstr"
+    "bruteforce_hash",
+    "mbruteforce_hash"
 ]
 
 _hash_algos = (
@@ -33,7 +33,7 @@ _hash_algos = (
 )
 
 #--------------------hash related----------------------
-def __inner_bruteforce(hash_algo:str, prefix_str:str, check_res_func:typing.Callable, 
+def __inner_bruteforce(hash_algo:str, prefix_str:str, suffix_str: str, check_res_func:typing.Callable, 
         alphabet:str, start_length:int, max_length:int, multithread):
     assert max_length >= start_length
     assert isinstance(prefix_str, str)
@@ -44,7 +44,7 @@ def __inner_bruteforce(hash_algo:str, prefix_str:str, check_res_func:typing.Call
 
     def func(s):
         hash_func = globals()[hash_algo+"sumhex"]
-        res = hash_func((prefix_str+s).encode('latin-1'))
+        res = hash_func((prefix_str + s + suffix_str).encode('latin-1'))
         return check_res_func(res)
     
     res = None
@@ -56,13 +56,14 @@ def __inner_bruteforce(hash_algo:str, prefix_str:str, check_res_func:typing.Call
     return res
 
 
-def bruteforce_hash_prefixstr(hash_algo:str, prefix_str:str, check_res_func:typing.Callable, 
-        alphabet:str=printable.strip(), start_length:int=4, max_length=6):
+def bruteforce_hash(hash_algo:str, prefix_str:str, suffix_str: str, check_res_func:typing.Callable, 
+        alphabet:str=printable.strip(), start_length:int=4, max_length:int=6):
     """Bruteforce hash value when prefix string is given, like sha256('eRt<'+?) starts with 000000
 
     Args:
         hash_algo (str): hash algorithm name: [md5, sha1, sha224, sha256, sha384, sha512].
         prefix_str (str): Prefix string.
+        suffix_str (str): Suffix string.
         check_res_func (typing.Callable): func to check hash value, like: lambda x: x.startswith('000000').
         alphabet (str, optional): String used. Defaults to printable.strip().
         start_length (int, optional): Starting length. Defaults to 4.
@@ -72,22 +73,23 @@ def bruteforce_hash_prefixstr(hash_algo:str, prefix_str:str, check_res_func:typi
         str: if not find, return None.
 
     Example:
-        >>> res = bruteforce_hash_prefixstr("sha256", "eRt<", lambda x: x.startswith("0000"), max_length=4)
+        >>> res = bruteforce_hash_prefixstr("sha256", "eRt<", "",lambda x: x.startswith("0000"), max_length=4)
         >>> res
         '02)T'
         >>> sha256sumhex(("eRt<"+res).encode()).startswith("0000")
         True
     """
-    return __inner_bruteforce(hash_algo, prefix_str, check_res_func, alphabet, start_length, max_length, False)
+    return __inner_bruteforce(hash_algo, prefix_str, suffix_str, check_res_func, alphabet, start_length, max_length, False)
 
 
-def mbruteforce_hash_prefixstr(hash_algo:str, prefix_str:str, check_res_func:typing.Callable, 
-        alphabet:str=printable.strip(), start_length:int=4, max_length=6):
+def mbruteforce_hash(hash_algo:str, prefix_str:str, suffix_str: str, check_res_func:typing.Callable, 
+        alphabet:str=printable.strip(), start_length:int=4, max_length:int=6):
     """Bruteforce hash value when prefix string is given, like sha256('eRt<'+?) starts with 000000
 
     Args:
         hash_algo (str): hash algorithm name: [md5, sha1, sha224, sha256, sha384, sha512].
         prefix_str (str): Prefix string.
+        suffix_str (str): Suffix string.
         check_res_func (typing.Callable): func to check hash value, like: lambda x: x.startswith('000000').
         alphabet (str, optional): String used. Defaults to printable.strip().
         start_length (int, optional): Starting length. Defaults to 4.
@@ -97,13 +99,13 @@ def mbruteforce_hash_prefixstr(hash_algo:str, prefix_str:str, check_res_func:typ
         str: if not find, return None.
     
     Example:
-        >>> res = mbruteforce_hash_prefixstr("sha256", "eRt<", lambda x: x.startswith("000000"), max_length=6)
+        >>> res = mbruteforce_hash_prefixstr("sha256", "eRt<", "", lambda x: x.startswith("000000"), max_length=6)
         >>> res
         '0_TR'
         >>> sha256sumhex(("eRt<"+res).encode()).startswith("000000")
         True
     """
-    return __inner_bruteforce(hash_algo, prefix_str, check_res_func, alphabet, start_length, max_length, True)
+    return __inner_bruteforce(hash_algo, prefix_str, suffix_str,check_res_func, alphabet, start_length, max_length, True)
 
     
 if __name__ == "__main__":
