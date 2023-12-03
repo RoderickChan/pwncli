@@ -295,22 +295,22 @@ def __get_current_segment_base_addr(use_cache=True) -> dict:
 @only_debug()
 def get_current_codebase_addr(use_cache=True) -> int:
     r = __get_current_segment_base_addr(use_cache)
-    return r['code']
+    return r['code'] if r else 0
 
 @only_debug()
 def get_current_libcbase_addr(use_cache=True) -> int:
     r = __get_current_segment_base_addr(use_cache)
-    return r['libc']
+    return r['libc'] if r else 0
 
 @only_debug()
 def get_current_stackbase_addr(use_cache=True) -> int:
     r = __get_current_segment_base_addr(use_cache)
-    return r['stack']
+    return r['stack'] if r else 0
 
 @only_debug()
 def get_current_heapbase_addr(use_cache=True) -> int:
     r = __get_current_segment_base_addr(use_cache)
-    return r['heap']
+    return r['heap'] if r else 0
 
 
 #----------------------------gdb related-------------------------
@@ -380,6 +380,12 @@ def get_current_flag_when_get_shell(use_cat=True, start_str="flag{"):
 
 
 def _innner_set_current_base(addr: int, offset: str or int, name: str) -> int:
+    if addr is None:
+        if name == "libc":
+            addr = recv_current_libc_addr()
+        else:
+            raise RuntimeError("addr is None")
+        
     if not gift[name]:
         errlog_exit("No {} here.".format(name))
     if gift[name].address != 0:
@@ -392,12 +398,11 @@ def _innner_set_current_base(addr: int, offset: str or int, name: str) -> int:
     return base_addr
 
 
-
-def set_current_libc_base(addr: int, offset: str or int = 0) -> int:
+def set_current_libc_base(addr: int=None, offset: str or int = 0) -> int:
     """set_current_libc_base
 
     Args:
-        addr (int): The address you get
+        addr (int): The address you get. If it's None, use 'recv_current_libc_addr' to get address.
         offset (str or int): offset or func name in current libc
 
     Returns:
@@ -406,12 +411,12 @@ def set_current_libc_base(addr: int, offset: str or int = 0) -> int:
     return _innner_set_current_base(addr, offset, 'libc')
 
 
-def set_current_libc_base_and_log(addr: int, offset: int or str=0):
+def set_current_libc_base_and_log(addr: int=None, offset: int or str=0):
     """set_current_libc_base and log
 
     Args:
-        addr (int): The address you get
-        offset (str or int): offset or func name in current libc
+        addr (int): The address you get. If it's None, use 'recv_current_libc_addr' to get address.
+        offset (str or int): offset or func name in current libc.
 
     Returns:
         int: libc base addr
@@ -424,7 +429,7 @@ def set_current_code_base(addr: int, offset: str or int = 0) -> int:
     """set_current_code_base
 
     Args:
-        addr (int): The address you get
+        addr (int): The address you get.
         offset (str or int): offset or func name in current elf
 
     Returns:
@@ -437,7 +442,7 @@ def set_current_code_base_and_log(addr: int, offset: int or str = 0):
     """set_current_code_base and log
 
     Args:
-        addr (int): The address you get
+        addr (int): The address you get.
         offset (str or int): offset or func name in current elf
 
     Returns:

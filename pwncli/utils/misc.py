@@ -631,9 +631,11 @@ def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
 
     except:
         errlog_exit("cat /proc/{}/maps faild!".format(pid))
-    
-    res = res.split("\n")
     _d = {}
+    if not res:
+        warn_ex("'cat /proc/{}/maps' gets empty result, are you sure the process is alive?".format(pid))
+        return _d
+    res = res.split("\n")
     code_flag = 0
     libc_flag = 0
     ld_flag = 0
