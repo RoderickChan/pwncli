@@ -16,7 +16,7 @@ import time
 from threading import Lock, Thread
 
 from pwn import (ELF, asm, atexit, attach, context, flat, process, remote,
-                 sleep, wget, which)
+                 sleep, wget, which, disasm)
 
 from pwncli.cli import gift
 
@@ -715,7 +715,7 @@ class CurrentGadgets:
             return res
         
         if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
-            log2_ex("Have closed both elf finder and libc finder, please call CurrentGadgets.set_find_area to set a finder.")
+            log2_ex("Have closed both elf finder and libc finder, please call 'CurrentGadgets.set_find_area' to set a finder.")
         errlog_exit("Cannot find gadget using '{}'.".format(func_name))
 
 
@@ -751,7 +751,7 @@ class CurrentGadgets:
             return func(find ,'libc', get_list)
 
         if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
-            errlog_exit("Have closed both elf finder and libc finder.")
+            errlog_exit("Have closed both elf finder and libc finder, please call 'CurrentGadgets.set_find_area' to set a finder!")
         errlog_exit("Cannot find gadget: {}.".format(find_str))
 
 
@@ -942,19 +942,76 @@ class CurrentGadgets:
             CurrentGadgets.write_chain(write_fd, buf_addr or flag_addr, buf_len)
 
     @staticmethod
-    def write_by_magic(write_addr: int, ori: int, expected: int) -> bytes:
+    def write_by_magic(write_addr: int, ori: int, expected: int, short=True) -> bytes:
         if not CurrentGadgets._initial_gadgetbox():
             return None
         if CurrentGadgets.__arch == "amd64":
-            return flat([
-                CurrentGadgets.find_gadget("5b5d415c415d415e415fc3", 'opcode'),
-                expected - ori if expected > ori else expected - ori + 0x100000000,
-                write_addr+0x3d, 0, 0, 0, 0,
-                CurrentGadgets.magic_gadget()
-            ])
+            if short:
+                return flat([
+                    CurrentGadgets.find_gadget("5b5d415c415d415e415fc3", 'opcode'),
+                    expected - ori if expected > ori else expected - ori + 0x100000000,
+                    write_addr+0x3d, 0, 0, 0, 0,
+                    CurrentGadgets.magic_gadget()
+                ])
+            else:
+                return flat([
+                    CurrentGadgets.find_gadget("4883c4085b5d415c415d415e415fc3", 'opcode'),
+                    0,
+                    expected - ori if expected > ori else expected - ori + 0x100000000,
+                    write_addr+0x3d, 0, 0, 0, 0,
+                    CurrentGadgets.magic_gadget()
+                ])
             
         else:
             errlog_exit("Only used for amd64!")
+
+    @staticmethod
+    def ret2csu(edi: int, rsi: int, rdx: int, call_array_addr: int, 
+                rbx: int=0, rbp: int=1, short=True) -> bytes:
+        if not CurrentGadgets._initial_gadgetbox():
+            return None
+        if CurrentGadgets.__arch != "amd64":
+            errlog_exit("Only used for amd64!")
+        if short:
+            startaddr = CurrentGadgets.find_gadget("5b5d415c415d415e415fc3", 'opcode')
+            another = startaddr - 26
+        
+        else:
+            startaddr = CurrentGadgets.find_gadget("4883c4085b5d415c415d415e415fc3", 'opcode')
+            another = startaddr - 22
+        rdata = CurrentGadgets.__elf.read(another, 13)
+
+        dis_res = disasm(rdata, arch="amd64").splitlines()
+        assert len(dis_res) == 4 and "mov" in dis_res[0] and "mov" in dis_res[1] and "mov" in dis_res[2] and "call" in dis_res[3], "You need build csu ropchain manually."
+
+        layout = [startaddr]
+        if not short:
+            layout.append(0)
+        layout.append(rbx)
+        layout.append(rbp)
+        
+        oldlen = len(layout)
+        
+        for reg in ['r12', 'r13', 'r14', 'r15']:
+            for x in dis_res:
+                if reg in x:
+                    if 'mov' in x:
+                        if 'di' in x:
+                            layout.append(edi)
+                        elif 'si' in x:
+                            layout.append(rsi)
+                        elif 'dx' in x:
+                            layout.append(rdx)
+                    else:
+                        layout.append(call_array_addr)
+        
+        newlen = len(layout)
+        assert newlen - oldlen == 4, "You need build csu ropchain manually."
+        
+        layout.append(another)
+        layout += [0]*7
+        return flat(layout)
+            
 
 
 def load_currentgadgets_background(find_in_elf=True, find_in_libc=True):
