@@ -4,6 +4,7 @@ import os
 import signal
 import threading
 import time
+import sys
 from subprocess import getstatusoutput
 from typing import List, TypedDict
 
@@ -188,7 +189,7 @@ class _Tmux:
         if self._args.attach:
             self.ctx.vlog("tmux-command --> Try to attach session {}".format(self._sessions["name"]))
             remain = signal.alarm(0)
-            getstatusoutput("tmux attach-session -t {} || tmux switch-client -t {}".format(self._sessions["name"], self._sessions["name"]))
+            getstatusoutput("tmux attach-session -t {}".format(self._sessions["name"]))
             signal.alarm(remain)
             if self._args.kill_after_detach:
                 getstatusoutput("tmux kill-session -t {}".format(self._sessions["name"]))
@@ -205,7 +206,7 @@ class _Tmux:
 @click.option('-T', '--timeout', "timeout", type=int, default=-1, show_default=False, help="Close the session when timeout, -1 means no timeout.")
 @click.option('-s', '--save', '--save-output', "save_output", is_flag=True, show_default=True, help="Save output for panes.")
 @click.option('-a', '--attach', "--attach-session", "attach", is_flag=True, show_default=True, help="Attach session or not")
-@click.option('-k', '--kill', "--kill-after-detach", "kill_after_detach",is_flag=True, show_default=True, help="Save output for panes.")
+@click.option('-k', '--kill', "--kill-after-detach", "kill_after_detach",is_flag=True, show_default=True, help="Kill session after detach.")
 @click.option('-v', '--verbose', count=True, show_default=True, help="Show more info or not.")
 @pass_environ
 def cli(ctx, verbose, commands, times, panes_per_window, timeout, save_output, attach, kill_after_detach):
@@ -254,6 +255,14 @@ def cli(ctx, verbose, commands, times, panes_per_window, timeout, save_output, a
         args[_arg] = locals()[_arg]    
         ctx.vlog("tmux-command --> Get '{}': {}".format(_arg, args[_arg]))
 
+    in_tmux = os.getenv("TMUX")
+    if in_tmux:
+        cwd =os.getcwd()
+        current_session = getstatusoutput("tmux display-message -p '#S'")[1]
+        curcmd = " ".join(['"'+x+'"' if " " in x.strip() else x for x in sys.argv])
+        getstatusoutput("tmux detach-client -E 'cd {} && echo \"Detect a tmux environment and switch...\" && sleep 1 && {} && echo \"Return to original session...\" && sleep 1 && tmux attach-session -t {}'".format(cwd, curcmd, current_session))
+        return
+    
     _tmux = _Tmux(ctx, args)
     _tmux.process_args()\
         .get_new_session_name()\
