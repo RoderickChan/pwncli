@@ -410,10 +410,10 @@ gdb-multiarch ./vmlinux \\
 #include "pwn.h"
 
 int main()
-{{
-    printf("hello world!\n");
+{
+    printf("hello world!");
     return 0;
-}}
+}
 
 """)
     
@@ -441,16 +441,18 @@ def generate_kernel_exp(ctx, directory):
             ko_name = f
         
         elif f.endswith(".cpio"):
+            shutil.copyfile(f, f+".bk")
             cpio_prefix = f.rstrip(".cpio")
             if b"gzip" in subprocess.check_output(["file", f]):
                 need_gzip = 1
                 os.rename(f, f+".gz")
         
         elif f.endswith(".cpio.gz"):
+            shutil.copyfile(f, f+".bk")
             need_gzip = 1
             cpio_prefix = f.rstrip(".cpio.gz")
         
-        elif f.endswith(".sh") and f in ("run.sh", "start.sh", "boot.sh"):
+        elif f.endswith(".sh") and f in ("run.sh", "start.sh", "boot.sh", "launch.sh"):
             os.chmod(f, 0o755)
             shutil.copyfile(f, f+".bk")
             run_sh = f

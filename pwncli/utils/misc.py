@@ -91,7 +91,6 @@ __all__ = [
     "generate_payload_for_connect",
     "recv_libc_addr",
     "get_flag_when_get_shell",
-    "get_flag_by_recv",
     "get_segment_base_addr_by_proc_maps",
     "init_x86_context",
     "init_x64_context",
@@ -105,7 +104,8 @@ __all__ = [
     "protect_ptr",
     "reveal_ptr",
     "step_split",
-    "get_func_signature_str"
+    "get_func_signature_str",
+    "recv_addr_startswith_0x"
 ]
 
 int16_ex = int16 = functools.partial(int, base=16)
@@ -583,8 +583,34 @@ def recv_libc_addr(io, *, bits=64, offset=0, timeout=5) -> int:
     else:
         return u64_ex(m[-6:]) - offset
 
+def recv_addr_startswith_0x(io, *, prefix="", suffix="", has_0x=True, timeout=5) -> int:
+    """Receive data with addressa which starts with 0x or 0X.
 
-def get_flag_when_get_shell(io, use_cat:bool=True, start_str:str="flag{", timeout=10):
+    Args:
+        io (tube): Tube.
+
+    Raises:
+        RuntimeError: Raise error if cannot recv addr.
+
+    Returns:
+        int: Some address
+    """
+    if len(suffix) == 0:
+        suffix = "[^0-9A-Fa-f]"
+    if has_0x:
+        mid = "(0[xX][0-9A-Fa-f]+)"
+    else:
+        mid = "([0-9A-Fa-f]+)"
+    m = io.recvregex(prefix + mid + suffix, capture=True,timeout=timeout)
+    if not m:
+        raise RuntimeError("Cannot get 0x???? addr")
+    m = m.group(1)
+    if has_0x and (b"0x" not in m) and (b"0x" not in m):
+        raise RuntimeError("Cannot get 0x???? addr")
+    return int16_ex(m)
+
+
+def get_flag_when_get_shell(io, use_cat:bool=True, flag_startswith:str="flag{", timeout=10):
     """Get flag while get a shell
 
     Args:
@@ -595,15 +621,12 @@ def get_flag_when_get_shell(io, use_cat:bool=True, start_str:str="flag{", timeou
     if use_cat:
         io.sendline("cat /flag || cat /flag.txt || cat flag || cat flag.txt || cat /home/ctf/flag || cat /home/ctf/flag.txt")
         
-    s = io.recvregex(start_str+".*}", timeout=timeout)
-    if start_str.encode('utf-8') in s:
+    s = io.recvregex(flag_startswith+".*}", timeout=timeout)
+    if flag_startswith.encode('utf-8') in s:
         log2_ex_highlight("{}".format(s))
     else:
         errlog_ex_highlight("Cannot get flag")
 
-
-def get_flag_by_recv(io, flag_reg: str="flag{", timeout=10):
-    get_flag_when_get_shell(io,use_cat=False, start_str=flag_reg, timeout=timeout)
 
 
 def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
@@ -687,10 +710,26 @@ def _assign_globals(_io, _g):
     _g['cr'] = _io.can_recv
 
 def init_x86_context(io, globals: dict, log_level: str="debug", timeout: int=5, arch: str="i386", os: str="linux", endian: str="little"):
+    """ Usage: 
+    
+    from pwncli import * 
+    
+    p = process(xxx)
+    
+    init_x86_context(p, globals())
+    """
     context.update(arch=arch, os=os, endian=endian, log_level=log_level, timeout=timeout)
     _assign_globals(io, globals)
 
 def init_x64_context(io, globals: dict, log_level: str="debug", timeout: int=5, arch: str="amd64", os: str="linux", endian: str="little"):
+    """ Usage: 
+    
+    from pwncli import * 
+    
+    p = process(xxx)
+    
+    init_x64_context(p, globals())
+    """
     context.update(arch=arch, os=os, endian=endian, log_level=log_level, timeout=timeout)
     _assign_globals(io, globals)
 

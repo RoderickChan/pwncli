@@ -137,7 +137,7 @@ class _GadgetBase:
         return self.search_opcode("c9c3", name)
 
     def get_magic_gadget(self, name: str = None) -> int:
-        """add dword ptr [rbp - 0x3d], ebx"""
+        """add dword ptr [rbp - 0x3d], ebx; ret"""
         return self.search_opcode("015dc3", name)
 
     def get_bin_sh(self, name: str = None) -> int:
