@@ -115,6 +115,9 @@ class _GadgetBase:
     def get_pop_rcx_ret(self, name: str = None) -> int:
         return self.search_opcode("59c3", name)
 
+    def get_pop_rcx_rbx_ret(self, name: str = None) -> int:
+        return self.search_opcode("595bc3", name)
+
     def get_pop_rbp_ret(self, name: str = None) -> int:
         return self.search_opcode("5dc3", name)
 

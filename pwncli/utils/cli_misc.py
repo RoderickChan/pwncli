@@ -696,9 +696,23 @@ class CurrentGadgets:
         CurrentGadgets._initial_gadgetbox()
 
     @staticmethod
+    def __check_before_find():
+        # check image base before find
+        if CurrentGadgets.__find_in_elf:
+            if CurrentGadgets.__elf and CurrentGadgets.__elf.pie:
+                assert CurrentGadgets.__elf.address != 0, "Please set current program's base address before find gadget."
+
+        if CurrentGadgets.__find_in_libc:
+            if CurrentGadgets.__libc and CurrentGadgets.__libc.pie:
+                assert CurrentGadgets.__libc.address != 0, "Please set libc's base address before find gadget."
+    
+    @staticmethod
     def _internal_find(func_name):
         if not CurrentGadgets._initial_gadgetbox(): 
             return 0
+
+        CurrentGadgets.__check_before_find()
+        
         func = getattr(CurrentGadgets.__internal_gadgetbox, func_name)
         if CurrentGadgets.__find_in_elf or (CurrentGadgets.__find_in_elf is None and (CurrentGadgets.__elf.address or CurrentGadgets.__elf.statically_linked)):
             if CurrentGadgets.__elf.pie:
@@ -716,7 +730,7 @@ class CurrentGadgets:
             return res
         
         if not CurrentGadgets.__find_in_elf and not CurrentGadgets.__find_in_libc:
-            log2_ex("Have closed both elf finder and libc finder, please call CurrentGadgets.set_find_area to set a finder.")
+            log2_ex("Have closed both elf finder and libc finder, please call 'CurrentGadgets.set_find_area' to set a finder.")
         raise RuntimeError("Cannot find gadget using '{}'.".format(func_name))
 
 
@@ -726,6 +740,7 @@ class CurrentGadgets:
         """ type: asm / opcode / string """
         if not CurrentGadgets._initial_gadgetbox(): 
             return 0
+        CurrentGadgets.__check_before_find()
         find = find_str
         if find_type == "asm":
             find = asm(find).hex()
@@ -738,7 +753,7 @@ class CurrentGadgets:
             errlog_exit("Unsupported find_type, only: asm / opcode / string.")
         
         res = None
-        if CurrentGadgets.__find_in_elf:
+        if CurrentGadgets.__find_in_elf or (CurrentGadgets.__find_in_elf is None and (CurrentGadgets.__elf.address or CurrentGadgets.__elf.statically_linked)):
             if CurrentGadgets.__elf.pie:
                 CurrentGadgets.__internal_gadgetbox.set_imagebase("elf", CurrentGadgets.__elf.address)
             try:
@@ -746,7 +761,7 @@ class CurrentGadgets:
             except:
                 pass
 
-        if CurrentGadgets.__find_in_libc:
+        if CurrentGadgets.__find_in_libc or (CurrentGadgets.__find_in_libc is None and CurrentGadgets.__libc.address):
             if CurrentGadgets.__libc.pie:
                 CurrentGadgets.__internal_gadgetbox.set_imagebase("libc", CurrentGadgets.__libc.address)
             return func(find ,'libc', get_list)
@@ -811,6 +826,11 @@ class CurrentGadgets:
     def pop_rcx_ret() -> int:
         """pop rcx; ret"""
         return CurrentGadgets._internal_find('get_pop_rcx_ret')
+
+    @staticmethod
+    def pop_rcx_rbx_ret() -> int:
+        """pop rcx; pop rbx; ret"""
+        return CurrentGadgets._internal_find('get_pop_rcx_rbx_ret')
 
     @staticmethod
     def pop_rbp_ret() -> int:
@@ -1090,8 +1110,7 @@ class CurrentGadgets:
             CurrentGadgets.__try_get_rsi_gadget(src_addr),
             CurrentGadgets.pop_rdi_ret(),
             dst_addr,
-            CurrentGadgets.pop_rcx_ret(),
-            length
+            CurrentGadgets.__try_get_rcx_gadget(length)
         ]
         if do_cld:
             layout.append(CurrentGadgets.find_gadget('fcc3', 'opcode'))
@@ -1106,6 +1125,13 @@ class CurrentGadgets:
             return [CurrentGadgets.pop_rdx_ret(), rdx_val]
         except:
             return [CurrentGadgets.pop_rdx_rbx_ret(), rdx_val, rbx_val]
+
+    @staticmethod
+    def __try_get_rcx_gadget(rcx_val, rbx_val=0) -> list:
+        try:
+            return [CurrentGadgets.pop_rcx_ret(), rcx_val]
+        except:
+            return [CurrentGadgets.pop_rcx_rbx_ret(), rcx_val, rbx_val]
 
     @staticmethod
     def __try_get_rsi_gadget(rsi_val, r15_val=0) -> list:
@@ -1126,8 +1152,7 @@ class CurrentGadgets:
                 para1
                 ]
             if para2 is not None:
-                layout.append(CurrentGadgets.pop_rcx_ret())
-                layout.append(para2)
+                layout.append(CurrentGadgets.__try_get_rcx_gadget(para2))
 
             if para3 is not None:
                 layout.append(CurrentGadgets.__try_get_rdx_gadget(para3, para1))
