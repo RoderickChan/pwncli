@@ -602,18 +602,6 @@ b'\x02\x00\x15\xb3\x7f\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00'
 
 示例：无
 
-### get_current_flag_when_get_shell
-
-功能：当攻击成功获得`shell`的时候，进行获得`flag`操作
-
-参数：
-
-+ `use_cat(bool)`：使用`cat /flag`操作，默认为`true`
-+ `start_str(str)`：`flag`前缀，默认为`flag{`
-
-返回值：`flag`字符串
-
-示例：无
 
 ### set_current_libc_base
 

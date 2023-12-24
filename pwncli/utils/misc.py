@@ -42,6 +42,7 @@ import click
 from pwn import ELF, context, flat, pack, unpack, which
 
 __all__ = [
+    # partial functions
     "int16",
     "int8",
     "int2",
@@ -50,7 +51,7 @@ __all__ = [
     "int2_ex",
     "int_ex",
     "flat_z",
-    "get_callframe_info",
+    # many log functions
     "log_ex",
     "log_ex_highlight",
     "log2_ex",
@@ -70,9 +71,11 @@ __all__ = [
     "log_libc_base_addr",
     "log_heap_base_addr",
     "log_code_base_addr",
+    # get libc path by ldd command and get onegadget
     "ldd_get_libc_path",
     "one_gadget",
     "one_gadget_binary",
+    # pack and unpack enhanced functions
     "u8_ex",
     "u16_ex",
     "u24_ex",
@@ -88,12 +91,17 @@ __all__ = [
     "pad_ljust",
     "pad_rjust",
     "float_hexstr2int",
-    "generate_payload_for_connect",
+    
+    # recv some address
     "recv_libc_addr",
-    "get_flag_when_get_shell",
+    "recv_addr_startswith_0x",
     "get_segment_base_addr_by_proc_maps",
+    
+    # init with gift.io
     "init_x86_context",
     "init_x64_context",
+    
+    # tcachebins calcuator
     "calc_chunksize_corrosion",
     "calc_targetaddr_corrosion",
     "calc_idx_tcache",
@@ -101,11 +109,16 @@ __all__ = [
     "calc_entryaddr_tcache",
     "calc_countaddr_by_entryaddr_tcache",
     "calc_entryaddr_by_countaddr_tcache",
+    
+    # safe linking calculator
     "protect_ptr",
     "reveal_ptr",
+    
+    # some useful functions
     "step_split",
     "get_func_signature_str",
-    "recv_addr_startswith_0x"
+    "get_callframe_info",
+
 ]
 
 int16_ex = int16 = functools.partial(int, base=16)
@@ -546,19 +559,6 @@ def float_hexstr2int(data: str or bytes, hexstr=True, endian="little", bits=64) 
         errlog_exit("float_hex2int failed, check cmd: \n{}".format(cmd))
         
 
-def generate_payload_for_connect(ip: str, port: int) -> bytes:
-    """connect(socket_fd, buf, 0x10), generate payload of buf
-    
-    assert len(buf) == 0x10
-    
-    """
-    int_ip = 0
-    for i in ip.strip().split("."):
-        int_ip <<= 8
-        int_ip |= int(i)
-    return pack(2, word_size=16, endianness="little") + pack(port, word_size=16, endianness="big") + pack(int_ip, word_size=32, endianness="big") + pack(0, 64)
-
-
 def recv_libc_addr(io, *, bits=64, offset=0, timeout=5) -> int:
     """Calcuate libc-base addr while recv '\x7f' in amd64 or '\xf7' in i386.
 
@@ -610,22 +610,6 @@ def recv_addr_startswith_0x(io, *, prefix="", suffix="", has_0x=True, timeout=5)
     return int16_ex(m)
 
 
-def get_flag_when_get_shell(io, use_cat:bool=True, flag_startswith:str="flag{", timeout=10):
-    """Get flag while get a shell
-
-    Args:
-        p (tube): Instance of tube in pwntools
-        use_cat (bool, optional): Use cat /flag or not. Defaults to True.
-        start_str (str, optional): String starts with in flag. Defaults to "flag{".
-    """
-    if use_cat:
-        io.sendline("cat /flag || cat /flag.txt || cat flag || cat flag.txt || cat /home/ctf/flag || cat /home/ctf/flag.txt")
-        
-    s = io.recvregex(flag_startswith+".*}", timeout=timeout)
-    if flag_startswith.encode('utf-8') in s:
-        log2_ex_highlight("{}".format(s))
-    else:
-        errlog_ex_highlight("Cannot get flag")
 
 
 

