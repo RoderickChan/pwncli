@@ -9,7 +9,9 @@
 '''
 
 
-from pwncli.utils.gdb_helper import *
+from .gdb_helper import *
+from .gdb_helper import _get_tmux_info
+
 import functools
 import os
 import subprocess
@@ -283,7 +285,7 @@ def launch_heaptrace(stop_=True, malloc_off='', free_off='', realloc_off=''):
             prefix = "bin+"
         realloc_off = prefix+hex(gift.libc.sym.realloc - gift.libc.address)
 
-    sym_cmd = "--symbols 'malloc={},free={},realloc={}'".format(
+    sym_cmd = "--symbols \"malloc={},free={},realloc={}\"".format(
         malloc_off, free_off, realloc_off)
 
     if _in_tmux():
@@ -388,7 +390,11 @@ def kill_current_gdb():
 
 @only_gdb()
 def send_signal2current_gdbprocess(sig_val: int = 2):
-    os.system("kill -{} {}".format(sig_val, gift['gdb_pid']))
+    sleep(0.2)
+    if _in_tmux():
+        os.system("tmux send-keys -t {} C-c 2>/dev/null".format(_get_tmux_info()))
+    else:
+        os.system("kill -{} {}".format(sig_val, gift['gdb_pid']))
     time.sleep(0.2)
 
 

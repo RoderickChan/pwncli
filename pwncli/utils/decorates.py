@@ -48,11 +48,66 @@ __all__  = [
     "cache_nonresult",
     "signature2name",
     "call_multimes",
-    "count_calls"
+    "count_calls",
+    "convert_str2bytes",
+    "convert_bytes2str"
     ]
+
+# conver bytes type args to str
+def convert_bytes2str(func):
+    """A decorator.
+    
+    conver bytes type args to str"""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        new_args = []
+        for a in args:
+            if isinstance(a, bytes):
+                new_args.append(a.decode('latin-1'))
+            else:
+                new_args.append(a)
+        new_kwargs = {}
+        for k, v in kwargs.items():
+            if isinstance(v, bytes):
+                new_kwargs[k] = v.decode('latin-1')
+            else:
+                new_kwargs[k] = v
+        return func(*new_args, **kwargs)
+    return wrapper
+
+# conver str type args to bytes
+def convert_str2bytes(func):
+    """A decorator.
+    
+    conver str type args to bytes"""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        new_args = []
+        for a in args:
+            if isinstance(a, str):
+                new_args.append(a.encode('latin-1'))
+            else:
+                new_args.append(a)
+        new_kwargs = {}
+        for k, v in kwargs.items():
+            if isinstance(v, str):
+                new_kwargs[k] = v.encode('latin-1')
+            else:
+                new_kwargs[k] = v
+        return func(*new_args, **kwargs)
+    return wrapper
 
 
 def count_calls(show=True):
+    """A decorator.
+    
+    Count how many times a function had been called.
+    
+    Use func._num_calls to get the times.
+
+    Args:
+        show (bool, optional): Show call times or not. Defaults to True.
+    """
     def _wrapper(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -66,6 +121,9 @@ def count_calls(show=True):
 
 
 def signature2name(func):
+    """A decorator. 
+    
+    Make function's signature as its name"""
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         sig = get_func_signature_str(func.__name__, *args, **kwargs)
@@ -224,7 +282,7 @@ def cache_nonresult(func: Callable):
     
     Only cache not None result.
     
-    Once func returns Not None value, all next func calls will always return cache value. 
+    Once func returns the first Not None value, all next func calls will always return cache value. 
 
     """
     _res = None
@@ -242,6 +300,8 @@ def cache_nonresult(func: Callable):
 
 def show_name(func: Callable):
     """A decorator.
+
+    Useful to fuzz.
 
     Show function's name when call a function.
     """

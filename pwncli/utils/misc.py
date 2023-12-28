@@ -88,9 +88,15 @@ __all__ = [
     "p64_ex",
     "p32_float",
     "p64_float",
+    "u32_float",
+    "u64_float",
     "pad_ljust",
     "pad_rjust",
     "float_hexstr2int",
+    "mem64_float2int",
+    "mem32_float2int",
+    "mem64_int2float",
+    "mem32_int2float",
     
     # recv some address
     "recv_libc_addr",
@@ -508,22 +514,83 @@ def p64_float(num:float, endian="little") -> bytes:
     else:
         raise RuntimeError("Wrong endian!")
 
-def pad_ljust(payload, psz, filler="\x00") -> bytes:
+def u32_float(data: bytes or str, endian="little") -> float:
+    length = len(data)
+    assert length <= 4, "len(data) > 4!"
+    assert isinstance(data, (str, bytes)), "wrong data type!"
+    if isinstance(data, str):
+        data = data.encode('latin-1')
+    if endian.lower() == "little":
+        data = data.ljust(4, b"\x00")
+        return struct.unpack("<f", data)[0]
+    elif endian.lower() == "big":
+        data = data.rjust(4, b"\x00")
+        return struct.unpack(">f", data)[0]
+    else:
+        raise RuntimeError("Wrong endian!")
+        
+
+def u64_float(data: bytes or str, endian="little") -> float:
+    length = len(data)
+    assert length <= 8, "len(data) > 8!"
+    assert isinstance(data, (str, bytes)), "wrong data type!"
+    if isinstance(data, str):
+        data = data.encode('latin-1')
+    if endian.lower() == "little":
+        data = data.ljust(8, b"\x00")
+        return struct.unpack("<d", data)[0]
+    elif endian.lower() == "big":
+        data = data.rjust(8, b"\x00")
+        return struct.unpack(">d", data)[0]
+    else:
+        raise RuntimeError("Wrong endian!")
+
+
+def mem64_float2int(num:float, endian="little") -> int:
+    """Get the int number of a double number when use the identical memeory. 
+    
+    For example, 0xdeadbeef's memory is 0x41ebd5b7dde00000, mem64_float2int(0xdeadbeef) to get 0x41ebd5b7dde00000"""
+    return u64_ex(p64_float(num, endian))
+
+def mem32_float2int(num:float, endian="little") -> int:
+    """Get the int number of a float number when use the identical memeory. 
+    
+    For example, 0xdeadbeef's memory is 0x4f5eadbf, mem32_float2int(0xdeadbeef) to get 0x4f5eadbf"""
+    return u32_ex(p32_float(num, endian))
+
+
+def mem64_int2float(num: int, endian="little") -> float:
+    """Get the double number of an int number when use the identical memeory. 
+    
+    For example, 0xdeadbeef's memory is 0x41ebd5b7dde00000, mem64_float2int(0xdeadbeef) to get 0x41ebd5b7dde00000"""
+    return u64_float(pack(num, endianness=endian, word_size=64))
+
+def mem32_int2float(num:float, endian="little") -> float:
+    """Get the double number of an int number when use the identical memeory. 
+    
+    For example, 0xdeadbeef's memory is 0x4f5eadbf, mem32_float2int(0xdeadbeef) to get 0x4f5eadbf"""
+    return u32_float(pack(num, endianness=endian, word_size=32))
+
+
+def pad_ljust(payload: bytes or str, psz: int, filler: str="\x00") -> bytes:
     len_ = len(payload)
     comple = len_ % psz
     if comple > 0:
         return flat(payload, filler * (psz - comple))
     return payload
 
-def pad_rjust(payload, psz, filler="\x00") -> bytes:
+def pad_rjust(payload: bytes or str, psz: int, filler: str="\x00") -> bytes:
     len_ = len(payload)
     comple = len_ % psz
     if comple > 0:
         return flat(filler * (psz - comple), payload)
     return payload
 
+
 def float_hexstr2int(data: str or bytes, hexstr=True, endian="little", bits=64) -> int:
-    """float_hex2int('0x0.07f6d266e9fbp-1022') ---> 140106772946864"""
+    """float_hex2int('0x0.07f6d266e9fbp-1022') ---> 140106772946864
+    
+    Used for printf("%a")"""
     endian = endian.lower()
     assert endian in ("little", "big"), "only little or big for endian!"
     assert bits in (32, 64), "only 32 or 64 for bits!"
