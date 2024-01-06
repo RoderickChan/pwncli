@@ -75,7 +75,11 @@ __all__ = [
     "ldd_get_libc_path",
     "one_gadget",
     "one_gadget_binary",
+    
     # pack and unpack enhanced functions
+    "hex_ex",
+    "float2str_pure",
+    
     "u8_ex",
     "u16_ex",
     "u24_ex",
@@ -414,6 +418,34 @@ def one_gadget_binary(binary_path:str, more=False):
 
 
 #--------------------------------useful function------------------------------
+
+def hex_ex(num: int) -> str:
+    """hex_ex(0x0) -> 0x00
+    
+    hex_ex(0x111) -> 0x0111
+    """
+    s = hex(num)
+    if len(s) % 2 == 0:
+        return s
+    return s[:2] + '0' + s[2:]
+
+def float2str_pure(f: float):
+    """float2str_pure(1.222e4) -> "12220.0"
+    
+    float2str_pure(1.222e-4) -> "0.0001222"
+    """
+    s = str(f)
+    if 'e' in s:
+        s2 = s.split('e')[1]
+        s2 = int(s2)
+        if s2 < 0:
+            ff = "{" + ":.{}f".format(abs(s2-0x20)) + "}"
+        else:
+            ff = "{" + ":.{}f".format(0x20) + "}"
+        return ff.format(f)        
+    else:
+        return s
+
 def u8_ex(data: str or bytes) -> int:
     assert isinstance(data, (str, bytes)), "wrong data type!"
     length = len(data)
@@ -423,78 +455,78 @@ def u8_ex(data: str or bytes) -> int:
     data = data.ljust(1, b"\x00")
     return unpack(data, 8)
 
-def u16_ex(data: str or bytes) -> int:
+def u16_ex(data: str or bytes, **kwargs) -> int:
     assert isinstance(data, (str, bytes)), "wrong data type!"
     length = len(data)
     assert length <= 2, "len(data) > 2!"
     if isinstance(data, str):
         data = data.encode('latin-1')
     data = data.ljust(2, b"\x00")
-    return unpack(data, 16)
+    return unpack(data, 16, **kwargs)
 
 
-def u24_ex(data: str or bytes) -> int:
+def u24_ex(data: str or bytes, **kwargs) -> int:
     assert isinstance(data, (str, bytes)), "wrong data type!"
     length = len(data)
     assert length <= 3, "len(data) > 3!"
     if isinstance(data, str):
         data = data.encode('latin-1')
     data = data.ljust(3, b"\x00")
-    return unpack(data, 24)
+    return unpack(data, 24, **kwargs)
 
 
-def u32_ex(data: str or bytes) -> int:
+def u32_ex(data: str or bytes, **kwargs) -> int:
     assert isinstance(data, (str, bytes)), "wrong data type!"
     length = len(data)
     assert length <= 4, "len(data) > 4!"
     if isinstance(data, str):
         data = data.encode('latin-1')
     data = data.ljust(4, b"\x00")
-    return unpack(data, 32)
+    return unpack(data, 32, **kwargs)
     
 
-def u64_ex(data: str or bytes) -> int:
+def u64_ex(data: str or bytes, **kwargs) -> int:
     length = len(data)
     assert length <= 8, "len(data) > 8!"
     assert isinstance(data, (str, bytes)), "wrong data type!"
     if isinstance(data, str):
         data = data.encode('latin-1')
     data = data.ljust(8, b"\x00")
-    return unpack(data, 64)
+    return unpack(data, 64, **kwargs)
 
 
 def p8_ex(num:int) -> bytes:
     if num < 0:
         num += 1 << 8
     num &= 0xff
-    return pack(num, word_size=8)
+    return pack(num, 8)
 
 
-def p16_ex(num:int) -> bytes:
+def p16_ex(num:int, **kwargs) -> bytes:
     if num < 0:
         num += 1 << 16
     num &= 0xffff
-    return pack(num, word_size=16)
+    return pack(num, 16, **kwargs)
 
 
-def p24_ex(num: int) -> bytes:
+def p24_ex(num: int, **kwargs) -> bytes:
     if num < 0:
         num += 1 << 24
     num &= 0xffffff
-    return pack(num, word_size=24)
+    return pack(num, 24, **kwargs)
 
-def p32_ex(num:int) -> bytes:
+def p32_ex(num:int, **kwargs) -> bytes:
     if num < 0:
         num += 1 << 32
     num &= 0xffffffff
-    return pack(num, word_size=32)
+    return pack(num, 32, **kwargs)
 
 
-def p64_ex(num:int) -> bytes:
+def p64_ex(num:int, **kwargs) -> bytes:
     if num < 0:
         num += 1 << 64
     num &= 0xffffffffffffffff
-    return pack(num, word_size=64)
+    return pack(num, 64, **kwargs)
 
 
 def p32_float(num:float, endian="little") -> bytes:
@@ -562,14 +594,18 @@ def mem32_float2int(num:float, endian="little") -> int:
 def mem64_int2float(num: int, endian="little") -> float:
     """Get the double number of an int number when use the identical memeory. 
     
-    For example, 0xdeadbeef's memory is 0x41ebd5b7dde00000, mem64_float2int(0xdeadbeef) to get 0x41ebd5b7dde00000"""
-    return u64_float(pack(num, endianness=endian, word_size=64))
+    For example, 0xdeadbeef's memory is 0x41ebd5b7dde00000, mem64_int2float(0x41ebd5b7dde00000) to get 0xdeadebeef"""
+    res = u64_float(pack(num, endianness=endian, word_size=64))
+    assert res != 0, "Invalid num!"
+    return res
 
 def mem32_int2float(num:float, endian="little") -> float:
     """Get the double number of an int number when use the identical memeory. 
     
-    For example, 0xdeadbeef's memory is 0x4f5eadbf, mem32_float2int(0xdeadbeef) to get 0x4f5eadbf"""
-    return u32_float(pack(num, endianness=endian, word_size=32))
+    For example, 0xdeadbeef's memory is 0x4f5eadbf, mem32_int2float(0x4f5eadbf) to get 0xdeadbeef"""
+    res = u32_float(pack(num, endianness=endian, word_size=32))
+    assert res != 0, "Invalid num!"
+    return res
 
 
 def pad_ljust(payload: bytes or str, psz: int, filler: str="\x00") -> bytes:

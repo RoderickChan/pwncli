@@ -10,9 +10,11 @@ set show-flags on
 # show LR in aarch64
 set show-retaddr-reg on
 
+# set backtrace lines 4
+set context-backtrace-lines 4
+
 # don't stop the process when catch alarm signal
 handle SIGALRM nostop print
-
 
 # don't detach when fork is called 
 # set follow-fork-mode parent
