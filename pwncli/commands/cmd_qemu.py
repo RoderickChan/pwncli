@@ -156,7 +156,8 @@ def __debug_mode(ctx, args: _Inner_Dict):
     else:
         process_args = []
         # get file arch info
-        arch = context.binary.arch
+        arch = args.arch if args.arch else context.binary.arch
+        assert arch in _arch_usr_map, "Invalid arch, only support for {}.".format(list(_arch_usr_map.keys()))
         process_args.append(_arch_usr_map[arch][0])
         if not context.binary.statically_linked and b"armhf" in context.binary.linker:
             arch = "armhf"
@@ -302,6 +303,7 @@ def __process_args(ctx, args: _Inner_Dict):
 @click.command(name='qemu', short_help="Use qemu to debug pwn, for kernel pwn or arm/mips arch.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
 @click.argument('target', type=str, default=None, required=False, nargs=1)
+@click.option('-a', '--arch', "arch", default=None, type=str, show_default=True, help="The arch for current file.")
 @click.option('-d', '--debug', "--debug-mode", "debug_mode", is_flag=True, help="Use debug mode or not, default is opened.")
 @click.option('-r', '--remote', "--remote-mode", "remote_mode", is_flag=True, show_default=True, help="Use remote mode or not, default is debug mode.")
 @click.option('-i', '--ip', default=None, show_default=True, type=str, nargs=1, help='The remote ip addr or gdb listen ip when debug.')
@@ -319,7 +321,8 @@ def __process_args(ctx, args: _Inner_Dict):
 @click.option('-P', '-ns', '--no-stop', "no_stop", is_flag=True, show_default=True, help="Use the 'stop' function or not. Only for python script mode.")
 @click.option('-v', '--verbose', count=True, show_default=True, help="Show more info or not.")
 @pass_environ
-def cli(ctx, filename, target, debug_mode, remote_mode, ip, port, lib, static, launch_script, tmux, wsl, gnome, gdb_type, gdb_breakpoint, gdb_script, no_log, no_stop, verbose):
+def cli(ctx, filename, target, debug_mode, remote_mode, ip, port, lib, static, launch_script, 
+        tmux, wsl, gnome, gdb_type, gdb_breakpoint, gdb_script, no_log, no_stop, verbose, arch):
     """
     FILENAME: The binary file name.
     
@@ -347,6 +350,7 @@ def cli(ctx, filename, target, debug_mode, remote_mode, ip, port, lib, static, l
     context.update(log_level=ll)
     ctx.vlog("qemu-command --> Set 'context.log_level': {}".format(ll))
     args = _Inner_Dict()
+    args.arch = arch
     args.filename = filename
     args.target = target
     args.debug_mode = debug_mode

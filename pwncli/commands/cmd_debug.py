@@ -574,7 +574,7 @@ int %s()
 
 @click.command(name='debug', short_help="Debug the pwn file locally.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)
-@click.option('--argv', type=str, default=None, required=False, show_default=True, help="Argv for process.")
+@click.option('-a', '--argv', "argv", type=str, default=None, required=False, show_default=True, help="Argv for process.")
 @click.option("-e", '--set-env', "--env", "env", type=str, default=None, required=False, help="The env setting for process, such as LD_PRELOAD setting, split using ',' or ';', assign using ':'.")
 @click.option('-p', '--pause', '--pause-before-main', "pause_before_main", is_flag=True, show_default=True, help="Pause before main is called or not, which is helpful for gdb attach.")
 @click.option('-f', '-hf', '--hook-file', "hook_file", type=str,  default=None, required=False, help="Specify a hook.c file, where you write some functions to hook.")
