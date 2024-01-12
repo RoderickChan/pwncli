@@ -6,10 +6,10 @@ import string
 import tempfile
 
 import click
-from pwn import ELF, atexit, context, process, remote, which
+from pwn import ELF, atexit, context, process, remote, which, sleep
 from pwncli.cli import _Inner_Dict, _set_filename, pass_environ
 from ..utils.config import try_get_config_data_by_key
-from ..utils.misc import _in_tmux, _in_wsl
+from ..utils.misc import _in_tmux, _in_wsl, _get_gdb_plugin_info
 
 
 
@@ -156,7 +156,9 @@ def __debug_mode(ctx, args: _Inner_Dict):
     else:
         process_args = []
         # get file arch info
-        arch = args.arch if args.arch else context.binary.arch
+        if not args.arch: 
+            args.arch = context.binary.arch
+        arch = args.arch 
         assert arch in _arch_usr_map, "Invalid arch, only support for {}.".format(list(_arch_usr_map.keys()))
         process_args.append(_arch_usr_map[arch][0])
         if not context.binary.statically_linked and b"armhf" in context.binary.linker:
@@ -207,7 +209,11 @@ def __debug_mode(ctx, args: _Inner_Dict):
     # set process
     process_args.append(args.filename)
     ctx.gift['io'] = process(process_args)
-
+    ctx.gift.process_args = process_args.copy()
+    sleep(0.1)
+    if ctx.gift['io'].poll():
+        ctx.abort(msg="qemu-command --> Process [{}] is not alive now.".format(ctx.gift['io'].proc.pid))
+    
     if not args.use_gdb:
         return
 
@@ -234,8 +240,12 @@ def __debug_mode(ctx, args: _Inner_Dict):
 
     # parse gdbsecipt and breakpoints
     gdb_examine = __parse_gdb_examine(ctx, args)
-    cmd += " \"gdb-multiarch {} -ex 'target remote {}:{}' {}\"".format(
-        args.filename, args.ip, args.port, gdb_examine)
+    if _get_gdb_plugin_info() == "gef" and "qemu-system" not in process_args[0]:
+        cmd += " \"gdb-multiarch {} -ex 'set architecture {}' -ex 'gef-remote --qemu-user --qemu-binary {} {} {}' {}\"".format(
+            args.filename, args.arch, args.filename, args.ip, args.port, gdb_examine)
+    else:
+        cmd += " \"gdb-multiarch {} -ex 'set architecture {}' -ex 'target remote {}:{}' {}\"".format(
+            args.filename, args.arch, args.ip, args.port, gdb_examine)
 
     # os.system(cmd)
     ctx.vlog("qemu-command --> Exec cmd: {}".format(cmd))
@@ -338,6 +348,7 @@ def cli(ctx, filename, target, debug_mode, remote_mode, ip, port, lib, static, l
         pwncli qemu ./pwn 127.0.0.1:10001
         pwncli qemu ./pwn -r -i 127.0.0.1 -p 10001
     """
+    ctx.gift._qemu_command = True
     ctx.vlog("Welcome to use pwncli-qemu command~")
     if not ctx.verbose:
         ctx.verbose = verbose

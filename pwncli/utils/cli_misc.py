@@ -18,7 +18,7 @@ import subprocess
 import time
 from threading import Lock, Thread
 
-from pwn import (ELF, asm, atexit, attach, context, flat, remote,
+from pwn import (ELF, asm, atexit, attach, context, flat, remote, process,
                  sleep, wget, which, disasm)
 
 from pwncli.cli import gift
@@ -541,8 +541,9 @@ def copy_current_io():
     """Only used for debug/remote command"""
     io = None
     if gift.get('debug'):
-        io = context.binary.process(
-            gift.process_argv, timeout=gift.context_timeout, env=gift.process_env)
+        io = process(
+            gift.process_args, timeout=gift.context_timeout, env=gift.process_env)
+
     elif gift.get('remote'):
         io = remote(gift.ip, gift.port, timeout=gift.context_timeout)
     else:

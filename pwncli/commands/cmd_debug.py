@@ -11,7 +11,7 @@
 
 import threading
 import click
-from pwn import context, which, ELF, pause
+from pwn import context, which, ELF, pause, sleep
 from pwnlib.atexit import register
 from pwnlib.gdb import attach
 from pwnlib.util.safeeval import expr
@@ -428,8 +428,12 @@ int %s()
     # set binary
     ctx.gift['io'] = context.binary.process(
         argv, timeout=ctx.gift['context_timeout'], env=env)
+    sleep(0.1)
+    if ctx.gift['io'].poll():
+        ctx.abort(msg="debug-command --> Process [{}] is not alive now.".format(ctx.gift['io'].proc.pid))
+    
     ctx.gift['_elf_base'] = ctx.gift.elf.address or get_current_codebase_addr()
-    ctx.gift['process_argv'] = argv.copy()
+    ctx.gift['process_args'] = argv.copy().insert(0, filename)
     if env:
         ctx.gift['process_env'] = env.copy()
 
@@ -607,7 +611,7 @@ def cli(ctx, verbose, filename, argv, env, gdb_tbreakpoint,
         ctx.verbose = verbose
     if verbose:
         ctx.vlog("debug-command --> Open 'verbose' mode")
-
+    ctx.gift._debug_command = True
     gdb_breakpoint = list(gdb_breakpoint)
     gdb_tbreakpoint = list(gdb_tbreakpoint)
     hook_function = list(hook_function)

@@ -37,8 +37,8 @@ def _smart_enumerate_attack_helper2():
         except:
             _cof -= 1
 
-    if gift.debug:
-        if gift["_elf_base"] is not None:
+    if gift.debug and not gift._qemu_command:
+        if gift._elf_base is not None:
             gift._elf_base = gift.elf.address or get_current_codebase_addr()
         if gift.elf.pie:  # must have elf when debug
             gift['elf'].address = 0

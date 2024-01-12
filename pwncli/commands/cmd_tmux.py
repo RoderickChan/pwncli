@@ -62,7 +62,7 @@ class _Tmux:
         sn = ""
         for i in range(1, 31):
             sn = "pwncli_{}".format(i)
-            status, _ = getstatusoutput("tmux has-session {}".format(sn))
+            status, _ = getstatusoutput("tmux has-session -t {}".format(sn))
             if status:
                 break
         if i > 30:
