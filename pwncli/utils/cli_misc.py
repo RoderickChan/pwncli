@@ -9,28 +9,27 @@
 '''
 
 
-from .gdb_helper import *
-from .gdb_helper import _get_tmux_info
-
 import functools
 import os
 import subprocess
 import time
 from threading import Lock, Thread
+from typing import Union
 
-from pwn import (ELF, asm, atexit, attach, context, flat, remote, process,
-                 sleep, wget, which, disasm)
+from pwn import (ELF, asm, atexit, attach, context, disasm, flat, process,
+                 remote, sleep, wget, which)
 
 from pwncli.cli import gift
 
 from .gadgetbox import ElfGadgetBox, RopgadgetBox, RopperArchType, RopperBox
-from .misc import (_in_tmux, _in_wsl, errlog_exit, get_callframe_info,
-                   get_segment_base_addr_by_proc_maps,
+from .gdb_helper import *
+from .gdb_helper import _get_tmux_info
+from .misc import (_in_tmux, _in_wsl, call_CDLL_func, errlog_exit,
+                   get_callframe_info, get_segment_base_addr_by_proc_maps,
                    ldd_get_libc_path, log2_ex, log_code_base_addr, log_ex,
                    log_libc_base_addr, one_gadget, one_gadget_binary,
-                   recv_libc_addr, warn_ex, step_split, u64_ex)
+                   recv_libc_addr, step_split, u64_ex, warn_ex)
 from .syscall_num import SyscallNumber
-from typing import Union
 
 __all__ = [
     "stop",
@@ -69,7 +68,8 @@ __all__ = [
     # play with heaptrace
     "kill_heaptrace", "launch_heaptrace", 
     # cli decorators
-    "only_debug", "only_gdb", "only_remote", "only_nogdb"
+    "only_debug", "only_gdb", "only_remote", "only_nogdb", "only_debug_or_remote",
+    "call_current_CDLL_func",
 ]
 
 # -------------------------------------------------------------------------------------
@@ -140,6 +140,21 @@ def only_remote(show_warn=True):
                 if show_warn:
                     warn_ex(
                         "'{}' will not be called because remote mode is not enabled.".format(func_call.__name__))
+                res = None
+            return res
+        return wrapper2
+    return wrapper1
+
+def only_debug_or_remote(show_warn=True):
+    def wrapper1(func_call):
+        @functools.wraps(func_call)
+        def wrapper2(*args, **kwargs):
+            if (gift.remote or gift.debug) and gift.io:
+                res = func_call(*args, **kwargs)
+            else:
+                if show_warn:
+                    warn_ex(
+                        "'{}' will not be called because debug or remote mode is not enabled.".format(func_call.__name__))
                 res = None
             return res
         return wrapper2
@@ -312,7 +327,7 @@ def get_current_one_gadget_from_file(libc_base=0, more=False):
     """Get current filename's all one_gadget.
 
     """
-    if not gift.get('filename', None):
+    if not gift.filename:
         errlog_exit("Cannot get_current_one_gadget, filename is None!")
     res = [x + libc_base for x in one_gadget_binary(gift['filename'], more)]
     log_ex("Get one_gadget: {} from {}".format(
@@ -324,7 +339,7 @@ def get_current_one_gadget_from_libc(more=False):
     """Get current all one_gadget from libc
 
     """
-    if not gift.get('libc', None):
+    if not gift.libc:
         errlog_exit("Cannot get_current_one_gadget_from_libc, libc is None!")
     res = [
         x + gift['libc'].address for x in one_gadget(gift['libc'].path, more)]
@@ -352,25 +367,25 @@ def __get_current_segment_base_addr(use_cache=True) -> dict:
     return _cache_segment_base_addr
 
 
-@only_debug()
+
 def get_current_codebase_addr(use_cache=True) -> int:
     r = __get_current_segment_base_addr(use_cache)
     return r['code'] if r else 0
 
 
-@only_debug()
+
 def get_current_libcbase_addr(use_cache=True) -> int:
     r = __get_current_segment_base_addr(use_cache)
     return r['libc'] if r else 0
 
 
-@only_debug()
+
 def get_current_stackbase_addr(use_cache=True) -> int:
     r = __get_current_segment_base_addr(use_cache)
     return r['stack'] if r else 0
 
 
-@only_debug()
+
 def get_current_heapbase_addr(use_cache=True) -> int:
     r = __get_current_segment_base_addr(use_cache)
     return r['heap'] if r else 0
@@ -523,12 +538,8 @@ def set_current_code_base_and_log(addr: int, offset: int or str = 0):
     log_code_base_addr(res)
     return res
 
-
+@only_remote()
 def set_remote_libc(libc_so_path: str) -> ELF:
-    if not gift.get('remote'):
-        return
-    if not gift.get('io', None):
-        errlog_exit("Can not set remote libc because of no io.")
     if os.path.exists(libc_so_path) and os.path.isfile(libc_so_path):
         gift['libc'] = ELF(libc_so_path, checksec=False)
         gift['libc'].address = 0
@@ -536,7 +547,7 @@ def set_remote_libc(libc_so_path: str) -> ELF:
     else:
         errlog_exit("libc_so_path not exists!")
 
-
+@only_debug_or_remote()
 def copy_current_io():
     """Only used for debug/remote command"""
     io = None
@@ -549,6 +560,18 @@ def copy_current_io():
     else:
         raise RuntimeError("copy_current_io error, no debug and no remote!")
     return io
+
+@only_debug()
+def call_current_CDLL_func(func_name: str, *func_args):
+    """call_current_CDLL_func("rand")
+
+    Args:
+        func_name (str): func name
+
+    Returns:
+        _type_: _description_
+    """
+    return call_CDLL_func(gift.libc.path if gift.libc  else None, func_name, *func_args)
 
 # -----------------------------io------------------------
 

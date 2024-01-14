@@ -9,12 +9,14 @@
 '''
 
 
-import threading
-import click
 import os
+import threading
 from collections import OrderedDict
-from pwncli.cli import pass_environ, _set_filename
-from pwn import remote, ELF,context
+
+import click
+from pwn import ELF, context, remote
+
+from pwncli.cli import _set_filename, pass_environ
 from pwncli.utils.cli_misc import CurrentGadgets
 from pwncli.utils.config import try_get_config_data_by_key
 from pwncli.utils.misc import ldd_get_libc_path
@@ -69,8 +71,9 @@ def do_setproxy(ctx, proxy_mode):
         context.proxy = proxy_data
         return None
     else:
-        import socks
         import socket
+
+        import socks
         socks.set_default_proxy(*proxy_data)
         socket.socket = socks.socksocket
         s = socket.socket()

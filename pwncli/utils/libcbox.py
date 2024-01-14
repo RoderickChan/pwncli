@@ -19,7 +19,7 @@ from time import sleep, time
 
 import requests
 
-from .gadgetbox import RopgadgetBox, RopperBox, ElfGadgetBox
+from .gadgetbox import ElfGadgetBox, RopgadgetBox, RopperBox
 from .misc import errlog_exit, log_ex, one_gadget
 
 __all__ = ["LibcBox"]

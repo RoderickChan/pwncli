@@ -30,9 +30,11 @@ doctest for these functions
 
 
 
+import ctypes
 import functools
 import os
 import re
+import signal
 import struct
 import subprocess
 import sys
@@ -128,6 +130,8 @@ __all__ = [
     "step_split",
     "get_func_signature_str",
     "get_callframe_info",
+    "call_CDLL_func",
+    "TimeoutPwncli",
 
 ]
 
@@ -773,6 +777,52 @@ def get_segment_base_addr_by_proc_maps(pid:int, filename:str=None) -> dict:
         elif "vdso" in r:
             _d['vdso'] = start_addr
     return _d
+
+
+def call_CDLL_func(dll_path: str, func_name: str, *func_args):
+    """call cdll func
+    
+    call_CDLL_func("", "rand")
+
+    Args:
+        dll_path (str): if dll_path is empty, it will be /lib/x86_64-linux-gnu/libc.so.6
+        func_name (str): func name
+
+    Returns:
+        _type_: _description_
+    """
+    if not dll_path:
+        dll_path = "/lib/x86_64-linux-gnu/libc.so.6"
+    dll = ctypes.cdll.LoadLibrary(dll_path)
+    func = getattr(dll, func_name)
+    return func(*func_args)
+
+
+
+class TimeoutPwncli:
+    """with TimeoutPwncli(seconds=1): whiel True: print(1)
+    """
+
+    def __init__(self, seconds=5, timeout_msg="Timeout!", handle_func=None, *handle_func_args):
+        self._seconds = seconds
+        self._timeout_msg = timeout_msg
+        self._handle_func = handle_func
+        self._handle_func_args = handle_func_args
+
+    def handle_timeout(self, signum, frame):
+        if self._handle_func:
+            self._handle_func(*self._handle_func_args)
+        else:
+            raise TimeoutError(self._timeout_msg)
+
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, self.handle_timeout)
+        signal.alarm(self._seconds)
+
+
+    def __exit__(self, type, value, traceback):
+        signal.alarm(0)
+
 
 #--------------------helper of pwncli script mode---------------------
 def _assign_globals(_io, _g):

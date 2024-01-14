@@ -1,7 +1,9 @@
-from pwncli.utils.misc import *
-import pytest
-import re
 import pathlib
+import re
+
+import pytest
+
+from pwncli.utils.misc import *
 
 CURDIR = pathlib.Path(__file__).parent
 pwnpath = CURDIR / "../sources/pwn"

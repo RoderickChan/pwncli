@@ -2,9 +2,9 @@ import functools
 import inspect
 import os
 import signal
+import sys
 import threading
 import time
-import sys
 from subprocess import getstatusoutput
 from typing import List, TypedDict
 

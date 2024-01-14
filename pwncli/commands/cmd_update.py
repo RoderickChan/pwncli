@@ -1,10 +1,13 @@
-import click
-import subprocess
 import json
 import os
 import pathlib
+import subprocess
 from urllib import request
+
+import click
+
 from pwncli.cli import pass_environ
+
 
 def get_pypi_pwncli_info(ctx):
     url = "https://pypi.org/pypi/pwncli/json"

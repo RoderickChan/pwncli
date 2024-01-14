@@ -1,5 +1,7 @@
-import click
 import sys
+
+import click
+
 from pwncli.cli import pass_environ
 
 

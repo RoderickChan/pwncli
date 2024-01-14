@@ -1,16 +1,17 @@
 import os
 import re
 import shlex
-import subprocess
 import string
+import subprocess
 import tempfile
 
 import click
-from pwn import ELF, atexit, context, process, remote, which, sleep
-from pwncli.cli import _Inner_Dict, _set_filename, pass_environ
-from ..utils.config import try_get_config_data_by_key
-from ..utils.misc import _in_tmux, _in_wsl, _get_gdb_plugin_info
+from pwn import ELF, atexit, context, process, remote, sleep, which
 
+from pwncli.cli import _Inner_Dict, _set_filename, pass_environ
+
+from ..utils.config import try_get_config_data_by_key
+from ..utils.misc import _get_gdb_plugin_info, _in_tmux, _in_wsl
 
 
 def _set_gdb_type(pwncli_path, gdb_type):

@@ -9,10 +9,12 @@
 '''
 
 
-import click
 import sys
-from pwncli.cli import pass_environ, AliasedGroup
-from pwncli.utils.config import  *
+
+import click
+
+from pwncli.cli import AliasedGroup, pass_environ
+from pwncli.utils.config import *
 
 
 @click.command(cls=AliasedGroup, name='config', short_help="Get or set something about config data.")

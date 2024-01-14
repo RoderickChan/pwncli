@@ -1,5 +1,7 @@
 import os
+
 import pytest
+
 
 @pytest.mark.first
 def test_version():
