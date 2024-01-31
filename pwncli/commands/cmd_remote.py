@@ -144,7 +144,7 @@ def do_remote(ctx, filename, target, ip, port, proxy_mode, tport):
         ctx.gift['io'] = remote.fromsocket(s)
     ctx._log("connect {} port {} success!".format(ip, port))
 
-    if ctx.fromcli:
+    if ctx.cli_mode:
         ctx.gift['io'].interactive()
     else:
         res = try_get_config_data_by_key(ctx.config_data, "remote", "load_gadget")
@@ -200,7 +200,7 @@ def cli(ctx, filename, target, ip, port, verbose, use_proxy, proxy_mode, no_log,
         ctx.vlog("remote-command --> Use proxy, proxy mode: {}".format(proxy_mode))
 
     # set log level
-    ll = 'error' if no_log else ctx.gift['context_log_level']
+    ll = 'error' if no_log else ctx.gift.context_log_level
     context.update(log_level=ll)
     ctx.vlog("remote-command --> Set 'context.log_level': {}".format(ll))
 

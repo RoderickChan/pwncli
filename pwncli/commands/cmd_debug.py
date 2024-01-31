@@ -211,14 +211,14 @@ def _check_set_value(ctx, filename, argv, env, use_tmux, use_wsl, use_gnome, att
             ctx, filename, msg="debug-command --> Set 'filename': {}".format(filename))
 
     # filename is required
-    if not ctx.gift.get('filename', None):
+    if not ctx.gift.filename:
         ctx.abort("debug-command --> No 'filename'!")
     filename = ctx.gift['filename']
     context.binary = filename
-    ctx.gift['elf'] = ELF(filename, checksec=False)
+    ctx.gift.elf = ELF(filename, checksec=False)
 
     # set argv
-    if argv is not None:
+    if argv:
         argv = argv.strip().split()
     else:
         argv = []
@@ -569,7 +569,7 @@ int %s()
         ctx.gift.io.send("X")
 
     # from cli, keep interactive
-    if ctx.fromcli:
+    if ctx.cli_mode:
         ctx.gift['io'].interactive()
     else:
         res = try_get_config_data_by_key(
@@ -641,10 +641,10 @@ def cli(ctx, verbose, filename, argv, env, gdb_tbreakpoint,
     for k, v in args.items():
         ctx.vlog("debug-command --> Get '{}': {}".format(k, v))
 
-    ctx.gift['debug'] = True
-    ctx.gift['no_stop'] = no_stop
+    ctx.gift.debug = True
+    ctx.gift.no_stop = no_stop
 
-    ll = 'error' if no_log else ctx.gift['context_log_level']
+    ll = 'error' if no_log else ctx.gift.context_log_level
     context.update(log_level=ll)
     ctx.vlog("debug-command --> Set 'context.log_level': {}".format(ll))
 

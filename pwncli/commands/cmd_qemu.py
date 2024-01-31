@@ -307,7 +307,7 @@ def __process_args(ctx, args: _Inner_Dict):
         ctx.gift['debug'] = True
 
     # from cli, keep interactive
-    if ctx.fromcli:
+    if ctx.cli_mode:
         ctx.gift['io'].interactive()
 
 
@@ -358,7 +358,7 @@ def cli(ctx, filename, target, debug_mode, remote_mode, ip, port, lib, static, l
 
     ctx.gift['no_stop'] = no_stop
 
-    ll = 'error' if no_log else ctx.gift['context_log_level']
+    ll = 'error' if no_log else ctx.gift.context_log_level
     context.update(log_level=ll)
     ctx.vlog("qemu-command --> Set 'context.log_level': {}".format(ll))
     args = _Inner_Dict()

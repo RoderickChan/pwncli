@@ -110,8 +110,7 @@ __all__ = [
     "get_segment_base_addr_by_proc_maps",
     
     # init with gift.io
-    "init_x86_context",
-    "init_x64_context",
+    "init_pwn_context",
     
     # tcachebins calcuator
     "calc_chunksize_corrosion",
@@ -825,7 +824,26 @@ class TimeoutPwncli:
 
 
 #--------------------helper of pwncli script mode---------------------
-def _assign_globals(_io, _g):
+def _assign_globals_init(_io, _g, **context_kwargs):
+
+    if "log_level" not in context_kwargs:
+        context_kwargs['log_level'] = "debug"
+        
+    if "endian" not in context_kwargs:
+        context_kwargs['endian'] = "little"
+
+    if "timeout" not in context_kwargs:
+        context_kwargs['timeout'] = 5
+
+    if "os" not in context_kwargs:
+        context_kwargs['os'] = "linux"
+        
+    if _in_tmux():
+        context_kwargs['terminal'] = ["tmux", "splitw", "-h"]
+    elif which("gnome-terminal"):
+        context.terminal = ["gnome-terminal", "--", "sh", "-c"]
+    
+    context.update(**context_kwargs)
     _g['s'] = _io.send
     _g['sl'] = _io.sendline
     _g['sla'] = _io.sendlineafter
@@ -846,29 +864,19 @@ def _assign_globals(_io, _g):
     _g['ic'] = _io.close
     _g['cr'] = _io.can_recv
 
-def init_x86_context(io, globals: dict, log_level: str="debug", timeout: int=5, arch: str="i386", os: str="linux", endian: str="little"):
-    """ Usage: 
-    
-    from pwncli import * 
-    
-    p = process(xxx)
-    
-    init_x86_context(p, globals())
-    """
-    context.update(arch=arch, os=os, endian=endian, log_level=log_level, timeout=timeout)
-    _assign_globals(io, globals)
 
-def init_x64_context(io, globals: dict, log_level: str="debug", timeout: int=5, arch: str="amd64", os: str="linux", endian: str="little"):
+def init_pwn_context(io, globals: dict=globals(), arch="amd64", **context_kwargs):
     """ Usage: 
     
     from pwncli import * 
     
     p = process(xxx)
+    p = remote(x.x.x.x, 1337)
     
-    init_x64_context(p, globals())
+    init_pwn_context(p)
     """
-    context.update(arch=arch, os=os, endian=endian, log_level=log_level, timeout=timeout)
-    _assign_globals(io, globals)
+    context_kwargs['arch'] = arch
+    _assign_globals_init(io, globals, **context_kwargs)
 
 
 #-------------------------------calc related--------------------------

@@ -43,6 +43,7 @@ __all__  = [
     "show_name",
     "always_success",
     "limit_calls",
+    "retry",
     "add_prompt",
     "cache_result",
     "cache_nonresult",
@@ -146,14 +147,14 @@ def add_prompt(msg: str):
         @signature2name
         def wrapper2(*args, **kwargs):
             sig = get_func_signature_str(func.__name__, *args, **kwargs)
-            warn_ex_highlight("[call {}] prompt info --> {}".format(sig, msg))
+            log_ex("[call {}] prompt info --> {}".format(sig, msg))
             res = func(*args, **kwargs)
             return res
         return wrapper2
     return wrapper1
 
 
-def always_success(show_err=False):
+def always_success(show_err=True):
     """A decorator.
 
     Catch exception when call func. 
@@ -238,7 +239,7 @@ def limit_calls(times: int=1, warn_=True):
         return wrapper2
     return wrapper1
 
-def call_multimes(times: int=1):
+def call_multimes(times: int=1, ignore_err=False):
     """A decorator.
     
     Loop x times to call function 
@@ -252,11 +253,38 @@ def call_multimes(times: int=1):
         def wrapper2(*args, **kwargs):
             res = None
             for _ in range(times):
-                res = func(*args, **kwargs)
+                if not ignore_err:
+                    res = func(*args, **kwargs)
+                else:
+                    try:
+                        res = func(*args, **kwargs)
+                    except:
+                        res = None
             return res
         return wrapper2
     return wrapper1
 
+def retry(times: int=1):
+    """A decorator.
+    
+    Retry to call function when errors occur
+
+    Args:
+        times (int, optional): Times. Defaults to 1.
+    """
+
+    def wrapper1(func):
+        @functools.wraps(func)
+        def wrapper2(*args, **kwargs):
+            res = None
+            for _ in range(times):
+                try:
+                    return func(*args, **kwargs)
+                except:
+                    pass
+            return res
+        return wrapper2
+    return wrapper1
 
 def cache_result(func: Callable):
     """A decorator.

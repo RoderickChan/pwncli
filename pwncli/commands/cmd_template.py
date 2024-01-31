@@ -476,7 +476,7 @@ def cli(ctx, filetype):
     pwncli template pwn
     """
     ctx.verbose = 2
-    if not ctx.fromcli:
+    if not ctx.cli_mode:
         ctx.abort("template-command --> Please use the command in cli instead of a lib!")
     
     if filetype == "lib" or (filetype and "lib".startswith(filetype)):

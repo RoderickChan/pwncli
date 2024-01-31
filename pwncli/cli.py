@@ -176,17 +176,16 @@ def cli(ctx, filename, verbose, extra_argv): # ctx: command property
             ./yourownscript -v subcommand args
     """
     ctx.verbose = verbose
-    ctx.fromcli = sys.argv[0].endswith(('/pwncli', '\\pwncli')) # Use this tool from cli or python script
+    ctx.cli_mode = sys.argv[0].endswith(('/pwncli', '\\pwncli')) # Use this tool from cli or python script
     ctx.pwncli_path = _PWNCLI_DIR_NAME
-    ctx.platform = sys.platform
     if verbose:
         ctx.vlog("pwncli --> Open 'verbose' mode")
 
-    if ctx.fromcli:
-        ctx.vlog("pwncli --> Use 'pwncli' from command line")
+    if ctx.cli_mode:
+        ctx.vlog("pwncli --> Command line mode is used.")
     else:
-        ctx.gift['from_script'] = True
-        ctx.vlog("pwncli --> Use 'pwncli' from python script. Please run 'cli_script()' to enable cli.")
+        ctx.gift.script_mode = True
+        ctx.vlog("pwncli --> Script mode is used.")
         ctx.gift['no_stop'] = False
     _set_filename(ctx, filename)
 
@@ -199,18 +198,18 @@ def cli(ctx, filename, verbose, extra_argv): # ctx: command property
     
     # read config data and set for debug and remote
     to = try_get_config_data_by_key(ctx.config_data, 'context', 'timeout')
-    ctx.gift['context_timeout'] = to if to else 10 # set default timeout
+    ctx.gift.context_timeout = to if to else 10 # set default timeout
 
     ll = try_get_config_data_by_key(ctx.config_data, 'context', 'log_level')
-    ctx.gift['context_log_level'] = ll if ll else 'debug' # set default log_level
+    ctx.gift.context_log_level = ll if ll else 'debug' # set default log_level
 
 
     # init debug/remote flag
-    ctx.gift['debug'] = False
-    ctx.gift['remote'] = False
+    ctx.gift.debug = False
+    ctx.gift.remote = False
 
     # extra argv for this script
-    ctx.gift['extra_argv'] = extra_argv
+    ctx.gift.extra_argv = extra_argv
     
 
 def cli_script():

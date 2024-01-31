@@ -126,7 +126,7 @@ def smart_enumerate_attack(loop_time: int = 0x10, loop_list: List[List] = None, 
         @functools.wraps(func_call)
         def wrapper2(*args, **kwargs):
             _check_func_args(func_call, loop_list, False)
-            if gift.from_script:
+            if gift.script_mode:
                 _smart_enumerate_attack_helper(
                     func_call, loop_time, loop_list, show_error)
             else:

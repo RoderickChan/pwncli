@@ -51,7 +51,9 @@ def cli(ctx, filename, all_gadgets, directory, depth, opcode, verbose):
 
     ropper_path = which("ropper")
     ropgadget_path = which("ROPgadget")
-    rp_path = which("rp-lin-x64")
+    
+    rp_name = "rp-lin"
+    rp_path = None # which(rp_name)
 
     if len(opcode) > 0:
         opcode = opcode.strip()
@@ -70,7 +72,8 @@ def cli(ctx, filename, all_gadgets, directory, depth, opcode, verbose):
                 n_ += "\\x"
                 n_ += opcode[i:i+2]
             opcode = n_
-            cmd = "rp-lin-x64 -f {} --search-hexa \"{}\"".format(
+            cmd = "{} -f {} --search-hexa \"{}\"".format(
+                rp_name,
                 filename, opcode)
         elif ropgadget_path:
             cmd = "ROPgadget --binary {} --opcode {}".format(filename, opcode)
@@ -86,31 +89,40 @@ def cli(ctx, filename, all_gadgets, directory, depth, opcode, verbose):
     if not os.path.isdir(directory):
         ctx.abort("gadget-command ---> The 'directory' is invalid.")
 
-    if not rp_path:
+    if False:
+        rp_url_link = "https://github.com/0vercl0k/rp/releases/download/v2.1.3/rp-lin-clang.zip"
         res = input(
-            "Install rp-lin-x64 from https://github.com/0vercl0k/rp/releases/download/v2.0.2/rp-lin-x64? [y/n]")
-        if res.strip() == "y":
+            "Install {} from {}? [y/n]".format(rp_name, rp_url_link))
+        if res.strip().lower() == "y":
             try:
-                wget("https://github.com/0vercl0k/rp/releases/download/v2.0.2/rp-lin-x64",
-                     timeout=300, save=True)
-                bin_path = "$HOME/.local/bin" if os.getuid() != 0 else "/usr/local/bin"
-
-                ctx.vlog(
-                    "gadget-command ---> Exec cmd: {}".format("chmod +x rp-lin-x64"))
-                os.system("chmod +x rp-lin-x64")
-                cmd = "mv rp-lin-x64 {}".format(bin_path)
-
+                wget(rp_url_link, timeout=300, save=True)
+                rp_filename = rp_url_link.split("/")[-1]
+                
+                cmd = "unzip {}".format(rp_filename)
                 ctx.vlog("gadget-command ---> Exec cmd: {}".format(cmd))
                 os.system(cmd)
-                if which("rp-lin-x64"):
+                
+                os.unlink(rp_filename)
+                
+                bin_path = "$HOME/.local/bin" if os.getuid() != 0 else "/usr/local/bin"
+
+                cmd = "chmod +x {}".format(rp_name)
+                ctx.vlog("gadget-command ---> Exec cmd: {}".format(cmd))
+                os.system(cmd)
+                
+                cmd = "mv {} {}".format(rp_name, bin_path)
+                ctx.vlog("gadget-command ---> Exec cmd: {}".format(cmd))
+                os.system(cmd)
+                
+                if which(rp_name):
                     rp_path = 1
                 else:
                     rp_path = 0
             except:
-                ctx.verrlog("gadget-command ---> Download rp-lin-x64 error!")
+                ctx.verrlog("gadget-command ---> Download {} error!".format(rp_name))
     ps = []
     if rp_path:
-        cmd = "rp-lin-x64 -f {} ".format(filename)
+        cmd = "{} -f {} ".format(rp_name, filename)
         if not all_gadgets:
             cmd += " --unique "
         if depth > 0:

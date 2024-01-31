@@ -35,7 +35,7 @@ def copy_gdbinit(ctx, generate_script):
     pwncli misc setgdb 
 
     """
-    if ctx.platform != "linux":
+    if sys.platform != "linux":
         ctx.abort("setgdb-command ---> This command can only be used in linux.")
     predir = os.path.join(os.environ['HOME'], ".local", "bin")
     if os.getuid() == 0:
