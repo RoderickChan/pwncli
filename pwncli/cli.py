@@ -10,25 +10,15 @@ Thanks fo click, it's a wonderful python-cli tool.
 import os
 import pathlib
 import sys
-from collections import OrderedDict
 
 import click
 
 from .utils.config import read_ini, try_get_config_data_by_key
-from .utils.misc import errlog_ex, log2_ex, log_ex
+from .utils.misc import errlog_ex, log2_ex, log_ex, gift
 
-__all__ = ['gift', 'cli_script']
+__all__ = ['cli_script']
 
-class _Inner_Dict(OrderedDict):
-    def __getattr__(self, name):
-        if name not in self.keys():
-            return None
-        return self[name]
-    
-    def __setattr__(self, name, value):
-        self[name] = value
 
-gift = _Inner_Dict() # public property
 _CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 _PWNCLI_DIR_NAME = os.path.dirname(os.path.abspath(__file__))
 

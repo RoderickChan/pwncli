@@ -30,6 +30,7 @@ doctest for these functions
 
 
 
+from collections import OrderedDict
 import ctypes
 import functools
 import os
@@ -44,6 +45,8 @@ import click
 from pwn import ELF, context, flat, pack, unpack, which
 
 __all__ = [
+    "gift",
+    
     # partial functions
     "int16",
     "int8",
@@ -134,6 +137,17 @@ __all__ = [
 
 ]
 
+class _Inner_Dict(OrderedDict):
+    def __getattr__(self, name):
+        if name not in self.keys():
+            return None
+        return self[name]
+    
+    def __setattr__(self, name, value):
+        self[name] = value
+
+gift = _Inner_Dict() # public property
+
 int16_ex = int16 = functools.partial(int, base=16)
 int8_ex = int8 = functools.partial(int, base=8)
 int2_ex = int2 = functools.partial(int, base=2)
@@ -186,7 +200,7 @@ def reveal_ptr(addr) -> int:
     calc the heap address
     """
     _res = addr
-    for i in range(3):
+    for _ in range(3):
         _res = (_res >> 12) ^ addr
     return _res
 
@@ -788,7 +802,7 @@ def call_CDLL_func(dll_path: str, func_name: str, *func_args):
         func_name (str): func name
 
     Returns:
-        _type_: _description_
+        _type_: call result
     """
     if not dll_path:
         dll_path = "/lib/x86_64-linux-gnu/libc.so.6"
@@ -824,7 +838,7 @@ class TimeoutPwncli:
 
 
 #--------------------helper of pwncli script mode---------------------
-def _assign_globals_init(_io, _g, **context_kwargs):
+def _assign_globals_init(_io, **context_kwargs):
 
     if "log_level" not in context_kwargs:
         context_kwargs['log_level'] = "debug"
@@ -844,28 +858,10 @@ def _assign_globals_init(_io, _g, **context_kwargs):
         context.terminal = ["gnome-terminal", "--", "sh", "-c"]
     
     context.update(**context_kwargs)
-    _g['s'] = _io.send
-    _g['sl'] = _io.sendline
-    _g['sla'] = _io.sendlineafter
-    _g['sa'] = _io.sendafter
-    _g['slt'] = _io.sendlinethen
-    _g['st'] = _io.sendthen
-    _g['r'] = _io.recv
-    _g['rn'] = _io.recvn
-    _g['rr'] = _io.recvregex
-    _g['ru'] = _io.recvuntil
-    _g['ra'] = _io.recvall
-    _g['rl'] = _io.recvline
-    _g['rs'] = _io.recvlines
-    _g['rls'] = _io.recvline_startswith
-    _g['rle'] = _io.recvline_endswith
-    _g['rlc'] = _io.recvline_contains
-    _g['ia'] = _io.interactive
-    _g['ic'] = _io.close
-    _g['cr'] = _io.can_recv
+    gift.io = _io
 
 
-def init_pwn_context(io, globals: dict=globals(), arch="amd64", **context_kwargs):
+def init_pwn_context(io, arch="amd64", **context_kwargs):
     """ Usage: 
     
     from pwncli import * 
@@ -876,7 +872,7 @@ def init_pwn_context(io, globals: dict=globals(), arch="amd64", **context_kwargs
     init_pwn_context(p)
     """
     context_kwargs['arch'] = arch
-    _assign_globals_init(io, globals, **context_kwargs)
+    _assign_globals_init(io, **context_kwargs)
 
 
 #-------------------------------calc related--------------------------

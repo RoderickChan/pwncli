@@ -16,8 +16,8 @@ import tempfile
 import click
 from pwn import which
 
-from ..cli import AliasedGroup, _Inner_Dict, _set_filename, pass_environ
-
+from ..cli import AliasedGroup, _set_filename, pass_environ
+from ..utils.misc import _Inner_Dict
 
 @click.command(cls=AliasedGroup, name='misc', short_help="Misc of useful sub-commands.")
 @pass_environ

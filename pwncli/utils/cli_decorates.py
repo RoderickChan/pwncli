@@ -13,13 +13,11 @@ from itertools import product
 from typing import List
 
 from pwn import context
-
-from ..cli import gift
 from .cli_misc import (copy_current_io, get_current_codebase_addr,
                        get_current_libcbase_addr)
 from .decorates import _check_func_args
 from .exceptions import PwncliExit
-from .misc import errlog_exit, ldd_get_libc_path, log_ex
+from .misc import errlog_exit, ldd_get_libc_path, log_ex, gift
 
 __all__ = [
     "smart_enumerate_attack"

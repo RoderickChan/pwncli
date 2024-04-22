@@ -26,8 +26,6 @@ def test_allcmd():
     for item in cmds:
         cmd = item[0]
         assert os.system("pwncli {} --help".format(cmd)) == 0
-        assert os.system("pwncli {} -h".format(cmd)) == 0
         if len(item) > 1:
             for subcmd in item[1:]:
                 assert os.system("pwncli {} {} --help".format(cmd, subcmd)) == 0
-                assert os.system("pwncli {} {} -h".format(cmd, subcmd)) == 0

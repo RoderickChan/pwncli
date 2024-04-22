@@ -10,8 +10,8 @@ from typing import List, TypedDict
 
 import click
 
-from pwncli.cli import _Inner_Dict, pass_environ
-
+from pwncli.cli import pass_environ
+from ..utils.misc import _Inner_Dict
 
 def return_self(func):
     @functools.wraps(func)

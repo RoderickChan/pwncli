@@ -8,10 +8,10 @@ import tempfile
 import click
 from pwn import ELF, atexit, context, process, remote, sleep, which
 
-from pwncli.cli import _Inner_Dict, _set_filename, pass_environ
+from pwncli.cli import  _set_filename, pass_environ
 
 from ..utils.config import try_get_config_data_by_key
-from ..utils.misc import _get_gdb_plugin_info, _in_tmux, _in_wsl
+from ..utils.misc import _get_gdb_plugin_info, _in_tmux, _in_wsl, _Inner_Dict
 
 
 def _set_gdb_type(pwncli_path, gdb_type):

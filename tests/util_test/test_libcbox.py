@@ -10,7 +10,7 @@ from pwncli import LibcBox
 @pytest.mark.second_to_last
 def test_libcbox(monkeypatch):
     def mock_input(status):
-        return '1'
+        return '2' # choose libc6_2.31-0ubuntu7_amd64
 
     monkeypatch.setattr(builtins, 'input', mock_input)
 

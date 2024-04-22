@@ -322,7 +322,9 @@ class LibcBox:
 
         options = self.__show_result(version_start)
         if len(self._res) > 1:
-            while 1:
+            looptime = 5
+            while looptime:
+                looptime -= 1
                 ans = input("please choose one number or 'q' to quit: ")
                 if ans[:-1] == "q" or ans[:-1] == "quit":
                     log_ex("quit libcbox!")
@@ -331,7 +333,10 @@ class LibcBox:
                 if ans in options:
                     self._res = self._res[ans - 1]
                     break
-                log_ex("Wrong input!")
+                log_ex("Wrong input: %d!" % ans)
+                if not looptime:
+                    errlog_exit("You don't input a right choice number in %d times!" % looptime)
+            
         else:
             self._res = self._res[0]
         

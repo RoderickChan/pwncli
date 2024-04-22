@@ -17,8 +17,8 @@ import subprocess
 import click
 from pwn import wget, which
 
-from ..cli import _Inner_Dict, _set_filename, pass_environ
-
+from ..cli import _set_filename, pass_environ
+from ..utils.misc import _Inner_Dict
 
 @click.command(name="gadget", short_help="Get all gadgets using ropper and ROPgadget, and then store them in files.")
 @click.argument('filename', type=str, default=None, required=False, nargs=1)

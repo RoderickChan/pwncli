@@ -6,7 +6,8 @@ from subprocess import getstatusoutput
 import click
 from pwn import ELF, wget
 
-from pwncli.cli import _Inner_Dict, pass_environ
+from ..cli import pass_environ
+from ..utils.misc import _Inner_Dict
 
 
 def _is_elf_file(filepath):

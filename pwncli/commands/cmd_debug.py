@@ -11,7 +11,6 @@
 
 import os
 import re
-import string
 import tempfile
 import threading
 
@@ -21,11 +20,11 @@ from pwnlib.atexit import register
 from pwnlib.gdb import attach
 from pwnlib.util.safeeval import expr
 
-from pwncli.cli import _Inner_Dict, _set_filename, pass_environ
-from pwncli.utils.cli_misc import (CurrentGadgets, get_current_codebase_addr,
+from ..cli import _set_filename, pass_environ
+from ..utils.cli_misc import (CurrentGadgets, get_current_codebase_addr,
                                    get_current_libcbase_addr)
-from pwncli.utils.config import try_get_config_data_by_key
-from pwncli.utils.misc import _in_tmux, _in_wsl, ldd_get_libc_path
+from ..utils.config import try_get_config_data_by_key
+from ..utils.misc import _in_tmux, _in_wsl, ldd_get_libc_path, _Inner_Dict
 
 _NO_TERMINAL = 0
 _USE_TMUX = 1

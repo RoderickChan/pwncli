@@ -19,7 +19,6 @@ from typing import Union
 from pwn import (ELF, asm, atexit, attach, context, disasm, flat, process,
                  remote, sleep, wget, which)
 
-from pwncli.cli import gift
 
 from .gadgetbox import ElfGadgetBox, RopgadgetBox, RopperArchType, RopperBox
 from .gdb_helper import *
@@ -28,7 +27,7 @@ from .misc import (_in_tmux, _in_wsl, call_CDLL_func, errlog_exit,
                    get_callframe_info, get_segment_base_addr_by_proc_maps,
                    ldd_get_libc_path, log2_ex, log_code_base_addr, log_ex,
                    log_libc_base_addr, one_gadget, one_gadget_binary,
-                   recv_libc_addr, step_split, u64_ex, warn_ex)
+                   recv_libc_addr, step_split, u64_ex, warn_ex, gift)
 from .syscall_num import SyscallNumber
 
 __all__ = [

@@ -14,7 +14,8 @@ import os
 import click
 from pwn import context, listen
 
-from ..cli import _Inner_Dict, pass_environ
+from ..cli import pass_environ
+from ..utils.misc import _Inner_Dict
 
 
 @click.command(name="listen", short_help="Listen on a port and spawn a program when connected.")
