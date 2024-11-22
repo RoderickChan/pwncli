@@ -159,7 +159,7 @@ def always_success(show_err=True):
 
     Catch exception when call func. 
     
-    Noye: Cannot deal with sys.exit.
+    Note: Cannot deal with sys.exit.
     
     Args:
         show_err (bool, optional): Show error info or not. Defaults to False.

@@ -74,30 +74,30 @@ def cli(ctx, filename, libc_version, back_up, filter_string, verbose, libc_so):
         ctx.vlog("patchelf-command --> Open 'verbose' mode")
     
     # libs-dirname
-    libc_dirname = try_get_config_data_by_key(ctx.config_data, "patchelf", "libs_dir")
-    if not libc_dirname:
-        libc_dirname = os.path.join(os.environ['HOME'],"glibc-all-in-one/libs")
+    libs_dirname = try_get_config_data_by_key(ctx.config_data, "patchelf", "libs_dir")
+    if not libs_dirname:
+        libs_dirname = os.path.join(os.environ['HOME'],"glibc-all-in-one/libs")
     
-    if libc_dirname.startswith("~"):
-        libc_dirname = os.path.expanduser(libc_dirname)
+    if libs_dirname.startswith("~"):
+        libs_dirname = os.path.expanduser(libs_dirname)
     
-    libc_dirname = os.path.abspath(os.path.realpath(libc_dirname))
+    libs_dirname = os.path.abspath(os.path.realpath(libs_dirname)).rstrip("/")
     
     # check libc_dirname
-    if not os.path.exists(libc_dirname) or not os.path.isdir(libc_dirname):
-        ctx.verrlog("patchelf-command --> Libs dir '{}' not exists!".format(libc_dirname))
+    if not os.path.exists(libs_dirname) or not os.path.isdir(libs_dirname):
+        ctx.verrlog("patchelf-command --> Libs dir '{}' not exists!".format(libs_dirname))
         if yesno("clone glibc-all-in-one from github?"):
             if 0 != os.system("git clone https://github.com/matrix1001/glibc-all-in-one.git ~/glibc-all-in-one"):
                 ctx.abort("patchelf-command --> Execute cmd: git clone https://github.com/matrix1001/glibc-all-in-one.git ~/ failed!")
             ctx.vlog2("patchelf-command --> Execute cmd: git clone https://github.com/matrix1001/glibc-all-in-one.git ~/ success!")
-            libc_dirname = os.path.join(os.environ['HOME'],"glibc-all-in-one/libs")
+            libs_dirname = os.path.join(os.environ['HOME'],"glibc-all-in-one/libs")
         else:
             sys.exit(1)
     
-    if not libc_dirname.endswith("glibc-all-in-one/libs"):
+    if not libs_dirname.endswith("glibc-all-in-one/libs"):
         ctx.abort("patchelf-command --> Unsupported libc_dirname, must end with glibc-all-in-one/libs.")
 
-    ctx.vlog("patchelf-command --> Now libc_dirname used is: {}".format(libc_dirname))
+    ctx.vlog("patchelf-command --> Now libs_dirname used is: {}".format(libs_dirname))
 
     # check file name
     if not os.path.isfile(os.path.abspath(filename)):
@@ -112,7 +112,7 @@ def cli(ctx, filename, libc_version, back_up, filter_string, verbose, libc_so):
 
     if os.path.exists(libc_so) and os.path.isfile(libc_so):
         ctx.vlog2("patchelf-command --> Libc_so is specified, libc_version would be reset.")
-        libc_version = _download_from_glibc_all_in_one(ctx, libc_so, archinfo, libc_dirname)
+        libc_version = _download_from_glibc_all_in_one(ctx, libc_so, archinfo, libs_dirname)
 
     # check libc_version
     if not re.search("^\d\.\d\d$", libc_version):
@@ -122,13 +122,13 @@ def cli(ctx, filename, libc_version, back_up, filter_string, verbose, libc_so):
         for _i in filter_string:
                 if _i not in _d:
                     return False
-        if (archinfo in _d) and (os.path.isdir(os.path.join(libc_dirname, _d))):
+        if (archinfo in _d) and (os.path.isdir(os.path.join(libs_dirname, _d))):
             return True
         return False
 
-    subdirs = list(filter(_filter_dir, os.listdir(libc_dirname)))
+    subdirs = list(filter(_filter_dir, os.listdir(libs_dirname)))
     if not subdirs or len(subdirs) == 0:
-        ctx.abort("patchelf-command --> Do not find the matched dirctories in {}, with libc_version: {}, filter-string:{}".format(libc_dirname, libc_version, filter_string))
+        ctx.abort("patchelf-command --> Do not find the matched dirctories in {}, with libc_version: {}, filter-string:{}".format(libs_dirname, libc_version, filter_string))
 
     subdirs.sort()
     
@@ -145,14 +145,26 @@ def cli(ctx, filename, libc_version, back_up, filter_string, verbose, libc_so):
     
     # execute patchelf
     subdirname = subdirs[has_versions.index(libc_version)]
-    last_dirname = os.path.join(libc_dirname, subdirname)
+    last_dirname = os.path.join(libs_dirname, subdirname)
     ctx.vlog("patchelf-command --> The dirname of libs using by patchelf: {}".format(last_dirname))
 
-    cmd1 = "patchelf --set-interpreter {} {}".format(os.path.join(last_dirname, 'ld-{}.so'.format(libc_version)), filename)
+    ldfile_path = os.path.join(last_dirname, 'ld-{}.so'.format(libc_version))
+    if not os.path.exists(ldfile_path):
+        ldfile_path = os.path.join(last_dirname, 'ld-linux-x86-64.so.2')
+        if not os.path.exists(ldfile_path):
+            ctx.abort("patchelf-command --> The ld file: {} not exists!".format(ldfile_path))
+    
+    libcfile_path = os.path.join(last_dirname, 'libc-{}.so'.format(libc_version))
+    if not os.path.exists(libcfile_path):
+        libcfile_path = os.path.join(last_dirname, 'libc.so.6')
+        if not os.path.exists(libcfile_path):
+            ctx.abort("patchelf-command --> The libc file: {} not exists!".format(libcfile_path))
+    
+    cmd1 = "patchelf --set-interpreter {} {}".format(ldfile_path, filename)
     ctx.vlog("patchelf-command --> Execute cmd: {}".format(cmd1))
     os.system(cmd1)
 
-    cmd2 = "patchelf --replace-needed libc.so.6 {} {}".format(os.path.join(last_dirname, 'libc-{}.so'.format(libc_version)), filename)
+    cmd2 = "patchelf --replace-needed libc.so.6 {} {}".format(libcfile_path, filename)
     ctx.vlog("patchelf-command --> Execute cmd: {}".format(cmd2))
     os.system(cmd2)
 
