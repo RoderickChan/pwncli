@@ -28,6 +28,9 @@
     - [patchelf 示例](#patchelf-示例)
     - [qemu 示例](#qemu-示例)
 
+> [!NOTE]
+> The [deepwiki](https://deepwiki.org/) of pwncli: <https://deepwiki.com/RoderickChan/pwncli>
+
 # 前言
 
 一开始写这个工具是因为在学习`pwn`的过程中，经常反复的去注释和取消注释`gdb.attach(xxx)`这样的语句，下不同断点的时候要不断地修改脚本，本地调通打远程的时候也要改脚本。
