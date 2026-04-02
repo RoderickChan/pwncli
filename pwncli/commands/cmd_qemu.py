@@ -146,8 +146,8 @@ def __debug_mode(ctx, args: _Inner_Dict):
             args.port = 1234
             ctx.vlog2(
                 "qemu-command --> Set default gdb listen port {}.".format(args.port))
-        elif re.search("-gdb\s+tcp::(\d+)", cmd):
-            match = re.search("-gdb\s+tcp::(\d+)", cmd)
+        elif re.search(r"-gdb\s+tcp::(\d+)", cmd):
+            match = re.search(r"-gdb\s+tcp::(\d+)", cmd)
             args.port = match.groups()[0]
             ctx.vlog2(
                 "qemu-command --> Set gdb listen port {}.".format(args.port))
@@ -191,7 +191,7 @@ def __debug_mode(ctx, args: _Inner_Dict):
             usefile = ""
             if os.path.exists(libpath) and os.path.isdir(libpath):
                 for _file in os.listdir(libpath):
-                    if re.search("libc-\d\.\d\d.so", _file, re.I):
+                    if re.search(r"libc-\d\.\d\d.so", _file, re.I):
                         usefile = _file
                         break
                     elif _file == "libc.so.6":

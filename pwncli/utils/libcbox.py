@@ -125,7 +125,7 @@ class LibcBox:
         self._data[hash_type] = hash_value
     
     def __show_result(self, version_start):
-        _pattern = "libc?6?[-_](\d\.\d\d)"
+        _pattern = r"libc?6?[-_](\d\.\d\d)"
         options = []
         print("="*90)
         if version_start is not None:
@@ -314,7 +314,7 @@ class LibcBox:
         """
         if not self._data:
             errlog_exit("No condition! Please add condition first!")
-        if version_start and not re.search("^\d\.\d\d$", version_start):
+        if version_start and not re.search(r"^\d\.\d\d$", version_start):
             errlog_exit("Invalid version_start, should be None or 2.23/2.27/2.31...!")
         self.__post_to_find()
         if not self._res:
@@ -404,4 +404,3 @@ class LibcBox:
             self._rb.add_file("libc", fn, None)
         
         return self._rb
-
