@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pwncli"
+version = "1.6"
+description = "pwncli, do pwn quickly."
+readme = { file = "README.md", content-type = "text/markdown" }
+authors = [
+  { name = "roderick chan", email = "roderickchan@foxmail.com" },
+]
+license = "MIT"
+requires-python = ">=3"
+dependencies = [
+  "click",
+  "pwntools",
+  "PySocks",
+  "requests",
+  "ropper",
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Homepage = "https://github.com/RoderickChan/pwncli"
+
+[project.scripts]
+pwncli = "pwncli.cli:cli"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["pwncli*"]
+
+[tool.setuptools.package-data]
+pwncli = ["conf/*"]
