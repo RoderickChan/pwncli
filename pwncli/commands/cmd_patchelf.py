@@ -35,7 +35,7 @@ def _download_from_glibc_all_in_one(ctx, libc_so, archinfo, libc_dirname):
     with open(libc_so, "rt", encoding="utf-8", errors="ignore") as f:
         data = f.read()
     
-    _match = re.search("GLIBC\s(\d\.\d\d-\dubuntu[\d\.]*)\)", data)
+    _match = re.search(r"GLIBC\s(\d\.\d\d-\dubuntu[\d\.]*)\)", data)
     if _match:
         download_info = _match.groups()[0] + "_" + archinfo
         download_path = os.path.split(libc_dirname)[0]
@@ -115,7 +115,7 @@ def cli(ctx, filename, libc_version, back_up, filter_string, verbose, libc_so):
         libc_version = _download_from_glibc_all_in_one(ctx, libc_so, archinfo, libs_dirname)
 
     # check libc_version
-    if not re.search("^\d\.\d\d$", libc_version):
+    if not re.search(r"^\d\.\d\d$", libc_version):
         ctx.abort("patchelf-command --> Invalid libc_version: {}".format(libc_version))
 
     def _filter_dir(_d):

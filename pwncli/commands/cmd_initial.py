@@ -47,7 +47,7 @@ def _collect_info(ctx, info):
         status, output = getstatusoutput("/lib/x86_64-linux-gnu/libc.so.6")
         if status == 0:
             glibc_info = re.findall(
-                "glibc [\d\.]+-\d+ubuntu[\d\.]+", output.splitlines()[0], re.I)[0]
+                r"glibc [\d\.]+-\d+ubuntu[\d\.]+", output.splitlines()[0], re.I)[0]
             ctx.vlog(_left_str("Default libc version") +
                      " --->    {}".format(glibc_info))
 
@@ -86,7 +86,7 @@ def _detect_file(ctx, info):
             if "musl" in output:
                 _make_template_exit()  # musl
             glibcinfo = re.findall(
-                "glibc [\d\.]+-\d+ubuntu[\d\.]+", output.splitlines()[0], re.I)[0]
+                r"glibc [\d\.]+-\d+ubuntu[\d\.]+", output.splitlines()[0], re.I)[0]
             ctx.vlog(_left_str("Detect libc version") +
                      " --->    {}".format(glibcinfo))
 

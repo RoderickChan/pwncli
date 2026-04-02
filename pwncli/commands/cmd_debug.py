@@ -135,7 +135,7 @@ def _set_terminal(ctx, p, flag, attach_mode, use_gdb, gdb_type, script, is_file,
                 ctx.abort(
                     'debug-command --> Cannot get distro name in wsl, please check your env!')
 
-            if not re.search("ubuntu-\d\d.\d\d", distro_name, re.I):
+            if not re.search(r"ubuntu-\d\d.\d\d", distro_name, re.I):
                 ctx.vlog2('debug-command --> Warn: The distribution name is not Ubuntu-XX.XX.')
 
             ctx.vlog2(
@@ -465,7 +465,7 @@ int %s()
 
     # set base+XXX breakpoints
     if "####" in script:
-        _pattern = "####([\d\w\+\-\*/]+)####"
+        _pattern = r"####([\d\w\+\-\*/]+)####"
         _script = script
         _result = ""
         for _match in re.finditer(_pattern, script, re.I):
@@ -501,7 +501,7 @@ int %s()
         if not ctx.gift['elf'].pie:
             ctx.vlog2(
                 "debug-command --> set base-format breakpoints while current binary's PIE not enable")
-        _pattern = "###([0-9a-fx\+\-\*/]+)###"
+        _pattern = r"###([0-9a-fx\+\-\*/]+)###"
         _script = script
         for _match in re.finditer(_pattern, script, re.I):
             _epxr = _match.groups()[0]
@@ -514,7 +514,7 @@ int %s()
 
     # process libc base breakpoints
     if "##" in script:
-        _pattern = "##([0-9a-fx\+\-\*/]+)##"
+        _pattern = r"##([0-9a-fx\+\-\*/]+)##"
         _script = script
         for _match in re.finditer(_pattern, script, re.I):
             _epxr = _match.groups()[0]
